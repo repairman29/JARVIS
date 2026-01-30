@@ -1,0 +1,527 @@
+{
+  "name": "skill-marketplace",
+  "version": "1.0.0",
+  "description": "Community skill marketplace for discovering, installing, and managing JARVIS skills",
+  "env": ["JARVIS_MARKETPLACE_URL", "JARVIS_MARKETPLACE_TOKEN", "JARVIS_SKILL_SANDBOX_ENABLED"],
+  "tools": [
+    {
+      "name": "discover_skills",
+      "description": "Browse and search for available skills in the marketplace",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search query for skill names, descriptions, or tags"
+          },
+          "category": {
+            "type": "string",
+            "description": "Filter by skill category",
+            "enum": ["productivity", "development", "system", "communication", "entertainment", "utilities", "ai", "automation", "all"],
+            "default": "all"
+          },
+          "sortBy": {
+            "type": "string",
+            "description": "Sort results by criteria",
+            "enum": ["popularity", "rating", "recent", "name", "downloads"],
+            "default": "popularity"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Maximum number of results to return",
+            "default": 20
+          },
+          "featured": {
+            "type": "boolean",
+            "description": "Show only featured skills",
+            "default": false
+          },
+          "compatibility": {
+            "type": "string",
+            "description": "Filter by platform compatibility",
+            "enum": ["macos", "windows", "linux", "all"],
+            "default": "all"
+          }
+        }
+      }
+    },
+    {
+      "name": "install_skill",
+      "description": "Install a skill from the marketplace or local package",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "skillId": {
+            "type": "string",
+            "description": "Marketplace skill ID to install"
+          },
+          "packagePath": {
+            "type": "string",
+            "description": "Local path to skill package file (.jarvis-skill)"
+          },
+          "gitUrl": {
+            "type": "string",
+            "description": "Git repository URL for skill installation"
+          },
+          "version": {
+            "type": "string",
+            "description": "Specific version to install (default: latest)"
+          },
+          "force": {
+            "type": "boolean",
+            "description": "Force installation even if skill exists",
+            "default": false
+          },
+          "skipDependencies": {
+            "type": "boolean",
+            "description": "Skip automatic dependency installation",
+            "default": false
+          },
+          "sandboxed": {
+            "type": "boolean",
+            "description": "Install in sandboxed environment",
+            "default": true
+          }
+        }
+      }
+    },
+    {
+      "name": "manage_skills",
+      "description": "Manage installed skills: enable, disable, update, uninstall",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "Management action to perform",
+            "enum": ["list", "enable", "disable", "update", "uninstall", "info", "configure"]
+          },
+          "skillName": {
+            "type": "string",
+            "description": "Name of skill to manage"
+          },
+          "includeDisabled": {
+            "type": "boolean",
+            "description": "Include disabled skills in list",
+            "default": false
+          },
+          "configuration": {
+            "type": "object",
+            "description": "Skill configuration parameters",
+            "additionalProperties": true
+          },
+          "confirmUninstall": {
+            "type": "boolean",
+            "description": "Confirmation for skill uninstall",
+            "default": false
+          }
+        },
+        "required": ["action"]
+      }
+    },
+    {
+      "name": "create_skill_package",
+      "description": "Package a skill for distribution to the marketplace",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "skillPath": {
+            "type": "string",
+            "description": "Path to skill directory to package"
+          },
+          "outputPath": {
+            "type": "string",
+            "description": "Output path for package file"
+          },
+          "includeTests": {
+            "type": "boolean",
+            "description": "Include test files in package",
+            "default": false
+          },
+          "includeDocs": {
+            "type": "boolean",
+            "description": "Include documentation files",
+            "default": true
+          },
+          "minifyCode": {
+            "type": "boolean",
+            "description": "Minify JavaScript code",
+            "default": false
+          },
+          "validateBeforePackage": {
+            "type": "boolean",
+            "description": "Validate skill before packaging",
+            "default": true
+          }
+        },
+        "required": ["skillPath"]
+      }
+    },
+    {
+      "name": "publish_skill",
+      "description": "Publish a skill to the community marketplace",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "packagePath": {
+            "type": "string",
+            "description": "Path to skill package file"
+          },
+          "skillInfo": {
+            "type": "object",
+            "description": "Skill metadata",
+            "properties": {
+              "name": {"type": "string"},
+              "description": {"type": "string"},
+              "category": {"type": "string"},
+              "tags": {"type": "array", "items": {"type": "string"}},
+              "homepage": {"type": "string"},
+              "repository": {"type": "string"},
+              "license": {"type": "string"},
+              "compatibility": {"type": "array", "items": {"type": "string"}}
+            }
+          },
+          "releaseNotes": {
+            "type": "string",
+            "description": "Release notes for this version"
+          },
+          "beta": {
+            "type": "boolean",
+            "description": "Mark as beta release",
+            "default": false
+          },
+          "unlisted": {
+            "type": "boolean",
+            "description": "Publish as unlisted (not in public search)",
+            "default": false
+          }
+        },
+        "required": ["packagePath", "skillInfo"]
+      }
+    },
+    {
+      "name": "skill_ratings",
+      "description": "Rate, review, and view ratings for marketplace skills",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "Rating action",
+            "enum": ["rate", "review", "get_ratings", "get_reviews", "report"]
+          },
+          "skillId": {
+            "type": "string",
+            "description": "Skill ID for rating/review"
+          },
+          "rating": {
+            "type": "number",
+            "description": "Rating (1-5 stars)",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "review": {
+            "type": "string",
+            "description": "Written review text"
+          },
+          "reportReason": {
+            "type": "string",
+            "description": "Reason for reporting skill",
+            "enum": ["inappropriate", "malicious", "broken", "copyright", "spam", "other"]
+          },
+          "limit": {
+            "type": "number",
+            "description": "Number of reviews to retrieve",
+            "default": 10
+          }
+        },
+        "required": ["action", "skillId"]
+      }
+    },
+    {
+      "name": "skill_dependencies",
+      "description": "Manage skill dependencies and requirements",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "Dependency action",
+            "enum": ["check", "install", "update", "resolve_conflicts", "list"]
+          },
+          "skillName": {
+            "type": "string",
+            "description": "Skill to check dependencies for"
+          },
+          "autoInstall": {
+            "type": "boolean",
+            "description": "Automatically install missing dependencies",
+            "default": true
+          },
+          "includeOptional": {
+            "type": "boolean",
+            "description": "Include optional dependencies",
+            "default": false
+          }
+        },
+        "required": ["action"]
+      }
+    },
+    {
+      "name": "skill_security",
+      "description": "Security scanning and sandboxing for skills",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "Security action",
+            "enum": ["scan", "sandbox", "permissions", "audit", "quarantine", "whitelist"]
+          },
+          "skillName": {
+            "type": "string",
+            "description": "Skill to perform security action on"
+          },
+          "scanDepth": {
+            "type": "string",
+            "description": "Security scan depth",
+            "enum": ["quick", "thorough", "deep"],
+            "default": "thorough"
+          },
+          "permissions": {
+            "type": "object",
+            "description": "Skill permissions configuration",
+            "properties": {
+              "fileSystem": {"type": "boolean"},
+              "network": {"type": "boolean"},
+              "systemCommands": {"type": "boolean"},
+              "otherSkills": {"type": "boolean"}
+            }
+          },
+          "quarantineReason": {
+            "type": "string",
+            "description": "Reason for quarantining skill"
+          }
+        },
+        "required": ["action"]
+      }
+    },
+    {
+      "name": "skill_updates",
+      "description": "Check for and manage skill updates",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "Update action",
+            "enum": ["check_all", "check_skill", "update_all", "update_skill", "auto_update_settings"]
+          },
+          "skillName": {
+            "type": "string",
+            "description": "Specific skill to check/update"
+          },
+          "includeBeta": {
+            "type": "boolean",
+            "description": "Include beta versions in updates",
+            "default": false
+          },
+          "autoUpdate": {
+            "type": "boolean",
+            "description": "Enable automatic updates",
+            "default": false
+          },
+          "notifyOnly": {
+            "type": "boolean",
+            "description": "Only notify about updates, don't install",
+            "default": false
+          }
+        },
+        "required": ["action"]
+      }
+    },
+    {
+      "name": "skill_analytics",
+      "description": "Usage analytics and recommendations for skills",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "Analytics action",
+            "enum": ["usage_stats", "recommendations", "trending", "performance", "export_data"]
+          },
+          "skillName": {
+            "type": "string",
+            "description": "Skill to analyze (if specific)"
+          },
+          "timeframe": {
+            "type": "string",
+            "description": "Time period for analysis",
+            "enum": ["day", "week", "month", "quarter", "year", "all"],
+            "default": "month"
+          },
+          "includePersonal": {
+            "type": "boolean",
+            "description": "Include personal usage data",
+            "default": true
+          },
+          "anonymized": {
+            "type": "boolean",
+            "description": "Use anonymized aggregate data only",
+            "default": true
+          }
+        },
+        "required": ["action"]
+      }
+    },
+    {
+      "name": "skill_marketplace",
+      "description": "Interact with the community marketplace platform",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "Marketplace action",
+            "enum": ["connect", "sync", "profile", "collections", "following", "notifications"]
+          },
+          "credentials": {
+            "type": "object",
+            "description": "Authentication credentials",
+            "properties": {
+              "username": {"type": "string"},
+              "token": {"type": "string"}
+            }
+          },
+          "collectionName": {
+            "type": "string",
+            "description": "Name of skill collection"
+          },
+          "skillIds": {
+            "type": "array",
+            "description": "Skills to add to collection",
+            "items": {"type": "string"}
+          },
+          "followUserId": {
+            "type": "string",
+            "description": "User to follow for skill recommendations"
+          }
+        },
+        "required": ["action"]
+      }
+    },
+    {
+      "name": "skill_validation",
+      "description": "Validate skill packages for security, compatibility, and quality",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "skillPath": {
+            "type": "string",
+            "description": "Path to skill or package to validate"
+          },
+          "validationType": {
+            "type": "string",
+            "description": "Type of validation to perform",
+            "enum": ["full", "security", "compatibility", "quality", "syntax"],
+            "default": "full"
+          },
+          "strictMode": {
+            "type": "boolean",
+            "description": "Use strict validation rules",
+            "default": false
+          },
+          "generateReport": {
+            "type": "boolean",
+            "description": "Generate detailed validation report",
+            "default": true
+          },
+          "fixIssues": {
+            "type": "boolean",
+            "description": "Attempt to auto-fix validation issues",
+            "default": false
+          }
+        },
+        "required": ["skillPath"]
+      }
+    },
+    {
+      "name": "skill_templates",
+      "description": "Create and manage skill development templates",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "Template action",
+            "enum": ["list", "create", "use", "customize", "publish_template"]
+          },
+          "templateName": {
+            "type": "string",
+            "description": "Name of template to use or create"
+          },
+          "skillName": {
+            "type": "string",
+            "description": "Name for new skill being created"
+          },
+          "outputPath": {
+            "type": "string",
+            "description": "Path where skill should be created"
+          },
+          "templateType": {
+            "type": "string",
+            "description": "Type of skill template",
+            "enum": ["basic", "advanced", "integration", "ai-powered", "utility", "workflow"],
+            "default": "basic"
+          },
+          "customization": {
+            "type": "object",
+            "description": "Template customization options",
+            "additionalProperties": true
+          }
+        },
+        "required": ["action"]
+      }
+    },
+    {
+      "name": "skill_backup",
+      "description": "Backup and restore skill configurations and data",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "Backup action",
+            "enum": ["backup", "restore", "list_backups", "schedule", "export", "import"]
+          },
+          "backupPath": {
+            "type": "string",
+            "description": "Path for backup file"
+          },
+          "includeData": {
+            "type": "boolean",
+            "description": "Include skill data in backup",
+            "default": true
+          },
+          "includeConfigs": {
+            "type": "boolean",
+            "description": "Include skill configurations",
+            "default": true
+          },
+          "compress": {
+            "type": "boolean",
+            "description": "Compress backup files",
+            "default": true
+          },
+          "scheduleFrequency": {
+            "type": "string",
+            "description": "Backup schedule frequency",
+            "enum": ["daily", "weekly", "monthly", "never"]
+          }
+        },
+        "required": ["action"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,222 @@
+{
+  "name": "file-search",
+  "version": "1.0.0", 
+  "description": "Intelligent file search and indexing: find files by name, content, type, or usage patterns",
+  "env": ["JARVIS_FILE_SEARCH_PATHS", "JARVIS_FILE_SEARCH_EXCLUDE"],
+  "tools": [
+    {
+      "name": "search_files",
+      "description": "Search for files by name, path, content, or metadata with fuzzy matching",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search query - can be file name, partial path, or content"
+          },
+          "type": {
+            "type": "string", 
+            "description": "Filter by file type category",
+            "enum": ["document", "image", "video", "audio", "code", "archive", "spreadsheet", "presentation", "pdf", "text", "all"],
+            "default": "all"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Maximum number of results to return (default 20)",
+            "default": 20
+          },
+          "includeContent": {
+            "type": "boolean",
+            "description": "Include content search (slower but more comprehensive)",
+            "default": false
+          },
+          "sortBy": {
+            "type": "string",
+            "description": "Sort results by relevance, modified date, size, or name",
+            "enum": ["relevance", "modified", "size", "name", "accessed"],
+            "default": "relevance"
+          },
+          "directory": {
+            "type": "string",
+            "description": "Limit search to specific directory path"
+          }
+        },
+        "required": ["query"]
+      }
+    },
+    {
+      "name": "recent_files",
+      "description": "Get recently accessed, modified, or opened files",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Type of recent files to show",
+            "enum": ["accessed", "modified", "opened", "all"],
+            "default": "accessed"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Maximum number of files to return",
+            "default": 20
+          },
+          "hours": {
+            "type": "number", 
+            "description": "How many hours back to search (default 24)",
+            "default": 24
+          },
+          "fileTypes": {
+            "type": "array",
+            "description": "Filter by specific file extensions (e.g., ['js', 'md', 'py'])",
+            "items": {"type": "string"}
+          }
+        }
+      }
+    },
+    {
+      "name": "file_operations",
+      "description": "Perform operations on files: open, reveal, copy path, get info, preview",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "File operation to perform",
+            "enum": ["open", "reveal", "copy_path", "info", "preview", "delete", "duplicate", "rename"]
+          },
+          "filePath": {
+            "type": "string",
+            "description": "Full path to the file"
+          },
+          "openWith": {
+            "type": "string",
+            "description": "Specific app to open with (for 'open' action)"
+          },
+          "newName": {
+            "type": "string",
+            "description": "New name for rename operation"
+          }
+        },
+        "required": ["action", "filePath"]
+      }
+    },
+    {
+      "name": "index_files", 
+      "description": "Manually trigger file indexing for specified directories",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "directories": {
+            "type": "array",
+            "description": "Directories to index (defaults to configured search paths)",
+            "items": {"type": "string"}
+          },
+          "includeContent": {
+            "type": "boolean", 
+            "description": "Include content indexing for text files",
+            "default": true
+          },
+          "force": {
+            "type": "boolean",
+            "description": "Force re-indexing even if files haven't changed",
+            "default": false
+          }
+        }
+      }
+    },
+    {
+      "name": "search_content",
+      "description": "Search within file contents using grep-like functionality",
+      "parameters": {
+        "type": "object", 
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Text to search for within files"
+          },
+          "directory": {
+            "type": "string",
+            "description": "Directory to search in (defaults to current working directory)"
+          },
+          "fileTypes": {
+            "type": "array",
+            "description": "File extensions to search within",
+            "items": {"type": "string"}
+          },
+          "caseSensitive": {
+            "type": "boolean",
+            "description": "Perform case-sensitive search",
+            "default": false
+          },
+          "regex": {
+            "type": "boolean", 
+            "description": "Treat query as regular expression",
+            "default": false
+          },
+          "contextLines": {
+            "type": "number",
+            "description": "Number of context lines to show around matches",
+            "default": 2
+          }
+        },
+        "required": ["query"]
+      }
+    },
+    {
+      "name": "find_duplicates",
+      "description": "Find duplicate files based on content hash, name, or size",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "method": {
+            "type": "string",
+            "description": "Method to detect duplicates",
+            "enum": ["hash", "name", "size", "fuzzy_name"],
+            "default": "hash"
+          },
+          "directory": {
+            "type": "string",
+            "description": "Directory to search for duplicates"
+          },
+          "minSize": {
+            "type": "number",
+            "description": "Minimum file size to consider (bytes)"
+          },
+          "extensions": {
+            "type": "array",
+            "description": "File extensions to include",
+            "items": {"type": "string"}
+          }
+        }
+      }
+    },
+    {
+      "name": "smart_suggestions",
+      "description": "Get smart file suggestions based on current context, time, and usage patterns",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "context": {
+            "type": "string",
+            "description": "Current context: working, coding, writing, designing",
+            "enum": ["working", "coding", "writing", "designing", "general"]
+          },
+          "limit": {
+            "type": "number",
+            "description": "Number of suggestions to return",
+            "default": 10
+          }
+        }
+      }
+    },
+    {
+      "name": "get_index_stats",
+      "description": "Get statistics about the file index: total files, last update, size, etc.",
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ]
+}
