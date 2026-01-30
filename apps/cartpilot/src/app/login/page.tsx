@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, Suspense, useEffect } from 'react'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { SignInWithGoogle } from './SignInWithGoogle'
 
-export default function Login() {
+function LoginContent() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSignUp, setIsSignUp] = useState(false)
@@ -15,6 +16,12 @@ export default function Login() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const thenConnect = searchParams.get('then') === 'connect'
+
+  useEffect(() => {
+    if (searchParams.get('error') === 'auth_callback') {
+      setError('Sign-in was cancelled or failed. Try again or use email.')
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -42,7 +49,12 @@ export default function Login() {
         router.push(thenConnect ? '/dashboard?connectKroger=1' : '/dashboard')
       }
     } catch (err: any) {
-      setError(err.message)
+      const msg = err?.message || ''
+      if (msg.includes('Invalid login credentials') || msg.includes('invalid_grant') || err?.status === 400) {
+        setError('Invalid email or password. Check your details or create an account.')
+      } else {
+        setError(msg)
+      }
     } finally {
       setLoading(false)
     }
@@ -77,11 +89,20 @@ export default function Login() {
               Sign in, then we&apos;ll take you straight to connect Kroger.
             </div>
           )}
-          {!thenConnect && (
-            <div className="bg-[#f8faf5] text-[#536538] text-xs rounded-xl p-3 mb-4">
-              We&apos;ll connect your Kroger account after you sign in.
+          <SignInWithGoogle
+            onError={setError}
+            redirectTo={thenConnect ? '/dashboard?connectKroger=1' : '/dashboard'}
+            className="mb-4"
+          />
+
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-[#eef2e6]" />
             </div>
-          )}
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-white px-2 text-[#87a05a]">or with email</span>
+            </div>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -158,5 +179,21 @@ export default function Login() {
         </div>
       </div>
     </main>
+  )
+}
+
+export default function Login() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-[#fdfcf9] flex items-center justify-center">
+          <div className="w-12 h-12 bg-[#9caf88] rounded-full olive-pulse flex items-center justify-center">
+            <span className="text-white text-xl">🫒</span>
+          </div>
+        </main>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   )
 }
