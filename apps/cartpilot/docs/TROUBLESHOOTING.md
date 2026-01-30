@@ -1,5 +1,19 @@
 # Olive – Troubleshooting
 
+## Production 401 / wrong Supabase (Vercel CLI)
+
+**Already done via CLI:** `NEXT_PUBLIC_SUPABASE_URL` is set to `https://rbfzlqmkwhbvrrfdcain.supabase.co` for Production. The old project (`mgeydloygmoiypnwaqmn`) vars were removed.
+
+**You still need to set the anon key** (from [rbfzlqmkwhbvrrfdcain → API](https://supabase.com/dashboard/project/rbfzlqmkwhbvrrfdcain/settings/api), copy **anon public**):
+
+```bash
+NEXT_PUBLIC_SUPABASE_ANON_KEY='eyJ...' npm run vercel:set-supabase-key
+```
+
+Then redeploy: `vercel --prod` or Vercel Dashboard → Redeploy.
+
+---
+
 ## Console errors
 
 ### "Unchecked runtime.lastError: Could not establish connection" / "message port closed"
