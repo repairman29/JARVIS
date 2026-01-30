@@ -1,0 +1,162 @@
+name: 🛠️ Skill Request
+description: Request a new skill for the JARVIS marketplace
+title: "[Skill Request]: "
+labels: ["skill-request", "community"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        🎉 Skill requests are the heart of JARVIS's extensibility! Help us understand what productivity integrations you need most.
+
+  - type: input
+    id: skill-name
+    attributes:
+      label: Skill Name
+      description: What would you call this skill?
+      placeholder: "e.g., Spotify Control, GitHub Manager, Notion Integration"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Skill Description
+      description: What would this skill do? What's the main functionality?
+      placeholder: |
+        This skill would allow JARVIS to:
+        - Connect to [service/app]
+        - Control [specific features]
+        - Automate [common tasks]
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Skill Category
+      description: What category best describes this skill?
+      options:
+        - productivity
+        - development
+        - communication
+        - entertainment
+        - system
+        - utilities
+        - ai
+        - automation
+        - custom
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-cases
+    attributes:
+      label: Use Cases & Commands
+      description: What specific commands would you use with this skill?
+      placeholder: |
+        Example commands:
+        "JARVIS, play my focus playlist on Spotify"
+        "JARVIS, create a new GitHub issue for this bug"
+        "JARVIS, add this task to my Notion workspace"
+    validations:
+      required: true
+
+  - type: input
+    id: service-api
+    attributes:
+      label: Service/API Information
+      description: What service or API would this skill integrate with?
+      placeholder: "e.g., Spotify Web API, GitHub REST API, Notion API"
+
+  - type: textarea
+    id: tools
+    attributes:
+      label: Suggested Tools
+      description: What specific tools/functions should this skill provide?
+      placeholder: |
+        Tools this skill should include:
+        - search_music: Find and play songs
+        - control_playback: Play/pause/skip
+        - create_playlist: Make new playlists
+        - get_now_playing: Show current track
+
+  - type: dropdown
+    id: complexity
+    attributes:
+      label: Complexity Level
+      description: How complex do you think this skill would be to build?
+      options:
+        - Simple - Basic API calls and data display
+        - Medium - Multiple endpoints with some logic
+        - Complex - Advanced features with workflow integration
+        - Advanced - Requires AI processing or complex workflows
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Community Priority
+      description: How valuable would this skill be to the JARVIS community?
+      options:
+        - Critical - Productivity essential for many users
+        - High - Popular service with significant user base
+        - Medium - Useful for specific user groups
+        - Low - Nice to have for few users
+
+  - type: textarea
+    id: existing-solutions
+    attributes:
+      label: Existing Solutions
+      description: Are there existing apps/tools that do this? How would JARVIS be better?
+      placeholder: |
+        Current alternatives:
+        - [App/Service]: Does X but lacks Y
+        - [Another tool]: Good for Z but requires manual steps
+        
+        JARVIS advantage:
+        - Natural language control
+        - Integration with other skills
+        - Workflow automation potential
+
+  - type: input
+    id: documentation
+    attributes:
+      label: API Documentation
+      description: Link to API docs or developer resources
+      placeholder: "https://developer.spotify.com/documentation/web-api/"
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution Willingness
+      options:
+        - label: I could help develop this skill
+        - label: I could provide API keys for testing
+        - label: I could help with testing and feedback
+        - label: I could contribute documentation
+        - label: I'm just requesting the idea
+
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: Additional Information
+      description: Any other details that would help with skill development?
+      placeholder: |
+        Additional considerations:
+        - Authentication requirements
+        - Rate limiting concerns
+        - Special features or edge cases
+        - Integration with other skills
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I've searched for existing skills and similar requests
+          required: true
+        - label: I've provided clear use cases and examples
+          required: true
+        - label: I understand this skill would be community-developed
+          required: true

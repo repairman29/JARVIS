@@ -1,0 +1,338 @@
+{
+  "name": "performance-monitor", 
+  "version": "1.0.0",
+  "description": "JARVIS performance monitoring, optimization, and health analytics for peak productivity system operation",
+  "env": ["JARVIS_PERF_MONITORING_ENABLED", "JARVIS_PERF_ALERT_THRESHOLD", "JARVIS_PERF_HISTORY_DAYS"],
+  "tools": [
+    {
+      "name": "system_health",
+      "description": "Get comprehensive system health report including CPU, memory, disk, and JARVIS-specific metrics",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "includeJarvisMetrics": {
+            "type": "boolean",
+            "description": "Include JARVIS-specific performance data",
+            "default": true
+          },
+          "includeRecommendations": {
+            "type": "boolean", 
+            "description": "Provide optimization recommendations",
+            "default": true
+          },
+          "detailLevel": {
+            "type": "string",
+            "description": "Level of detail in report",
+            "enum": ["basic", "detailed", "comprehensive"],
+            "default": "detailed"
+          }
+        }
+      }
+    },
+    {
+      "name": "performance_benchmark",
+      "description": "Run performance benchmarks and compare with baseline metrics",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "benchmarkType": {
+            "type": "string",
+            "description": "Type of benchmark to run",
+            "enum": ["startup", "command_response", "file_search", "workflow_execution", "all"],
+            "default": "all"
+          },
+          "iterations": {
+            "type": "number",
+            "description": "Number of test iterations for accuracy",
+            "default": 5
+          },
+          "saveResults": {
+            "type": "boolean",
+            "description": "Save benchmark results for historical comparison",
+            "default": true
+          },
+          "compareWithBaseline": {
+            "type": "boolean",
+            "description": "Compare results with stored baseline",
+            "default": true
+          }
+        }
+      }
+    },
+    {
+      "name": "optimize_performance",
+      "description": "Automatically optimize JARVIS performance with smart cleanup and configuration",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "optimizationType": {
+            "type": "string",
+            "description": "Type of optimization to perform",
+            "enum": ["quick", "full", "targeted", "custom"],
+            "default": "quick"
+          },
+          "targetAreas": {
+            "type": "array",
+            "description": "Specific areas to optimize",
+            "items": {
+              "type": "string",
+              "enum": ["startup", "memory", "storage", "indexing", "cache", "workflows"]
+            }
+          },
+          "aggressiveCleanup": {
+            "type": "boolean",
+            "description": "Perform more thorough cleanup (may remove more data)",
+            "default": false
+          },
+          "backupFirst": {
+            "type": "boolean", 
+            "description": "Create backup before optimization",
+            "default": true
+          }
+        }
+      }
+    },
+    {
+      "name": "monitor_realtime",
+      "description": "Start real-time performance monitoring with alerts and notifications",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "Monitoring action",
+            "enum": ["start", "stop", "status", "configure"],
+            "default": "start"
+          },
+          "monitorInterval": {
+            "type": "number",
+            "description": "Monitoring interval in seconds",
+            "default": 30
+          },
+          "alertThresholds": {
+            "type": "object",
+            "description": "Performance alert thresholds",
+            "properties": {
+              "cpuPercent": {"type": "number", "default": 80},
+              "memoryPercent": {"type": "number", "default": 85},
+              "responseTimeMs": {"type": "number", "default": 2000},
+              "diskSpacePercent": {"type": "number", "default": 90}
+            }
+          },
+          "alertMethods": {
+            "type": "array",
+            "description": "How to deliver alerts",
+            "items": {
+              "type": "string",
+              "enum": ["notification", "voice", "email", "slack"]
+            },
+            "default": ["notification"]
+          }
+        }
+      }
+    },
+    {
+      "name": "skill_performance",
+      "description": "Analyze individual skill performance and identify optimization opportunities",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "skillName": {
+            "type": "string",
+            "description": "Specific skill to analyze (if not provided, analyzes all)"
+          },
+          "analysisType": {
+            "type": "string",
+            "description": "Type of performance analysis",
+            "enum": ["execution_time", "memory_usage", "error_rate", "usage_frequency", "comprehensive"],
+            "default": "comprehensive"
+          },
+          "timeframe": {
+            "type": "string",
+            "description": "Time period for analysis",
+            "enum": ["hour", "day", "week", "month", "all"],
+            "default": "week"
+          },
+          "includeOptimizations": {
+            "type": "boolean",
+            "description": "Include specific optimization recommendations",
+            "default": true
+          }
+        }
+      }
+    },
+    {
+      "name": "workflow_analytics",
+      "description": "Analyze workflow execution performance and suggest optimizations",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workflowName": {
+            "type": "string",
+            "description": "Specific workflow to analyze"
+          },
+          "analysisDepth": {
+            "type": "string",
+            "description": "Depth of analysis to perform",
+            "enum": ["basic", "detailed", "deep"],
+            "default": "detailed"
+          },
+          "optimizationGoals": {
+            "type": "array",
+            "description": "What to optimize for",
+            "items": {
+              "type": "string",
+              "enum": ["speed", "reliability", "resource_usage", "user_experience"]
+            },
+            "default": ["speed", "reliability"]
+          },
+          "generateReport": {
+            "type": "boolean",
+            "description": "Generate detailed optimization report",
+            "default": true
+          }
+        }
+      }
+    },
+    {
+      "name": "resource_cleanup",
+      "description": "Clean up JARVIS data files, caches, and temporary resources",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "cleanupType": {
+            "type": "string",
+            "description": "Type of cleanup to perform",
+            "enum": ["cache", "logs", "temp", "old_data", "all"],
+            "default": "cache"
+          },
+          "ageDays": {
+            "type": "number",
+            "description": "Remove files older than this many days",
+            "default": 7
+          },
+          "preserveImportant": {
+            "type": "boolean",
+            "description": "Preserve important data like pinned items and saved workflows",
+            "default": true
+          },
+          "dryRun": {
+            "type": "boolean",
+            "description": "Show what would be cleaned without actually removing",
+            "default": false
+          }
+        }
+      }
+    },
+    {
+      "name": "usage_statistics", 
+      "description": "Generate comprehensive usage statistics and productivity insights",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "reportType": {
+            "type": "string",
+            "description": "Type of usage report",
+            "enum": ["daily", "weekly", "monthly", "skills", "workflows", "comprehensive"],
+            "default": "weekly"
+          },
+          "includeProductivityScore": {
+            "type": "boolean",
+            "description": "Calculate productivity improvement score",
+            "default": true
+          },
+          "includeComparisons": {
+            "type": "boolean",
+            "description": "Compare with previous time periods",
+            "default": true
+          },
+          "generateVisualization": {
+            "type": "boolean",
+            "description": "Create visual charts and graphs",
+            "default": false
+          },
+          "anonymized": {
+            "type": "boolean",
+            "description": "Use anonymized data for privacy",
+            "default": true
+          }
+        }
+      }
+    },
+    {
+      "name": "health_alerts",
+      "description": "Configure and manage performance alerts and notifications",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string", 
+            "description": "Alert management action",
+            "enum": ["create", "update", "delete", "list", "test", "mute", "unmute"]
+          },
+          "alertName": {
+            "type": "string",
+            "description": "Name of the alert rule"
+          },
+          "condition": {
+            "type": "object",
+            "description": "Alert trigger condition",
+            "properties": {
+              "metric": {"type": "string"},
+              "operator": {"type": "string", "enum": [">", "<", ">=", "<=", "==", "!="]},
+              "threshold": {"type": "number"},
+              "duration": {"type": "number"}
+            }
+          },
+          "notification": {
+            "type": "object",
+            "description": "How to deliver the alert",
+            "properties": {
+              "type": {"type": "string", "enum": ["desktop", "voice", "email", "webhook"]},
+              "message": {"type": "string"},
+              "urgency": {"type": "string", "enum": ["low", "medium", "high", "critical"]}
+            }
+          }
+        },
+        "required": ["action"]
+      }
+    },
+    {
+      "name": "performance_history",
+      "description": "View historical performance data and trends over time",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "metric": {
+            "type": "string",
+            "description": "Performance metric to view",
+            "enum": ["response_time", "memory_usage", "cpu_usage", "skill_performance", "workflow_success", "all"]
+          },
+          "timeRange": {
+            "type": "string", 
+            "description": "Historical time range",
+            "enum": ["24h", "7d", "30d", "90d", "1y", "all"],
+            "default": "7d"
+          },
+          "aggregation": {
+            "type": "string",
+            "description": "Data aggregation method",
+            "enum": ["raw", "hourly", "daily", "weekly"],
+            "default": "hourly"
+          },
+          "includeAnomalies": {
+            "type": "boolean",
+            "description": "Highlight performance anomalies and outliers",
+            "default": true
+          },
+          "exportFormat": {
+            "type": "string",
+            "description": "Export format for data",
+            "enum": ["json", "csv", "chart", "none"],
+            "default": "none"
+          }
+        }
+      }
+    }
+  ]
+}

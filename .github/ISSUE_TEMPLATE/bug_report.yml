@@ -1,0 +1,114 @@
+name: 🐛 Bug Report
+description: Report a problem with JARVIS functionality
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping improve JARVIS! Please provide detailed information about the bug.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: What happened? What did you expect to happen?
+      placeholder: Describe the bug in detail...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this bug?
+      placeholder: |
+        1. Say "..."
+        2. Do "..."
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What should have happened instead?
+      placeholder: Describe the expected behavior...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: skill
+    attributes:
+      label: Affected Skill
+      description: Which JARVIS skill is affected by this bug?
+      options:
+        - launcher
+        - window-manager
+        - file-search
+        - clipboard-history
+        - snippets
+        - calculator
+        - workflow-automation
+        - skill-marketplace
+        - kroger
+        - core-system
+        - not-sure
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: JARVIS Version
+      description: What version of JARVIS/Clawdbot are you using?
+      placeholder: "clawdbot --version"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - macOS
+        - Windows
+        - Linux (Ubuntu)
+        - Linux (Other)
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error Logs
+      description: Include relevant error messages or logs
+      placeholder: Paste error logs here...
+      render: shell
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Details
+      description: Any additional environment information
+      placeholder: |
+        - Node.js version: 
+        - Terminal: 
+        - Shell: 
+        - Other relevant software:
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I've searched existing issues and this isn't a duplicate
+          required: true
+        - label: I've tested with the latest version of JARVIS
+          required: true
+        - label: I've included all relevant information
+          required: true

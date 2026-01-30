@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Community Discord
+    url: https://discord.gg/jarvis-ai
+    about: Join our Discord community for real-time support and discussions
+  - name: 📚 Documentation
+    url: https://github.com/repairman29/JARVIS/blob/main/README.md
+    about: Check the comprehensive documentation and setup guides
+  - name: 🎯 Roadmap & Planning
+    url: https://github.com/repairman29/JARVIS/blob/main/ROADMAP.md
+    about: See our development roadmap and upcoming features
