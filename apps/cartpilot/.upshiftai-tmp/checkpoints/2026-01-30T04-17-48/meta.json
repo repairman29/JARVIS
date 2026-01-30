@@ -1,9 +1,0 @@
-{
-  "timestamp": "2026-01-30T04:17:48.953Z",
-  "ecosystem": "npm",
-  "reason": "manual",
-  "files": [
-    "package.json",
-    "package-lock.json"
-  ]
-}
