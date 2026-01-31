@@ -1,50 +1,28 @@
 #!/usr/bin/env node
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
-
-function loadEnvFile() {
-  const candidates = [
-    process.env.USERPROFILE ? path.join(process.env.USERPROFILE, '.clawdbot', '.env') : null,
-    process.env.HOME ? path.join(process.env.HOME, '.clawdbot', '.env') : null,
-    path.join(os.homedir(), '.clawdbot', '.env')
-  ].filter(Boolean);
-
-  const envPath = candidates.find((candidate) => fs.existsSync(candidate));
-  if (!envPath) return {};
-  const text = fs.readFileSync(envPath, 'utf8');
-  const out = {};
-  const normalized = text.replace(/^\uFEFF/, '');
-  for (const line of normalized.split(/\r?\n/)) {
-    const cleanLine = line.trimEnd();
-    const match = cleanLine.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
-    if (match) out[match[1]] = match[2].replace(/^["']|["']$/g, '').trim();
-  }
-  for (const [key, value] of Object.entries(out)) {
-    if (typeof process.env[key] === 'undefined') {
-      process.env[key] = value;
-    }
-  }
-  return out;
-}
+/**
+ * Vault healthcheck: validates Vault access (decrypted_secrets) using env or Vault resolution.
+ */
+const { loadEnvFile, resolveEnv } = require('./vault.js');
 
 async function main() {
-  loadEnvFile();
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+  const env = loadEnvFile();
+  const supabaseUrl = await resolveEnv('SUPABASE_URL', env);
+  const serviceKey =
+    (await resolveEnv('SUPABASE_SERVICE_ROLE_KEY', env)) ||
+    (await resolveEnv('SUPABASE_SERVICE_KEY', env));
   if (!supabaseUrl || !serviceKey) {
-    console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY.');
+    console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY. Use ~/.clawdbot/.env or Vault.');
     process.exit(1);
   }
 
-  const res = await fetch(`${supabaseUrl}/rest/v1/decrypted_secrets?select=id&limit=1`, {
-    method: 'GET',
+  const res = await fetch(`${supabaseUrl}/rest/v1/rpc/exec_sql`, {
+    method: 'POST',
     headers: {
       apikey: serviceKey,
       Authorization: `Bearer ${serviceKey}`,
-      'Content-Type': 'application/json',
-      'Accept-Profile': 'vault'
-    }
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ sql_query: 'select id from vault.decrypted_secrets limit 1;' })
   });
 
   if (!res.ok) {
@@ -54,7 +32,13 @@ async function main() {
     process.exit(1);
   }
 
-  console.log('Vault access OK (decrypted_secrets readable).');
+  const { getSecretByName } = require('./vault.js');
+  const probe = await getSecretByName(supabaseUrl, serviceKey, 'env/clawdbot/SUPABASE_URL');
+  if (!probe) {
+    console.error('Vault access OK but probe secret not found.');
+    process.exit(1);
+  }
+  console.log('Vault access OK (RPC helper working).');
 }
 
 main().catch((error) => {

@@ -2,34 +2,38 @@
  * Kroger OAuth Service
  * Handles OAuth callbacks, token storage, and automatic token refresh.
  * Deploy to Railway with Supabase for persistent multi-user token storage.
+ * Config: ~/.clawdbot/.env or Supabase Vault (app_secrets). No hardcoded secrets.
  */
 
+const path = require('path');
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const cron = require('node-cron');
 
+const vaultPath = path.join(__dirname, '..', '..', 'scripts', 'vault.js');
+const { loadEnvFile, resolveEnv } = require(vaultPath);
+
+loadEnvFile();
+
 const app = express();
 app.use(express.json());
-
-// Config from environment
-const PORT = process.env.PORT || 3000;
-const KROGER_CLIENT_ID = process.env.KROGER_CLIENT_ID;
-const KROGER_CLIENT_SECRET = process.env.KROGER_CLIENT_SECRET;
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY;
-const SERVICE_URL = process.env.SERVICE_URL || `http://localhost:${PORT}`;
-const API_SECRET = process.env.KROGER_SERVICE_SECRET || 'dev-secret'; // For authenticating Jarvis requests
 
 const KROGER_BASE = 'https://api.kroger.com/v1';
 const TOKEN_URL = `${KROGER_BASE}/connect/oauth2/token`;
 const AUTH_URL = `${KROGER_BASE}/connect/oauth2/authorize`;
 const SCOPES = 'cart.basic:write profile.compact';
 
-// Supabase client
+const config = {
+  get PORT() { return process.env.PORT || 3000; },
+  get KROGER_CLIENT_ID() { return process.env.KROGER_CLIENT_ID; },
+  get KROGER_CLIENT_SECRET() { return process.env.KROGER_CLIENT_SECRET; },
+  get SUPABASE_URL() { return process.env.SUPABASE_URL; },
+  get SUPABASE_KEY() { return process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY; },
+  get SERVICE_URL() { return process.env.SERVICE_URL || `http://localhost:${this.PORT}`; },
+  get API_SECRET() { return process.env.KROGER_SERVICE_SECRET; }
+};
+
 let supabase = null;
-if (SUPABASE_URL && SUPABASE_KEY) {
-  supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-}
 
 // In-memory fallback for local dev (single user)
 const memoryStore = {};
@@ -91,7 +95,7 @@ async function deleteToken(userId) {
 // ============ Kroger API ============
 
 async function exchangeCode(code, redirectUri) {
-  const auth = Buffer.from(`${KROGER_CLIENT_ID}:${KROGER_CLIENT_SECRET}`).toString('base64');
+  const auth = Buffer.from(`${config.KROGER_CLIENT_ID}:${config.KROGER_CLIENT_SECRET}`).toString('base64');
   const res = await fetch(TOKEN_URL, {
     method: 'POST',
     headers: {
@@ -183,10 +187,10 @@ app.get('/auth/url', (req, res) => {
   const userId = req.query.user_id || 'default';
   const returnUrl = req.query.return_url && isAllowedReturnUrl(req.query.return_url) ? req.query.return_url : null;
   const state = Buffer.from(JSON.stringify({ userId, ts: Date.now(), return_url: returnUrl })).toString('base64');
-  const redirectUri = `${SERVICE_URL}/callback`;
+  const redirectUri = `${config.SERVICE_URL}/callback`;
   
   const url = `${AUTH_URL}?` + new URLSearchParams({
-    client_id: KROGER_CLIENT_ID,
+    client_id: config.KROGER_CLIENT_ID,
     redirect_uri: redirectUri,
     response_type: 'code',
     scope: SCOPES,
@@ -220,7 +224,7 @@ app.get('/callback', async (req, res) => {
     }
   } catch (_) {}
   
-  const redirectUri = `${SERVICE_URL}/callback`;
+  const redirectUri = `${config.SERVICE_URL}/callback`;
   
   try {
     const tokenData = await exchangeCode(code, redirectUri);
@@ -280,7 +284,7 @@ app.get('/api/status/:userId', async (req, res) => {
   if (!token) {
     return res.json({ 
       connected: false, 
-      authUrl: `${SERVICE_URL}/auth/url?user_id=${encodeURIComponent(userId)}` 
+      authUrl: `${config.SERVICE_URL}/auth/url?user_id=${encodeURIComponent(userId)}` 
     });
   }
   
@@ -290,7 +294,7 @@ app.get('/api/status/:userId', async (req, res) => {
   res.json({
     connected: !!accessToken,
     expiresAt: token.expires_at,
-    authUrl: !accessToken ? `${SERVICE_URL}/auth/url?user_id=${encodeURIComponent(userId)}` : null,
+    authUrl: !accessToken ? `${config.SERVICE_URL}/auth/url?user_id=${encodeURIComponent(userId)}` : null,
   });
 });
 
@@ -306,7 +310,7 @@ app.get('/api/token/:userId', async (req, res) => {
   if (!accessToken) {
     return res.status(401).json({ 
       error: 'Not authorized or token expired',
-      authUrl: `${SERVICE_URL}/auth/url?user_id=${encodeURIComponent(userId)}`,
+      authUrl: `${config.SERVICE_URL}/auth/url?user_id=${encodeURIComponent(userId)}`,
     });
   }
   
@@ -326,7 +330,7 @@ app.put('/api/cart/:userId/add', async (req, res) => {
     return res.status(401).json({ 
       error: 'Not authorized',
       needsAuth: true,
-      authUrl: `${SERVICE_URL}/auth/url?user_id=${encodeURIComponent(userId)}`,
+      authUrl: `${config.SERVICE_URL}/auth/url?user_id=${encodeURIComponent(userId)}`,
     });
   }
   
@@ -395,12 +399,32 @@ cron.schedule('0 3 * * 0', refreshAllTokens);
 
 // ============ Start Server ============
 
-app.listen(PORT, () => {
-  console.log(`Kroger OAuth Service running on port ${PORT}`);
-  console.log(`Callback URL: ${SERVICE_URL}/callback`);
-  console.log(`Supabase: ${supabase ? 'connected' : 'not configured (using memory)'}`);
-  
-  if (!KROGER_CLIENT_ID || !KROGER_CLIENT_SECRET) {
-    console.warn('WARNING: KROGER_CLIENT_ID or KROGER_CLIENT_SECRET not set');
+async function start() {
+  const env = loadEnvFile();
+  process.env.SUPABASE_URL = process.env.SUPABASE_URL || (await resolveEnv('SUPABASE_URL', env));
+  process.env.SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || (await resolveEnv('SUPABASE_SERVICE_ROLE_KEY', env));
+  process.env.KROGER_CLIENT_ID = process.env.KROGER_CLIENT_ID || (await resolveEnv('KROGER_CLIENT_ID', env));
+  process.env.KROGER_CLIENT_SECRET = process.env.KROGER_CLIENT_SECRET || (await resolveEnv('KROGER_CLIENT_SECRET', env));
+  process.env.KROGER_SERVICE_SECRET = process.env.KROGER_SERVICE_SECRET || (await resolveEnv('KROGER_SERVICE_SECRET', env));
+
+  if (config.SUPABASE_URL && config.SUPABASE_KEY) {
+    supabase = createClient(config.SUPABASE_URL, config.SUPABASE_KEY);
   }
+
+  app.listen(config.PORT, () => {
+    console.log(`Kroger OAuth Service running on port ${config.PORT}`);
+    console.log(`Callback URL: ${config.SERVICE_URL}/callback`);
+    console.log(`Supabase: ${supabase ? 'connected' : 'not configured (using memory)'}`);
+    if (!config.KROGER_CLIENT_ID || !config.KROGER_CLIENT_SECRET) {
+      console.warn('WARNING: KROGER_CLIENT_ID or KROGER_CLIENT_SECRET not set');
+    }
+    if (!config.API_SECRET) {
+      console.warn('WARNING: KROGER_SERVICE_SECRET not set; authenticated routes will reject requests');
+    }
+  });
+}
+
+start().catch((err) => {
+  console.error('Failed to start:', err.message);
+  process.exit(1);
 });

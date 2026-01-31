@@ -118,6 +118,9 @@ async function main() {
     process.exit(1);
   }
 
+  const outArgIndex = process.argv.indexOf('--out');
+  const outPath = outArgIndex >= 0 ? process.argv[outArgIndex + 1] : null;
+
   const headers = {
     apikey: serviceKey,
     Authorization: `Bearer ${serviceKey}`,
@@ -168,7 +171,15 @@ async function main() {
     });
   }
 
-  console.log(JSON.stringify({ limit: LIMIT, tables: report }, null, 2));
+  const payload = JSON.stringify({ limit: LIMIT, tables: report }, null, 2);
+  if (outPath) {
+    const resolved = path.isAbsolute(outPath) ? outPath : path.join(process.cwd(), outPath);
+    fs.mkdirSync(path.dirname(resolved), { recursive: true });
+    fs.writeFileSync(resolved, payload, 'utf8');
+    console.log(`Inventory written to: ${resolved}`);
+    return;
+  }
+  console.log(payload);
 }
 
 main().catch((error) => {

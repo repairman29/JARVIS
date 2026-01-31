@@ -9,6 +9,7 @@ const os = require('os');
 const path = require('path');
 const { execSync } = require('child_process');
 const https = require('https');
+const { loadEnvFile: loadVaultEnv, resolveEnv } = require('./vault.js');
 
 const HEALTH_DIR = path.join(os.homedir(), '.jarvis', 'health');
 const SNAPSHOT_FILE = path.join(HEALTH_DIR, 'health.json');
@@ -36,15 +37,8 @@ function ensureDir(dir) {
 }
 
 function loadEnvFile() {
-  const envPath = path.join(process.env.USERPROFILE || process.env.HOME || os.homedir(), '.clawdbot', '.env');
-  if (!fs.existsSync(envPath)) return {};
-  const text = fs.readFileSync(envPath, 'utf8');
-  const out = {};
-  for (const line of text.split('\n')) {
-    const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
-    if (match) out[match[1]] = match[2].replace(/^["']|["']$/g, '').trim();
-  }
-  return out;
+  const env = loadVaultEnv();
+  return env;
 }
 
 function getEnv(key, fallbackEnv) {
@@ -391,6 +385,12 @@ function runRecoveryActions(checks) {
 async function runSafetyNet({ repair = false, jsonOnly = false } = {}) {
   ensureDir(HEALTH_DIR);
   const env = loadEnvFile();
+  if (env && (Object.keys(env).length > 0)) {
+    const url = await resolveEnv('SUPABASE_URL', env);
+    const key = (await resolveEnv('SUPABASE_SERVICE_ROLE_KEY', env)) || (await resolveEnv('SUPABASE_ANON_KEY', env));
+    if (url) process.env.SUPABASE_URL = process.env.SUPABASE_URL || url;
+    if (key) process.env.SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || key;
+  }
 
   const checks = [];
   checks.push(runCheck('system_health', checkSystemHealth));

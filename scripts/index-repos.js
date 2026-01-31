@@ -9,6 +9,7 @@ const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 const { execSync } = require('child_process');
+const { loadEnvFile: loadVaultEnv, resolveEnv } = require('./vault.js');
 
 const DEFAULT_CACHE_DIR = path.join(os.homedir(), '.jarvis', 'repos-cache');
 const DEFAULT_OLLAMA_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
@@ -31,34 +32,13 @@ function log(message, color = 'reset') {
 }
 
 function loadEnvFile() {
-  const candidates = [
-    process.env.USERPROFILE ? path.join(process.env.USERPROFILE, '.clawdbot', '.env') : null,
-    process.env.HOME ? path.join(process.env.HOME, '.clawdbot', '.env') : null,
-    path.join(os.homedir(), '.clawdbot', '.env')
-  ].filter(Boolean);
-
-  const envPath = candidates.find((candidate) => fs.existsSync(candidate));
-  if (!envPath) {
+  const env = loadVaultEnv();
+  if (Object.keys(env).length === 0) {
     log('Supabase env file not found in known locations.', 'yellow');
-    return {};
+  } else {
+    log(`Loaded env file: ~/.clawdbot/.env (${Object.keys(env).length} keys)`, 'blue');
   }
-
-  const text = fs.readFileSync(envPath, 'utf8');
-  log(`Loaded env file: ${envPath} (${text.length} chars)`, 'blue');
-  const out = {};
-  const normalized = text.replace(/^\uFEFF/, '');
-  for (const line of normalized.split(/\r?\n/)) {
-    const cleanLine = line.trimEnd();
-    const match = cleanLine.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
-    if (match) out[match[1]] = match[2].replace(/^["']|["']$/g, '').trim();
-  }
-  // Hydrate process.env for the current run
-  for (const [key, value] of Object.entries(out)) {
-    if (typeof process.env[key] === 'undefined') {
-      process.env[key] = value;
-    }
-  }
-  return out;
+  return env;
 }
 
 function getEnv(key, fallbackEnv) {
@@ -411,10 +391,10 @@ Options:
   }
 
   const env = loadEnvFile();
-  const supabaseUrl = getEnv('SUPABASE_URL', env);
+  const supabaseUrl = await resolveEnv('SUPABASE_URL', env);
   const supabaseKey =
-    getEnv('SUPABASE_SERVICE_ROLE_KEY', env) ||
-    getEnv('SUPABASE_ANON_KEY', env);
+    (await resolveEnv('SUPABASE_SERVICE_ROLE_KEY', env)) ||
+    (await resolveEnv('SUPABASE_ANON_KEY', env));
 
   const hasUrl = Boolean(supabaseUrl);
   const hasKey = Boolean(supabaseKey);
@@ -425,7 +405,7 @@ Options:
   }
 
   if (!supabaseUrl || !supabaseKey) {
-    throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_ANON_KEY) must be set.');
+    throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_ANON_KEY) must be set. Use ~/.clawdbot/.env or Vault (app_secrets).');
   }
 
   const embeddingModel = args.includes('--model')

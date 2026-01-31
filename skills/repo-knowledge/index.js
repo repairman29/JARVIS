@@ -1,25 +1,8 @@
-const fs = require('fs');
-const os = require('os');
 const path = require('path');
+const { loadEnvFile, resolveEnv } = require('../../scripts/vault.js');
 
 const DEFAULT_SUPABASE_TIMEOUT_MS = 15000;
 const DEFAULT_OLLAMA_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
-
-function loadEnvFile() {
-  const envPath = path.join(process.env.USERPROFILE || process.env.HOME || os.homedir(), '.clawdbot', '.env');
-  if (!fs.existsSync(envPath)) return {};
-  const text = fs.readFileSync(envPath, 'utf8');
-  const out = {};
-  for (const line of text.split('\n')) {
-    const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
-    if (match) out[match[1]] = match[2].replace(/^["']|["']$/g, '').trim();
-  }
-  return out;
-}
-
-function getEnv(key, fallbackEnv) {
-  return process.env[key] || fallbackEnv[key];
-}
 
 async function supabaseRequest(supabase, pathSuffix, method, body, query) {
   const queryString = query ? `?${query}` : '';
@@ -61,14 +44,14 @@ async function generateEmbedding(text, model) {
   return data.embedding;
 }
 
-function getSupabaseConfig() {
+async function getSupabaseConfig() {
   const env = loadEnvFile();
-  const supabaseUrl = getEnv('SUPABASE_URL', env);
+  const supabaseUrl = await resolveEnv('SUPABASE_URL', env);
   const supabaseKey =
-    getEnv('SUPABASE_SERVICE_ROLE_KEY', env) ||
-    getEnv('SUPABASE_ANON_KEY', env);
+    (await resolveEnv('SUPABASE_SERVICE_ROLE_KEY', env)) ||
+    (await resolveEnv('SUPABASE_ANON_KEY', env));
   if (!supabaseUrl || !supabaseKey) {
-    throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_ANON_KEY) must be set.');
+    throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_ANON_KEY) must be set. Use ~/.clawdbot/.env or Vault.');
   }
   return { url: supabaseUrl, key: supabaseKey };
 }
@@ -84,7 +67,7 @@ async function getRepoId(supabase, repo) {
 const tools = {
   repo_search: async ({ query, repo, limit = 6 }) => {
     try {
-      const supabase = getSupabaseConfig();
+      const supabase = await getSupabaseConfig();
       const embedding = await generateEmbedding(query, 'nomic-embed-text');
       const rows = await supabaseRequest(
         supabase,
@@ -104,7 +87,7 @@ const tools = {
 
   repo_summary: async ({ repo }) => {
     try {
-      const supabase = getSupabaseConfig();
+      const supabase = await getSupabaseConfig();
       const repoId = await getRepoId(supabase, repo);
       const rows = await supabaseRequest(supabase, 'repo_summaries', 'GET', null, `repo_id=eq.${repoId}&select=summary,updated_at`);
       if (!rows || rows.length === 0) {
@@ -146,7 +129,7 @@ const tools = {
 
   repo_map: async ({ repo, limit = 60 }) => {
     try {
-      const supabase = getSupabaseConfig();
+      const supabase = await getSupabaseConfig();
       const repoId = await getRepoId(supabase, repo);
       const files = await supabaseRequest(
         supabase,
