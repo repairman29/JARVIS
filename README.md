@@ -62,6 +62,8 @@ Advanced AI-powered skills for professionals: Notion Advanced Pro, GitHub Copilo
 | Document | Description |
 |----------|-------------|
 | [**Installation Guide**](https://repairman29.github.io/JARVIS/getting-started/) | Get JARVIS running in 5 minutes |
+| [**JARVIS_WINDOWS_EPIC.md**](./JARVIS_WINDOWS_EPIC.md) | Make JARVIS epic on Windows (Raycast-style, quick access, marketplace) |
+| [**ROG_ALLY_SETUP.md**](./ROG_ALLY_SETUP.md) / [JARVIS_ROG_ED.md](./JARVIS_ROG_ED.md) | Run JARVIS on ASUS ROG Ally (handheld) |
 | [**DEVELOPER_GUIDE.md**](./DEVELOPER_GUIDE.md) | Complete setup and development guide |
 | [DISCORD_SETUP.md](./DISCORD_SETUP.md) | Discord bot configuration |
 | [RUNBOOK.md](./RUNBOOK.md) | Day-to-day operations |

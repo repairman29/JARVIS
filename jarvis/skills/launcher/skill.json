@@ -153,43 +153,10 @@
           "info": {
             "type": "string",
             "description": "Type of system info to retrieve",
-            "enum": ["cpu", "memory", "disk", "network", "battery", "power", "all"],
+            "enum": ["cpu", "memory", "disk", "network", "battery", "all"],
             "default": "all"
           }
         }
-      }
-    },
-    {
-      "name": "daily_brief",
-      "description": "Get a one-shot daily brief: time, battery, power plan, memory summary, and top processes. Use for 'Good morning' or status check.",
-      "parameters": {
-        "type": "object",
-        "properties": {
-          "topProcesses": {
-            "type": "number",
-            "description": "Number of top processes by memory to include (default 3)",
-            "default": 3
-          }
-        }
-      }
-    },
-    {
-      "name": "insert_symbol",
-      "description": "Insert emoji or symbol by name (e.g. shrug, thumbs up, bullet, sigma). Optionally copy to clipboard.",
-      "parameters": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "Symbol or emoji name: shrug, thumbs_up, thumbs_down, bullet, sigma, check, x, arrow_right, heart, fire, etc."
-          },
-          "copyToClipboard": {
-            "type": "boolean",
-            "description": "Copy result to clipboard (default true on Windows)",
-            "default": true
-          }
-        },
-        "required": ["name"]
       }
     },
     {

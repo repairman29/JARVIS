@@ -21,21 +21,6 @@ function isMacOS() {
   return process.platform === 'darwin';
 }
 
-// Helper function to check if running on Windows
-function isWindows() {
-  return process.platform === 'win32';
-}
-
-// Helper function to run PowerShell (Windows) – sends Win+Arrow for snap
-function execPowerShell(script) {
-  const escaped = script.replace(/'/g, "''");
-  return execSync(`powershell -NoProfile -Command "${escaped}"`, {
-    encoding: 'utf8',
-    timeout: 15000,
-    windowsHide: true
-  }).trim();
-}
-
 // Workspace storage path
 const WORKSPACE_DIR = path.join(os.homedir(), '.jarvis', 'workspaces');
 
@@ -135,46 +120,6 @@ function calculateSnapPosition(position, screenInfo, display = 0) {
 // Tool implementations
 const tools = {
   snap_window: async ({ position, app, display = 0 }) => {
-    // Windows: use Win+Arrow (snap left/right, maximize, minimize)
-    if (isWindows()) {
-      const winArrowMap = {
-        left_half: 0x25,   // VK_LEFT
-        right_half: 0x27,  // VK_RIGHT
-        maximize: 0x26,    // VK_UP
-        minimize: 0x28,    // VK_DOWN
-        top_half: 0x26,    // maximize (no native top-half on Windows)
-        bottom_half: 0x28  // minimize
-      };
-      const vk = winArrowMap[position];
-      if (vk === undefined) {
-        return {
-          success: false,
-          message: `Snap position "${position}" on Windows only supports: left_half, right_half, maximize, minimize (and top_half/bottom_half map to maximize/minimize).`,
-          position,
-          platform: 'windows'
-        };
-      }
-      try {
-        // keybd_event: VK_LWIN=0x5B, KEYEVENTF_KEYUP=2. Press Win, press Arrow, release Arrow, release Win.
-        const ps = `Add-Type -TypeDefinition "using System;using System.Runtime.InteropServices;public class W{ [DllImport(\\\"user32.dll\\\")]public static extern void keybd_event(byte b,byte s,uint f,UIntPtr e);public static void S(byte k){ keybd_event(0x5B,0,0,UIntPtr.Zero);keybd_event(k,0,0,UIntPtr.Zero);keybd_event(k,0,2,UIntPtr.Zero);keybd_event(0x5B,0,2,UIntPtr.Zero);} }"; [W]::S(${vk})`;
-        execPowerShell(ps);
-        return {
-          success: true,
-          message: `Window snapped to ${position} (Win+Arrow)`,
-          position,
-          app: app || 'foreground',
-          platform: 'windows'
-        };
-      } catch (err) {
-        return {
-          success: false,
-          message: `Window snap failed: ${err.message}`,
-          position,
-          platform: 'windows'
-        };
-      }
-    }
-
     if (!isMacOS()) {
       throw new Error('Window snapping currently only supported on macOS');
     }

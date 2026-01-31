@@ -1,0 +1,68 @@
+{
+  "name": "quick-notes",
+  "version": "1.0.0",
+  "description": "Quick scratchpad: remember things, search notes, list by date",
+  "env": ["JARVIS_QUICK_NOTES_PATH"],
+  "tools": [
+    {
+      "name": "quick_note_add",
+      "description": "Add a quick note (remember something). Stored in ~/.jarvis/notes with optional tag and date.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Note content (e.g. 'buy milk', 'call Mom tomorrow')"
+          },
+          "tag": {
+            "type": "string",
+            "description": "Optional tag for filtering (e.g. 'work', 'personal')"
+          }
+        },
+        "required": ["text"]
+      }
+    },
+    {
+      "name": "quick_note_search",
+      "description": "Search quick notes by keyword or tag. Returns matching notes with date.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search text or tag to find in notes"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Max results to return (default 20)",
+            "default": 20
+          }
+        },
+        "required": ["query"]
+      }
+    },
+    {
+      "name": "quick_note_list",
+      "description": "List quick notes, optionally filtered by tag or date (e.g. this week).",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "tag": {
+            "type": "string",
+            "description": "Filter by tag"
+          },
+          "days": {
+            "type": "number",
+            "description": "Only notes from the last N days (e.g. 7 for this week)",
+            "default": 0
+          },
+          "limit": {
+            "type": "number",
+            "description": "Max results (default 30)",
+            "default": 30
+          }
+        }
+      }
+    }
+  ]
+}

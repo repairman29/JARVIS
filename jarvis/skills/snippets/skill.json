@@ -1,0 +1,386 @@
+{
+  "name": "snippets",
+  "version": "1.0.0",
+  "description": "Intelligent text expansion and snippet management with dynamic variables and smart suggestions",
+  "env": ["JARVIS_SNIPPETS_TRIGGER_PREFIX", "JARVIS_SNIPPETS_AUTO_EXPAND", "JARVIS_SNIPPETS_SYNC_ENABLED"],
+  "tools": [
+    {
+      "name": "create_snippet",
+      "description": "Create a new text snippet with trigger, content, and metadata",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "trigger": {
+            "type": "string",
+            "description": "Trigger keyword or abbreviation (e.g., 'eml', 'sig', 'addr')"
+          },
+          "content": {
+            "type": "string",
+            "description": "Snippet content with optional variables (e.g., '{date}', '{clipboard}', '{cursor}')"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable name for the snippet"
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional description of what the snippet does"
+          },
+          "category": {
+            "type": "string",
+            "description": "Category for organization (email, signatures, addresses, etc.)"
+          },
+          "tags": {
+            "type": "array",
+            "description": "Tags for additional organization and search",
+            "items": {"type": "string"}
+          },
+          "appScope": {
+            "type": "array",
+            "description": "Specific apps where this snippet should work (empty = all apps)",
+            "items": {"type": "string"}
+          },
+          "variables": {
+            "type": "array",
+            "description": "Custom variables with prompts for dynamic content",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {"type": "string"},
+                "prompt": {"type": "string"},
+                "defaultValue": {"type": "string"}
+              },
+              "required": ["name", "prompt"]
+            }
+          }
+        },
+        "required": ["trigger", "content", "name"]
+      }
+    },
+    {
+      "name": "search_snippets",
+      "description": "Search snippets by trigger, content, name, category, or tags",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search query - can match trigger, name, content, or tags"
+          },
+          "category": {
+            "type": "string",
+            "description": "Filter by category"
+          },
+          "tags": {
+            "type": "array",
+            "description": "Filter by tags",
+            "items": {"type": "string"}
+          },
+          "appScope": {
+            "type": "string",
+            "description": "Filter by app compatibility"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Maximum results to return (default 20)",
+            "default": 20
+          },
+          "includeContent": {
+            "type": "boolean",
+            "description": "Include full snippet content in results",
+            "default": true
+          }
+        }
+      }
+    },
+    {
+      "name": "expand_snippet",
+      "description": "Expand a snippet by trigger or ID, processing variables and inserting text",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "trigger": {
+            "type": "string",
+            "description": "Snippet trigger to expand"
+          },
+          "snippetId": {
+            "type": "string",
+            "description": "Specific snippet ID (alternative to trigger)"
+          },
+          "variables": {
+            "type": "object",
+            "description": "Variable values for dynamic snippets",
+            "additionalProperties": {"type": "string"}
+          },
+          "targetApp": {
+            "type": "string",
+            "description": "Target application for insertion"
+          },
+          "insertMode": {
+            "type": "string",
+            "description": "How to insert the text",
+            "enum": ["replace", "append", "clipboard", "return_only"],
+            "default": "replace"
+          }
+        }
+      }
+    },
+    {
+      "name": "list_snippets",
+      "description": "List all snippets with optional filtering and sorting",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "Filter by category"
+          },
+          "sortBy": {
+            "type": "string",
+            "description": "Sort criteria",
+            "enum": ["name", "trigger", "created", "modified", "usage", "category"],
+            "default": "name"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Maximum results (default 50)",
+            "default": 50
+          },
+          "includeUsageStats": {
+            "type": "boolean",
+            "description": "Include usage statistics",
+            "default": false
+          }
+        }
+      }
+    },
+    {
+      "name": "update_snippet",
+      "description": "Update an existing snippet's properties",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "snippetId": {
+            "type": "string",
+            "description": "ID of snippet to update"
+          },
+          "trigger": {"type": "string"},
+          "content": {"type": "string"},
+          "name": {"type": "string"},
+          "description": {"type": "string"},
+          "category": {"type": "string"},
+          "tags": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "appScope": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "variables": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {"type": "string"},
+                "prompt": {"type": "string"},
+                "defaultValue": {"type": "string"}
+              }
+            }
+          }
+        },
+        "required": ["snippetId"]
+      }
+    },
+    {
+      "name": "delete_snippet",
+      "description": "Delete a snippet by ID or trigger",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "snippetId": {
+            "type": "string",
+            "description": "ID of snippet to delete"
+          },
+          "trigger": {
+            "type": "string",
+            "description": "Trigger of snippet to delete (alternative to ID)"
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Confirmation to proceed with deletion",
+            "default": false
+          }
+        }
+      }
+    },
+    {
+      "name": "import_snippets",
+      "description": "Import snippets from file or another snippet manager",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "Import source",
+            "enum": ["json_file", "textexpander", "alfred", "raycast", "espanso", "clipboard"],
+            "default": "json_file"
+          },
+          "filePath": {
+            "type": "string",
+            "description": "Path to import file"
+          },
+          "merge": {
+            "type": "boolean",
+            "description": "Merge with existing snippets or replace",
+            "default": true
+          },
+          "conflictResolution": {
+            "type": "string",
+            "description": "How to handle trigger conflicts",
+            "enum": ["skip", "replace", "rename", "prompt"],
+            "default": "prompt"
+          }
+        },
+        "required": ["source"]
+      }
+    },
+    {
+      "name": "export_snippets",
+      "description": "Export snippets to file in various formats",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "format": {
+            "type": "string",
+            "description": "Export format",
+            "enum": ["json", "textexpander", "alfred", "csv", "txt"],
+            "default": "json"
+          },
+          "filePath": {
+            "type": "string",
+            "description": "Export file path"
+          },
+          "category": {
+            "type": "string",
+            "description": "Export only specific category"
+          },
+          "includeUsageStats": {
+            "type": "boolean",
+            "description": "Include usage statistics in export",
+            "default": false
+          }
+        }
+      }
+    },
+    {
+      "name": "snippet_analytics",
+      "description": "Analyze snippet usage patterns and provide optimization suggestions",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "timeframe": {
+            "type": "string",
+            "description": "Analysis timeframe",
+            "enum": ["day", "week", "month", "all"],
+            "default": "week"
+          },
+          "includeRecommendations": {
+            "type": "boolean",
+            "description": "Include optimization recommendations",
+            "default": true
+          }
+        }
+      }
+    },
+    {
+      "name": "create_snippet_template",
+      "description": "Create reusable snippet templates for common patterns",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "templateType": {
+            "type": "string",
+            "description": "Type of template to create",
+            "enum": ["email_signature", "meeting_template", "code_boilerplate", "form_response", "social_media", "custom"]
+          },
+          "name": {
+            "type": "string",
+            "description": "Template name"
+          },
+          "fields": {
+            "type": "array",
+            "description": "Template fields to fill",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {"type": "string"},
+                "prompt": {"type": "string"},
+                "type": {"type": "string", "enum": ["text", "email", "url", "date", "choice"]},
+                "required": {"type": "boolean", "default": true},
+                "choices": {"type": "array", "items": {"type": "string"}}
+              }
+            }
+          }
+        },
+        "required": ["templateType", "name"]
+      }
+    },
+    {
+      "name": "suggest_snippets",
+      "description": "Get smart snippet suggestions based on context, app, and usage patterns",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "context": {
+            "type": "string",
+            "description": "Current context or activity",
+            "enum": ["email", "coding", "writing", "social", "support", "general"]
+          },
+          "currentApp": {
+            "type": "string",
+            "description": "Currently active application"
+          },
+          "textContext": {
+            "type": "string",
+            "description": "Surrounding text context for better suggestions"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Number of suggestions",
+            "default": 5
+          }
+        }
+      }
+    },
+    {
+      "name": "setup_auto_expansion",
+      "description": "Configure automatic text expansion settings and monitoring",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "Configuration action",
+            "enum": ["enable", "disable", "status", "configure"],
+            "default": "status"
+          },
+          "triggerPrefix": {
+            "type": "string",
+            "description": "Prefix for snippet triggers (e.g., ';', '/')"
+          },
+          "expandDelay": {
+            "type": "number",
+            "description": "Delay before expansion in milliseconds",
+            "default": 500
+          },
+          "excludeApps": {
+            "type": "array",
+            "description": "Apps to exclude from auto-expansion",
+            "items": {"type": "string"}
+          }
+        }
+      }
+    }
+  ]
+}

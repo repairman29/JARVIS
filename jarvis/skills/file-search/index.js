@@ -446,13 +446,8 @@ const tools = {
               ? `open -a "${openWith}" "${normalizedPath}"`
               : `open "${normalizedPath}"`;
             execSync(command);
-          } else if (process.platform === 'win32') {
-            const safePath = normalizedPath.replace(/'/g, "''");
-            const ps = openWith
-              ? `Start-Process -FilePath '${openWith.replace(/'/g, "''")}' -ArgumentList '${safePath}'`
-              : `Start-Process -FilePath '${safePath}'`;
-            execSync(`powershell -NoProfile -Command "${ps.replace(/"/g, '\\"')}"`, { encoding: 'utf8', timeout: 10000, windowsHide: true });
           } else {
+            // Cross-platform open (would need more implementation)
             throw new Error('Open not implemented for this platform');
           }
           result.message = `Opened ${path.basename(normalizedPath)}${openWith ? ` with ${openWith}` : ''}`;
@@ -461,23 +456,15 @@ const tools = {
         case 'reveal':
           if (process.platform === 'darwin') {
             execSync(`open -R "${normalizedPath}"`);
-          } else if (process.platform === 'win32') {
-            // explorer /select,"path" opens File Explorer and selects the file
-            const safePath = normalizedPath.replace(/"/g, '""');
-            execSync(`explorer /select,"${safePath}"`, { windowsHide: true, timeout: 10000 });
           } else {
             throw new Error('Reveal not implemented for this platform');
           }
-          result.message = process.platform === 'win32'
-            ? `Revealed ${path.basename(normalizedPath)} in File Explorer`
-            : `Revealed ${path.basename(normalizedPath)} in Finder`;
+          result.message = `Revealed ${path.basename(normalizedPath)} in Finder`;
           break;
           
         case 'copy_path':
           if (process.platform === 'darwin') {
             execSync(`echo '${normalizedPath}' | pbcopy`);
-          } else if (process.platform === 'win32') {
-            execSync(`powershell -NoProfile -Command "Set-Clipboard -LiteralPath '${normalizedPath.replace(/'/g, "''")}'"`, { encoding: 'utf8', timeout: 5000, windowsHide: true });
           } else {
             throw new Error('Copy path not implemented for this platform');
           }

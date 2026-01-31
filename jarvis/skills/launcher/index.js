@@ -291,24 +291,9 @@ const tools = {
             message = 'System going to sleep';
             execSync(ps, { windowsHide: true, timeout: 5000 });
             break;
-          case 'volume_up': {
-            const v = `Add-Type -TypeDefinition "using System;using System.Runtime.InteropServices;public class V{ [DllImport(\\\"user32.dll\\\")]public static extern void keybd_event(byte b,byte s,uint f,UIntPtr e);public static void U(){ keybd_event(0xAF,0,0,UIntPtr.Zero);keybd_event(0xAF,0,2,UIntPtr.Zero);} }"; [V]::U()`;
-            execPowerShell(v);
-            message = value ? `Set volume to ${value}%` : 'Volume increased';
-            break;
-          }
-          case 'volume_down': {
-            const v = `Add-Type -TypeDefinition "using System;using System.Runtime.InteropServices;public class V{ [DllImport(\\\"user32.dll\\\")]public static extern void keybd_event(byte b,byte s,uint f,UIntPtr e);public static void D(){ keybd_event(0xAE,0,0,UIntPtr.Zero);keybd_event(0xAE,0,2,UIntPtr.Zero);} }"; [V]::D()`;
-            execPowerShell(v);
-            message = value ? `Set volume to ${value}%` : 'Volume decreased';
-            break;
-          }
-          case 'volume_mute': {
-            const v = `Add-Type -TypeDefinition "using System;using System.Runtime.InteropServices;public class V{ [DllImport(\\\"user32.dll\\\")]public static extern void keybd_event(byte b,byte s,uint f,UIntPtr e);public static void M(){ keybd_event(0xAD,0,0,UIntPtr.Zero);keybd_event(0xAD,0,2,UIntPtr.Zero);} }"; [V]::M()`;
-            execPowerShell(v);
-            message = 'Volume muted';
-            break;
-          }
+          case 'volume_up':
+          case 'volume_down':
+          case 'volume_mute':
           case 'brightness_up':
           case 'brightness_down':
           case 'wifi_on':
@@ -728,23 +713,6 @@ const tools = {
           }
         }
 
-        if (info === 'all' || info === 'power') {
-          try {
-            const schemeOut = execPowerShell('powercfg /getactivescheme');
-            const guidMatch = schemeOut.match(/GUID: ([a-f0-9-]+)/i);
-            const guid = guidMatch ? guidMatch[1].toLowerCase() : null;
-            const knownPlans = {
-              '381b4222-f694-41f0-9685-ff5bb260df2e': 'Balanced',
-              '8c5e7fda-e8bf-4a96-9a85-a6e1a703af35': 'High performance',
-              'a1841308-3541-4fab-bc81-f71556f20b4a': 'Power saver',
-              'e9a42b02-d5df-448d-aa00-03f14749eb61': 'Ultimate Performance'
-            };
-            systemInfo.powerPlan = guid ? (knownPlans[guid] || guid) : 'unknown';
-          } catch {
-            systemInfo.powerPlan = { error: 'Power plan not available' };
-          }
-        }
-
         return {
           success: true,
           systemInfo,
@@ -827,106 +795,6 @@ const tools = {
         requestedInfo: info
       };
     }
-  },
-
-  daily_brief: async ({ topProcesses = 3 }) => {
-    try {
-      const sys = await tools.get_system_info({ info: 'all' });
-      if (!sys.success) {
-        return { success: false, message: 'Could not get system info for brief.' };
-      }
-      const procs = await tools.process_manager({ action: 'top_memory', limit: topProcesses });
-      const si = sys.systemInfo || {};
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-      const dateStr = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-      let batteryStr = 'N/A';
-      if (si.battery && !si.battery.error) {
-        batteryStr = `${si.battery.percentage}%${si.battery.isCharging ? ' (charging)' : ''}`;
-      }
-      let memoryStr = 'N/A';
-      if (si.memory) {
-        memoryStr = `${si.memory.used} GB used / ${si.memory.total} GB total`;
-      }
-      let powerStr = '';
-      if (si.powerPlan && typeof si.powerPlan === 'string' && !si.powerPlan.error) {
-        powerStr = ` • Power: ${si.powerPlan}`;
-      }
-      const procList = (procs.processes || []).slice(0, topProcesses).map(p => `${p.name || p.processName} (${Math.round((p.workingSetMB || p.memory || 0))} MB)`).join(', ') || '—';
-      const summary = [
-        `**${dateStr}** ${timeStr}`,
-        `Battery: ${batteryStr}${powerStr}`,
-        `Memory: ${memoryStr}`,
-        `Top ${topProcesses} by RAM: ${procList}`
-      ].join('\n');
-      return {
-        success: true,
-        summary,
-        date: dateStr,
-        time: timeStr,
-        battery: si.battery,
-        memory: si.memory,
-        powerPlan: si.powerPlan,
-        topProcesses: procs.processes || []
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: `Daily brief failed: ${error.message}`
-      };
-    }
-  },
-
-  insert_symbol: async ({ name, copyToClipboard = true }) => {
-    const symbols = {
-      shrug: '¯\\_(ツ)_/¯',
-      thumbs_up: '👍',
-      thumbs_down: '👎',
-      bullet: '•',
-      sigma: 'Σ',
-      check: '✓',
-      x: '✗',
-      arrow_right: '→',
-      heart: '❤',
-      fire: '🔥',
-      star: '★',
-      copy: '©',
-      trademark: '™',
-      registered: '®',
-      degree: '°',
-      infinity: '∞',
-      lambda: 'λ',
-      pi: 'π',
-      delta: 'Δ',
-      omega: 'Ω',
-      ellipsis: '…',
-      em_dash: '—',
-      en_dash: '–'
-    };
-    const key = (name || '').toLowerCase().replace(/\s+/g, '_');
-    const text = symbols[key];
-    if (!text) {
-      const names = Object.keys(symbols).join(', ');
-      return {
-        success: false,
-        message: `Unknown symbol "${name}". Try: ${names}`,
-        available: Object.keys(symbols)
-      };
-    }
-    if (copyToClipboard && isWindows()) {
-      try {
-        const escaped = text.replace(/'/g, "''");
-        execPowerShell(`Set-Clipboard -Value '${escaped}'`);
-      } catch (e) {
-        return { success: true, symbol: text, copied: false, message: `Symbol: ${text} (clipboard failed: ${e.message})` };
-      }
-    }
-    return {
-      success: true,
-      symbol: text,
-      copied: copyToClipboard && isWindows(),
-      message: copyToClipboard && isWindows() ? `Copied ${text} to clipboard` : `Symbol: ${text}`
-    };
   },
 
   screenshot: async ({ type = 'fullscreen', app, save = false, path: savePath }) => {

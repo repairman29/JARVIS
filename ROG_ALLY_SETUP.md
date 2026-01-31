@@ -2,6 +2,8 @@
 
 This guide covers running your JARVIS assistant on an **ASUS ROG Ally** handheld (Windows 11). The main docs assume macOS; this doc fills in the Windows path.
 
+**→ What JARVIS ROG Ed. can do for you:** [JARVIS_ROG_ED.md](./JARVIS_ROG_ED.md) — capabilities, quick start, and command cheat sheet.
+
 ---
 
 ## What Works on ROG Ally
@@ -45,22 +47,20 @@ node --version   # v18.x or higher
 npm --version
 ```
 
-### 2. Install CLAWDBOT CLI
+### 2. CLAWDBOT CLI (use npx — no global install required)
+
+You don't need to install clawdbot globally. From the JARVIS repo folder, use:
 
 ```powershell
-npm install -g clawdbot
-clawdbot --version
+npx clawdbot gateway run
+npx clawdbot agent --session-id "ally" --message "your message" --local
 ```
 
-### 3. Initialize workspace
+(Optional: `npm install -g clawdbot` if you prefer a global CLI; on Windows it can hit path limits.)
 
-```powershell
-mkdir $env:USERPROFILE\jarvis
-cd $env:USERPROFILE\jarvis
-clawdbot init
-```
+### 3. Config and workspace
 
-This creates config under `%USERPROFILE%\.clawdbot\` and workspace under `%USERPROFILE%\jarvis\`.
+Config lives under `%USERPROFILE%\.clawdbot\` (`.env` and `clawdbot.json`). Workspace can be `%USERPROFILE%\jarvis\` or the JARVIS repo; the start script uses the repo folder.
 
 ### 4. Add API key and gateway token
 
@@ -84,15 +84,18 @@ If you don’t have `openssl` on Windows, use PowerShell to generate a token:
 
 Or use any 32+ character random string.
 
-### 5. Configure model (optional)
+### 5. Configure model and gateway (optional)
 
-Edit `%USERPROFILE%\.clawdbot\clawdbot.json` and set your model, e.g.:
+Edit `%USERPROFILE%\.clawdbot\clawdbot.json`. Set your model and local gateway mode, e.g.:
 
 ```json
 {
+  "gateway": { "mode": "local" },
   "agents": {
     "defaults": {
-      "model": "groq/llama-3.3-70b-versatile"
+      "model": {
+        "primary": "groq/llama-3.3-70b-versatile"
+      }
     }
   }
 }
@@ -100,17 +103,22 @@ Edit `%USERPROFILE%\.clawdbot\clawdbot.json` and set your model, e.g.:
 
 ### 6. Run the gateway
 
-```powershell
-clawdbot gateway run
-```
-
-Leave this running. In another terminal (or on another device on the same network):
+From the JARVIS repo folder, either double-click **`scripts\start-jarvis-ally.bat`** or run:
 
 ```powershell
-clawdbot chat "Hello JARVIS, introduce yourself"
+cd path\to\your\JARVIS-repo
+npx clawdbot gateway run
 ```
 
-If you get a response, you’re good.
+Leave this running. In another terminal, test JARVIS:
+
+```powershell
+npx clawdbot agent --session-id "ally" --message "Hello JARVIS, introduce yourself" --local
+```
+
+If you get a response, you’re good. **To try a local model instead of cloud:** set GPU to 6 GB, install Ollama, pull a model, point `clawdbot.json` at it, then run the gateway — see [Local model quick test](#local-model-quick-test).
+
+More commands and a full cheat sheet: [JARVIS_ROG_ED.md](./JARVIS_ROG_ED.md).
 
 ### 7. Add Discord (optional)
 
@@ -133,16 +141,16 @@ The main docs use macOS LaunchAgent. On Windows you can:
 - **Option A:** Run `clawdbot gateway run` in a terminal and leave it open (or use a tool like `pm2`).
 - **Option B:** Create a scheduled task that runs at logon and starts the gateway (e.g. run a `.bat` or `node` script that starts the gateway).
 
-Example batch file `start-jarvis.bat`:
+Use the included **`scripts\start-jarvis-ally.bat`** (from the JARVIS repo), or create your own:
 
 ```batch
 @echo off
-cd /d %USERPROFILE%\jarvis
+cd /d path\to\your\JARVIS-repo
 npx clawdbot gateway run
 pause
 ```
 
-Run this from Startup folder or Task Scheduler if you want JARVIS to start with Windows.
+Run from Startup folder or Task Scheduler if you want JARVIS to start with Windows.
 
 ---
 
@@ -160,6 +168,97 @@ If you do use Ollama on Windows:
 2. Pull a small model: `ollama pull llama3.2:3b` (or similar).
 3. In `clawdbot.json`, set model to `ollama/llama3.2:3b` (or whatever you pulled).
 4. Ensure no other heavy apps are using most of the 16 GB RAM.
+
+---
+
+## Using the Ally's VRAM / GPU
+
+**Are we using it?** By default, **no**. The recommended setup uses a **cloud LLM** (Groq, Together, etc.); the Ally only runs the gateway and sends API requests, so no local GPU is used.
+
+**Can we use it?** **Yes.** The ROG Ally has an **AMD RDNA 3** integrated GPU and **16 GB unified memory** (shared between CPU and GPU). You can use that for local inference with **Ollama**.
+
+### How VRAM works on ROG Ally
+
+- **Unified memory:** The 16 GB is shared. There is no separate “VRAM” chip; the GPU uses a portion of system RAM. You can influence how much the GPU gets.
+- **Armoury Crate:** On the Ally, GPU memory is configured in **Armoury Crate → Settings (or Operating Mode) → GPU**. Default is often **4 GB**; you can raise it to **6 GB** or **8 GB** for better local LLM performance. Higher GPU allocation leaves less for the rest of the system, so 6 GB is a good balance.
+- **Ollama:** On Windows, Ollama can use AMD GPUs (no ROCm install required—just install [Ollama for Windows](https://ollama.com) and recent AMD drivers). Support for **integrated** RDNA (like the Ally) is improving; if it works, Ollama will use the GPU automatically.
+
+### Rough VRAM vs. model size (Ollama)
+
+| VRAM (GPU allocation) | Typical use |
+|------------------------|-------------|
+| **4 GB** | 3B–4B models (e.g. `llama3.2:3b`), Q4 quantized |
+| **6 GB** | 7B models (e.g. Llama 3.1 8B), good token throughput |
+| **8 GB** | 7B–9B with room to spare; 12B may be tight |
+
+To use the Ally’s GPU for JARVIS:
+
+1. In Armoury Crate, set GPU memory to **6 GB** (or 8 GB if you have headroom).
+2. Install Ollama and pull a small model: `ollama pull llama3.2:3b` (or `llama3.1:8b` if 6 GB+).
+3. In `clawdbot.json`, set the model to `ollama/llama3.2:3b` (or the model you pulled).
+4. Run the gateway as usual; Ollama will use the GPU when available.
+
+If Ollama doesn’t use the GPU (e.g. integrated RDNA not yet fully supported), it will fall back to CPU; keep to 3B–7B models so it stays usable.
+
+### Recommended local models (ROG Ally)
+
+Models that fit the Ally’s 4–8 GB GPU allocation. Use **Armoury Crate** to set GPU memory to 6 GB (or 8 GB) before pulling 7B/8B models.
+
+| VRAM | Model | Pull command | Use case |
+|------|--------|--------------|----------|
+| **4 GB** | Llama 3.2 3B | `ollama pull llama3.2:3b` | General chat, fast; ~2 GB download. |
+| **4 GB** | Phi-3 mini | `ollama pull phi3:mini` | Small, capable; good for coding snippets. |
+| **4 GB** | Gemma 2 2B | `ollama pull gemma2:2b` | Smallest; very low VRAM. |
+| **4 GB** | Orca Mini 3B | `ollama pull orca-mini:3b` | General-purpose, Llama-based. |
+| **6–8 GB** | Llama 3.1 8B | `ollama pull llama3.1:8b` | Best balance of quality and speed; most popular. |
+| **6–8 GB** | Mistral 7B | `ollama pull mistral:7b` | Strong reasoning, compact. |
+| **6–8 GB** | Qwen2.5 7B | `ollama pull qwen2.5:7b` | Good for code and instruction-following. |
+| **6–8 GB** | Qwen2.5 Coder 7B | `ollama pull qwen2.5-coder:7b` | Optimized for coding (see [RUNBOOK.md](./RUNBOOK.md)). |
+| **6–8 GB** | Orca Mini 7B | `ollama pull orca-mini:7b-v3` | General chat, Llama 2–based. |
+
+**Suggested starting point:** Set GPU to **6 GB**, then run:
+
+```powershell
+ollama pull llama3.2:3b
+ollama pull llama3.1:8b
+```
+
+In `clawdbot.json`, set `primary` to `ollama/llama3.2:3b` for lowest latency or `ollama/llama3.1:8b` for better quality. You can switch models by editing the config and restarting the gateway.
+
+**Quantization:** Ollama serves pre-quantized models (e.g. Q4_K_M). Smaller variants (e.g. `:3b`, `:7b`) keep VRAM within 4–8 GB; avoid unquantized or 70B+ on the Ally.
+
+### Local model quick test
+
+1. **Armoury Crate** → GPU memory → **6 GB**.
+2. Install [Ollama for Windows](https://ollama.com) if you haven’t already.
+3. In PowerShell:
+   ```powershell
+   ollama pull llama3.2:3b
+   ollama pull llama3.1:8b
+   ```
+4. Edit `%USERPROFILE%\.clawdbot\clawdbot.json`: set the primary model to `ollama/llama3.1` (or `ollama/llama3.2:3b`). If you get **Unknown model: ollama/llama3.1**, add `OLLAMA_API_KEY=ollama-local` to `%USERPROFILE%\.clawdbot\.env` and an explicit `models.providers.ollama` block (see [clawdbot Ollama docs](https://docs.clawd.bot/providers/ollama)); the gateway needs contextWindow ≥ 16000 (e.g. 16384).
+5. Start the gateway (double-click `scripts\start-jarvis-ally.bat` or `npx clawdbot gateway run`).
+6. In another terminal: `npx clawdbot agent --session-id "ally" --message "Hello, who are you?" --local`.
+
+If you get a reply, the local model is working. If not, check that Ollama is running (it may start on first pull) and that the model name in `clawdbot.json` matches what you pulled (e.g. `ollama/llama3.1:8b`).
+
+### Run the big one (Llama 3.1 8B)
+
+Best quality/size balance on the Ally. Set GPU to **6 GB** (or 8 GB) in Armoury Crate, then:
+
+```powershell
+ollama pull llama3.1
+ollama run llama3.1
+```
+
+If `ollama` isn’t in your PATH (e.g. fresh install), use the full path. Typical Windows install:
+
+```powershell
+& "$env:LOCALAPPDATA\Programs\Ollama\ollama.exe" pull llama3.1
+& "$env:LOCALAPPDATA\Programs\Ollama\ollama.exe" run llama3.1
+```
+
+Type your messages and press Enter; `/bye` or Ctrl+D to exit. To use it with JARVIS: in `%USERPROFILE%\.clawdbot\clawdbot.json` set primary to `ollama/llama3.1`, then start the gateway (e.g. `scripts\start-jarvis-ally.bat`).
 
 ---
 
