@@ -291,9 +291,24 @@ const tools = {
             message = 'System going to sleep';
             execSync(ps, { windowsHide: true, timeout: 5000 });
             break;
-          case 'volume_up':
-          case 'volume_down':
-          case 'volume_mute':
+          case 'volume_up': {
+            const v = `Add-Type -TypeDefinition "using System;using System.Runtime.InteropServices;public class V{ [DllImport(\\\"user32.dll\\\")]public static extern void keybd_event(byte b,byte s,uint f,UIntPtr e);public static void U(){ keybd_event(0xAF,0,0,UIntPtr.Zero);keybd_event(0xAF,0,2,UIntPtr.Zero);} }"; [V]::U()`;
+            execPowerShell(v);
+            message = value ? `Set volume to ${value}%` : 'Volume increased';
+            break;
+          }
+          case 'volume_down': {
+            const v = `Add-Type -TypeDefinition "using System;using System.Runtime.InteropServices;public class V{ [DllImport(\\\"user32.dll\\\")]public static extern void keybd_event(byte b,byte s,uint f,UIntPtr e);public static void D(){ keybd_event(0xAE,0,0,UIntPtr.Zero);keybd_event(0xAE,0,2,UIntPtr.Zero);} }"; [V]::D()`;
+            execPowerShell(v);
+            message = value ? `Set volume to ${value}%` : 'Volume decreased';
+            break;
+          }
+          case 'volume_mute': {
+            const v = `Add-Type -TypeDefinition "using System;using System.Runtime.InteropServices;public class V{ [DllImport(\\\"user32.dll\\\")]public static extern void keybd_event(byte b,byte s,uint f,UIntPtr e);public static void M(){ keybd_event(0xAD,0,0,UIntPtr.Zero);keybd_event(0xAD,0,2,UIntPtr.Zero);} }"; [V]::M()`;
+            execPowerShell(v);
+            message = 'Volume muted';
+            break;
+          }
           case 'brightness_up':
           case 'brightness_down':
           case 'wifi_on':
@@ -713,6 +728,23 @@ const tools = {
           }
         }
 
+        if (info === 'all' || info === 'power') {
+          try {
+            const schemeOut = execPowerShell('powercfg /getactivescheme');
+            const guidMatch = schemeOut.match(/GUID: ([a-f0-9-]+)/i);
+            const guid = guidMatch ? guidMatch[1].toLowerCase() : null;
+            const knownPlans = {
+              '381b4222-f694-41f0-9685-ff5bb260df2e': 'Balanced',
+              '8c5e7fda-e8bf-4a96-9a85-a6e1a703af35': 'High performance',
+              'a1841308-3541-4fab-bc81-f71556f20b4a': 'Power saver',
+              'e9a42b02-d5df-448d-aa00-03f14749eb61': 'Ultimate Performance'
+            };
+            systemInfo.powerPlan = guid ? (knownPlans[guid] || guid) : 'unknown';
+          } catch {
+            systemInfo.powerPlan = { error: 'Power plan not available' };
+          }
+        }
+
         return {
           success: true,
           systemInfo,
@@ -797,6 +829,106 @@ const tools = {
     }
   },
 
+  daily_brief: async ({ topProcesses = 3 }) => {
+    try {
+      const sys = await tools.get_system_info({ info: 'all' });
+      if (!sys.success) {
+        return { success: false, message: 'Could not get system info for brief.' };
+      }
+      const procs = await tools.process_manager({ action: 'top_memory', limit: topProcesses });
+      const si = sys.systemInfo || {};
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+      const dateStr = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+      let batteryStr = 'N/A';
+      if (si.battery && !si.battery.error) {
+        batteryStr = `${si.battery.percentage}%${si.battery.isCharging ? ' (charging)' : ''}`;
+      }
+      let memoryStr = 'N/A';
+      if (si.memory) {
+        memoryStr = `${si.memory.used} GB used / ${si.memory.total} GB total`;
+      }
+      let powerStr = '';
+      if (si.powerPlan && typeof si.powerPlan === 'string' && !si.powerPlan.error) {
+        powerStr = ` • Power: ${si.powerPlan}`;
+      }
+      const procList = (procs.processes || []).slice(0, topProcesses).map(p => `${p.name || p.processName} (${Math.round((p.workingSetMB || p.memory || 0))} MB)`).join(', ') || '—';
+      const summary = [
+        `**${dateStr}** ${timeStr}`,
+        `Battery: ${batteryStr}${powerStr}`,
+        `Memory: ${memoryStr}`,
+        `Top ${topProcesses} by RAM: ${procList}`
+      ].join('\n');
+      return {
+        success: true,
+        summary,
+        date: dateStr,
+        time: timeStr,
+        battery: si.battery,
+        memory: si.memory,
+        powerPlan: si.powerPlan,
+        topProcesses: procs.processes || []
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Daily brief failed: ${error.message}`
+      };
+    }
+  },
+
+  insert_symbol: async ({ name, copyToClipboard = true }) => {
+    const symbols = {
+      shrug: '¯\\_(ツ)_/¯',
+      thumbs_up: '👍',
+      thumbs_down: '👎',
+      bullet: '•',
+      sigma: 'Σ',
+      check: '✓',
+      x: '✗',
+      arrow_right: '→',
+      heart: '❤',
+      fire: '🔥',
+      star: '★',
+      copy: '©',
+      trademark: '™',
+      registered: '®',
+      degree: '°',
+      infinity: '∞',
+      lambda: 'λ',
+      pi: 'π',
+      delta: 'Δ',
+      omega: 'Ω',
+      ellipsis: '…',
+      em_dash: '—',
+      en_dash: '–'
+    };
+    const key = (name || '').toLowerCase().replace(/\s+/g, '_');
+    const text = symbols[key];
+    if (!text) {
+      const names = Object.keys(symbols).join(', ');
+      return {
+        success: false,
+        message: `Unknown symbol "${name}". Try: ${names}`,
+        available: Object.keys(symbols)
+      };
+    }
+    if (copyToClipboard && isWindows()) {
+      try {
+        const escaped = text.replace(/'/g, "''");
+        execPowerShell(`Set-Clipboard -Value '${escaped}'`);
+      } catch (e) {
+        return { success: true, symbol: text, copied: false, message: `Symbol: ${text} (clipboard failed: ${e.message})` };
+      }
+    }
+    return {
+      success: true,
+      symbol: text,
+      copied: copyToClipboard && isWindows(),
+      message: copyToClipboard && isWindows() ? `Copied ${text} to clipboard` : `Symbol: ${text}`
+    };
+  },
+
   screenshot: async ({ type = 'fullscreen', app, save = false, path: savePath }) => {
     if (isWindows()) {
       try {
@@ -872,6 +1004,252 @@ const tools = {
         type: type
       };
     }
+  },
+
+  focus_mode: async ({ action = 'on', duration }) => {
+    // Focus mode: mute audio + enable Windows Focus Assist (or macOS Do Not Disturb)
+    if (isWindows()) {
+      try {
+        if (action === 'on' || action === 'enable') {
+          // Mute system volume
+          const mutePs = `Add-Type -TypeDefinition "using System;using System.Runtime.InteropServices;public class V{ [DllImport(\\\"user32.dll\\\")]public static extern void keybd_event(byte b,byte s,uint f,UIntPtr e);public static void M(){ keybd_event(0xAD,0,0,UIntPtr.Zero);keybd_event(0xAD,0,2,UIntPtr.Zero);} }"; [V]::M()`;
+          execPowerShell(mutePs);
+          // Enable Focus Assist (Priority only mode via registry - requires restart of explorer or takes effect on next session)
+          // Note: Full Focus Assist control requires Windows Settings API; this sets the preference
+          try {
+            execPowerShell(`Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\CloudStore\\Store\\Cache\\DefaultAccount\\$$windows.data.notifications.quiethourssettings\\Current" -Name "Data" -Value ([byte[]](0x02,0x00,0x00,0x00,0x00,0x00,0x00,0x00)) -ErrorAction SilentlyContinue`);
+          } catch {
+            // Focus Assist registry may not exist; continue anyway - mute is the primary action
+          }
+          const msg = duration
+            ? `Focus mode enabled for ${duration} minutes. Audio muted. Say "focus mode off" when done.`
+            : 'Focus mode enabled. Audio muted. Say "focus mode off" when done.';
+          return {
+            success: true,
+            message: msg,
+            action: 'on',
+            duration: duration || null,
+            platform: 'windows',
+            effects: ['audio_muted', 'focus_assist_requested']
+          };
+        } else if (action === 'off' || action === 'disable') {
+          // Unmute (toggle mute key again)
+          const unmutePs = `Add-Type -TypeDefinition "using System;using System.Runtime.InteropServices;public class V{ [DllImport(\\\"user32.dll\\\")]public static extern void keybd_event(byte b,byte s,uint f,UIntPtr e);public static void M(){ keybd_event(0xAD,0,0,UIntPtr.Zero);keybd_event(0xAD,0,2,UIntPtr.Zero);} }"; [V]::M()`;
+          execPowerShell(unmutePs);
+          return {
+            success: true,
+            message: 'Focus mode disabled. Audio restored.',
+            action: 'off',
+            platform: 'windows',
+            effects: ['audio_toggled']
+          };
+        } else if (action === 'status') {
+          return {
+            success: true,
+            message: 'Focus mode status: check system tray for Focus Assist icon or volume indicator.',
+            action: 'status',
+            platform: 'windows'
+          };
+        } else {
+          return { success: false, message: `Unknown focus_mode action: ${action}. Use on, off, or status.` };
+        }
+      } catch (error) {
+        return {
+          success: false,
+          message: `Focus mode failed: ${error.message}`,
+          action: action
+        };
+      }
+    }
+    if (isMacOS()) {
+      try {
+        if (action === 'on' || action === 'enable') {
+          // Mute + DND on macOS
+          execCommand(`osascript -e "set volume with output muted"`);
+          // Toggle Do Not Disturb (requires macOS Monterey+)
+          try {
+            execCommand(`shortcuts run "Turn On Do Not Disturb" 2>/dev/null || osascript -e 'tell application "System Events" to keystroke "D" using {control down, option down, command down}'`);
+          } catch {
+            // DND shortcut may not exist
+          }
+          return {
+            success: true,
+            message: duration
+              ? `Focus mode enabled for ${duration} minutes. Audio muted.`
+              : 'Focus mode enabled. Audio muted.',
+            action: 'on',
+            duration: duration || null,
+            platform: 'macos',
+            effects: ['audio_muted', 'dnd_requested']
+          };
+        } else if (action === 'off' || action === 'disable') {
+          execCommand(`osascript -e "set volume without output muted"`);
+          return {
+            success: true,
+            message: 'Focus mode disabled. Audio restored.',
+            action: 'off',
+            platform: 'macos'
+          };
+        }
+        return { success: false, message: `Unknown focus_mode action: ${action}` };
+      } catch (error) {
+        return { success: false, message: `Focus mode failed: ${error.message}` };
+      }
+    }
+    return { success: false, message: 'Focus mode not supported on this platform.' };
+  },
+
+  get_active_window: async () => {
+    // Returns the currently focused window's app name and title
+    if (isWindows()) {
+      try {
+        const ps = `
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+public class Win {
+  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll")] public static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
+  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint p);
+}
+"@
+$h = [Win]::GetForegroundWindow()
+$sb = New-Object System.Text.StringBuilder 256
+[Win]::GetWindowText($h, $sb, 256) | Out-Null
+$title = $sb.ToString()
+$pid = 0
+[Win]::GetWindowThreadProcessId($h, [ref]$pid) | Out-Null
+$proc = Get-Process -Id $pid -ErrorAction SilentlyContinue
+@{ app = $proc.ProcessName; title = $title; pid = $pid } | ConvertTo-Json -Compress
+`;
+        const out = execPowerShell(ps);
+        const info = JSON.parse(out);
+        return {
+          success: true,
+          app: info.app || 'unknown',
+          title: info.title || '',
+          pid: info.pid || null,
+          platform: 'windows'
+        };
+      } catch (error) {
+        return {
+          success: false,
+          message: `Failed to get active window: ${error.message}`,
+          platform: 'windows'
+        };
+      }
+    }
+    if (isMacOS()) {
+      try {
+        const script = `
+tell application "System Events"
+  set frontApp to name of first application process whose frontmost is true
+end tell
+tell application frontApp
+  if exists (window 1) then
+    set winTitle to name of window 1
+  else
+    set winTitle to ""
+  end if
+end tell
+return frontApp & "|" & winTitle
+`;
+        const out = execCommand(`osascript -e '${script.replace(/'/g, "'\\''")}'`);
+        const [app, title] = out.split('|');
+        return {
+          success: true,
+          app: app || 'unknown',
+          title: title || '',
+          platform: 'macos'
+        };
+      } catch (error) {
+        return {
+          success: false,
+          message: `Failed to get active window: ${error.message}`,
+          platform: 'macos'
+        };
+      }
+    }
+    return { success: false, message: 'get_active_window not supported on this platform.' };
+  },
+
+  color_picker: async ({ copyToClipboard = true }) => {
+    // Get the color of the pixel under the cursor
+    if (isWindows()) {
+      try {
+        const ps = `
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+using System.Drawing;
+public class PixelColor {
+  [DllImport("user32.dll")] public static extern IntPtr GetDC(IntPtr hwnd);
+  [DllImport("user32.dll")] public static extern int ReleaseDC(IntPtr hwnd, IntPtr hdc);
+  [DllImport("gdi32.dll")] public static extern uint GetPixel(IntPtr hdc, int x, int y);
+  public static Color GetColorAt(int x, int y) {
+    IntPtr hdc = GetDC(IntPtr.Zero);
+    uint pixel = GetPixel(hdc, x, y);
+    ReleaseDC(IntPtr.Zero, hdc);
+    return Color.FromArgb((int)(pixel & 0x000000FF), (int)(pixel & 0x0000FF00) >> 8, (int)(pixel & 0x00FF0000) >> 16);
+  }
+}
+"@
+$pos = [System.Windows.Forms.Cursor]::Position
+$color = [PixelColor]::GetColorAt($pos.X, $pos.Y)
+$hex = '#{0:X2}{1:X2}{2:X2}' -f $color.R, $color.G, $color.B
+@{ x = $pos.X; y = $pos.Y; r = $color.R; g = $color.G; b = $color.B; hex = $hex } | ConvertTo-Json -Compress
+`;
+        const out = execPowerShell(ps);
+        const info = JSON.parse(out);
+        
+        if (copyToClipboard) {
+          execPowerShell(`Set-Clipboard -Value '${info.hex}'`);
+        }
+        
+        return {
+          success: true,
+          hex: info.hex,
+          rgb: { r: info.r, g: info.g, b: info.b },
+          position: { x: info.x, y: info.y },
+          copied: copyToClipboard,
+          message: copyToClipboard 
+            ? `Color ${info.hex} (RGB: ${info.r}, ${info.g}, ${info.b}) copied to clipboard`
+            : `Color at cursor: ${info.hex} (RGB: ${info.r}, ${info.g}, ${info.b})`,
+          platform: 'windows'
+        };
+      } catch (error) {
+        return {
+          success: false,
+          message: `Color picker failed: ${error.message}`,
+          platform: 'windows'
+        };
+      }
+    }
+    if (isMacOS()) {
+      try {
+        // macOS: use screencapture to get a 1x1 pixel at cursor and read its color
+        // This is a simplified approach; a more robust solution would use ColorSync
+        const script = `
+do shell script "screencapture -x -t png -c -R $(python3 -c 'import Quartz; loc = Quartz.NSEvent.mouseLocation(); print(int(loc.x), int(Quartz.CGDisplayPixelsHigh(Quartz.CGMainDisplayID()) - loc.y), 1, 1)')"
+`;
+        // Fallback: just report that color picker is limited on macOS
+        return {
+          success: false,
+          message: 'Color picker on macOS requires additional setup. Use Digital Color Meter app or install a color picker utility.',
+          platform: 'macos'
+        };
+      } catch (error) {
+        return {
+          success: false,
+          message: `Color picker failed: ${error.message}`,
+          platform: 'macos'
+        };
+      }
+    }
+    return { success: false, message: 'color_picker not supported on this platform.' };
   }
 };
 

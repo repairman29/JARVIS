@@ -1172,6 +1172,84 @@ return frontApp & "|" & winTitle
       }
     }
     return { success: false, message: 'get_active_window not supported on this platform.' };
+  },
+
+  color_picker: async ({ copyToClipboard = true }) => {
+    // Get the color of the pixel under the cursor
+    if (isWindows()) {
+      try {
+        const ps = `
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+using System.Drawing;
+public class PixelColor {
+  [DllImport("user32.dll")] public static extern IntPtr GetDC(IntPtr hwnd);
+  [DllImport("user32.dll")] public static extern int ReleaseDC(IntPtr hwnd, IntPtr hdc);
+  [DllImport("gdi32.dll")] public static extern uint GetPixel(IntPtr hdc, int x, int y);
+  public static Color GetColorAt(int x, int y) {
+    IntPtr hdc = GetDC(IntPtr.Zero);
+    uint pixel = GetPixel(hdc, x, y);
+    ReleaseDC(IntPtr.Zero, hdc);
+    return Color.FromArgb((int)(pixel & 0x000000FF), (int)(pixel & 0x0000FF00) >> 8, (int)(pixel & 0x00FF0000) >> 16);
+  }
+}
+"@
+$pos = [System.Windows.Forms.Cursor]::Position
+$color = [PixelColor]::GetColorAt($pos.X, $pos.Y)
+$hex = '#{0:X2}{1:X2}{2:X2}' -f $color.R, $color.G, $color.B
+@{ x = $pos.X; y = $pos.Y; r = $color.R; g = $color.G; b = $color.B; hex = $hex } | ConvertTo-Json -Compress
+`;
+        const out = execPowerShell(ps);
+        const info = JSON.parse(out);
+        
+        if (copyToClipboard) {
+          execPowerShell(`Set-Clipboard -Value '${info.hex}'`);
+        }
+        
+        return {
+          success: true,
+          hex: info.hex,
+          rgb: { r: info.r, g: info.g, b: info.b },
+          position: { x: info.x, y: info.y },
+          copied: copyToClipboard,
+          message: copyToClipboard 
+            ? `Color ${info.hex} (RGB: ${info.r}, ${info.g}, ${info.b}) copied to clipboard`
+            : `Color at cursor: ${info.hex} (RGB: ${info.r}, ${info.g}, ${info.b})`,
+          platform: 'windows'
+        };
+      } catch (error) {
+        return {
+          success: false,
+          message: `Color picker failed: ${error.message}`,
+          platform: 'windows'
+        };
+      }
+    }
+    if (isMacOS()) {
+      try {
+        // macOS: use screencapture to get a 1x1 pixel at cursor and read its color
+        // This is a simplified approach; a more robust solution would use ColorSync
+        const script = `
+do shell script "screencapture -x -t png -c -R $(python3 -c 'import Quartz; loc = Quartz.NSEvent.mouseLocation(); print(int(loc.x), int(Quartz.CGDisplayPixelsHigh(Quartz.CGMainDisplayID()) - loc.y), 1, 1)')"
+`;
+        // Fallback: just report that color picker is limited on macOS
+        return {
+          success: false,
+          message: 'Color picker on macOS requires additional setup. Use Digital Color Meter app or install a color picker utility.',
+          platform: 'macos'
+        };
+      } catch (error) {
+        return {
+          success: false,
+          message: `Color picker failed: ${error.message}`,
+          platform: 'macos'
+        };
+      }
+    }
+    return { success: false, message: 'color_picker not supported on this platform.' };
   }
 };
 

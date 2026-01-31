@@ -2,6 +2,11 @@
 
 Transform JARVIS into a powerful productivity launcher with Raycast-style capabilities.
 
+## Platform support
+
+- **macOS:** All tools supported (launch, quit, system control, screenshot, open URL, process manager, system info).
+- **Windows (ROG Ally / Windows 11):** Supported: `launch_app`, `quit_app`, `list_running_apps`, `open_url`, `process_manager`, `get_system_info`, `screenshot` (fullscreen only), `system_control` (lock, sleep). Volume/brightness/Wi‑Fi/restart/shutdown/toggle dark mode report "not yet implemented on Windows". Use app names (e.g. chrome, notepad) without `.exe`.
+
 ## Features
 
 - **App Management**: Launch, quit, and manage applications

@@ -246,6 +246,20 @@
         "type": "object",
         "properties": {}
       }
+    },
+    {
+      "name": "color_picker",
+      "description": "Get the color of the pixel under the cursor. Returns hex and RGB values. Use for 'pick color', 'what color is this', 'get pixel color'.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "copyToClipboard": {
+            "type": "boolean",
+            "description": "Copy the hex color to clipboard (default true)",
+            "default": true
+          }
+        }
+      }
     }
   ]
 }

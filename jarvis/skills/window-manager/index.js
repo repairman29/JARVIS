@@ -21,6 +21,21 @@ function isMacOS() {
   return process.platform === 'darwin';
 }
 
+// Helper function to check if running on Windows
+function isWindows() {
+  return process.platform === 'win32';
+}
+
+// Helper function to run PowerShell (Windows) – sends Win+Arrow for snap
+function execPowerShell(script) {
+  const escaped = script.replace(/'/g, "''");
+  return execSync(`powershell -NoProfile -Command "${escaped}"`, {
+    encoding: 'utf8',
+    timeout: 15000,
+    windowsHide: true
+  }).trim();
+}
+
 // Workspace storage path
 const WORKSPACE_DIR = path.join(os.homedir(), '.jarvis', 'workspaces');
 
@@ -120,6 +135,46 @@ function calculateSnapPosition(position, screenInfo, display = 0) {
 // Tool implementations
 const tools = {
   snap_window: async ({ position, app, display = 0 }) => {
+    // Windows: use Win+Arrow (snap left/right, maximize, minimize)
+    if (isWindows()) {
+      const winArrowMap = {
+        left_half: 0x25,   // VK_LEFT
+        right_half: 0x27,  // VK_RIGHT
+        maximize: 0x26,    // VK_UP
+        minimize: 0x28,    // VK_DOWN
+        top_half: 0x26,    // maximize (no native top-half on Windows)
+        bottom_half: 0x28  // minimize
+      };
+      const vk = winArrowMap[position];
+      if (vk === undefined) {
+        return {
+          success: false,
+          message: `Snap position "${position}" on Windows only supports: left_half, right_half, maximize, minimize (and top_half/bottom_half map to maximize/minimize).`,
+          position,
+          platform: 'windows'
+        };
+      }
+      try {
+        // keybd_event: VK_LWIN=0x5B, KEYEVENTF_KEYUP=2. Press Win, press Arrow, release Arrow, release Win.
+        const ps = `Add-Type -TypeDefinition "using System;using System.Runtime.InteropServices;public class W{ [DllImport(\\\"user32.dll\\\")]public static extern void keybd_event(byte b,byte s,uint f,UIntPtr e);public static void S(byte k){ keybd_event(0x5B,0,0,UIntPtr.Zero);keybd_event(k,0,0,UIntPtr.Zero);keybd_event(k,0,2,UIntPtr.Zero);keybd_event(0x5B,0,2,UIntPtr.Zero);} }"; [W]::S(${vk})`;
+        execPowerShell(ps);
+        return {
+          success: true,
+          message: `Window snapped to ${position} (Win+Arrow)`,
+          position,
+          app: app || 'foreground',
+          platform: 'windows'
+        };
+      } catch (err) {
+        return {
+          success: false,
+          message: `Window snap failed: ${err.message}`,
+          position,
+          platform: 'windows'
+        };
+      }
+    }
+
     if (!isMacOS()) {
       throw new Error('Window snapping currently only supported on macOS');
     }
@@ -531,19 +586,40 @@ const tools = {
     try {
       ensureWorkspaceDir();
       
-      // Get current window information
-      const windowInfo = await tools.get_window_info({ type: 'all' });
+      let windows = [];
       
-      if (!windowInfo.success) {
-        throw new Error('Failed to get current window information');
+      if (isWindows()) {
+        // Windows: get list of visible windows with main window titles
+        const ps = `Get-Process | Where-Object { $_.MainWindowTitle -ne '' } | Select-Object ProcessName, MainWindowTitle, Id | ConvertTo-Json -Compress`;
+        const out = execPowerShell(ps);
+        let procs = [];
+        try {
+          procs = JSON.parse(out);
+          if (!Array.isArray(procs)) procs = [procs];
+        } catch { procs = []; }
+        
+        windows = procs.map(p => ({
+          app: p.ProcessName,
+          title: p.MainWindowTitle,
+          pid: p.Id
+        }));
+      } else if (isMacOS()) {
+        // Get current window information
+        const windowInfo = await tools.get_window_info({ type: 'all' });
+        if (!windowInfo.success) {
+          throw new Error('Failed to get current window information');
+        }
+        windows = windowInfo.data.windows;
+      } else {
+        throw new Error('Workspace save not supported on this platform');
       }
 
       const workspace = {
         name: name,
         description: description || '',
         created: new Date().toISOString(),
-        windows: windowInfo.data.windows,
-        screenInfo: getScreenInfo()
+        windows: windows,
+        platform: isWindows() ? 'windows' : 'macos'
       };
 
       const workspacePath = path.join(WORKSPACE_DIR, `${name}.json`);
@@ -554,7 +630,9 @@ const tools = {
         message: `Workspace "${name}" saved with ${workspace.windows.length} windows`,
         name: name,
         windowCount: workspace.windows.length,
-        path: workspacePath
+        apps: [...new Set(windows.map(w => w.app))],
+        path: workspacePath,
+        platform: workspace.platform
       };
     } catch (error) {
       return {
@@ -576,16 +654,23 @@ const tools = {
       }
 
       const workspace = JSON.parse(fs.readFileSync(workspacePath, 'utf8'));
+      const requiredApps = [...new Set(workspace.windows.map(w => w.app))];
+      let launchedApps = [];
+      let failedApps = [];
       
       if (launchApps) {
-        // Launch required apps
-        const requiredApps = [...new Set(workspace.windows.map(w => w.app))];
-        
         for (const app of requiredApps) {
           try {
-            await tools.window_focus({ app });
+            if (isWindows()) {
+              // Windows: use Start-Process
+              execPowerShell(`Start-Process -FilePath "${app}" -ErrorAction SilentlyContinue`);
+              launchedApps.push(app);
+            } else if (isMacOS()) {
+              await tools.window_focus({ app });
+              launchedApps.push(app);
+            }
           } catch (error) {
-            // App might not be installed, continue
+            failedApps.push(app);
             console.log(`Could not launch ${app}: ${error.message}`);
           }
         }
@@ -594,24 +679,21 @@ const tools = {
       // Wait a moment for apps to launch
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Restore window positions (simplified - would need more complex logic)
-      let restoredCount = 0;
-      for (const window of workspace.windows) {
-        try {
-          await tools.window_focus({ app: window.app });
-          // Could add more sophisticated position restoration here
-          restoredCount++;
-        } catch (error) {
-          // Continue with other windows
-        }
-      }
+      // On Windows, we can't easily restore exact window positions without additional tools
+      // Just report which apps were launched
+      const restoredCount = launchedApps.length;
       
       return {
         success: true,
-        message: `Workspace "${name}" restored (${restoredCount}/${workspace.windows.length} windows)`,
+        message: `Workspace "${name}" restored: launched ${restoredCount}/${requiredApps.length} apps`,
         name: name,
-        restoredWindows: restoredCount,
-        totalWindows: workspace.windows.length
+        launchedApps: launchedApps,
+        failedApps: failedApps,
+        totalApps: requiredApps.length,
+        platform: isWindows() ? 'windows' : 'macos',
+        note: isWindows() 
+          ? 'Windows tip: Use Win+Arrow to snap windows after restore.' 
+          : null
       };
     } catch (error) {
       return {

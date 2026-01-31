@@ -586,19 +586,40 @@ const tools = {
     try {
       ensureWorkspaceDir();
       
-      // Get current window information
-      const windowInfo = await tools.get_window_info({ type: 'all' });
+      let windows = [];
       
-      if (!windowInfo.success) {
-        throw new Error('Failed to get current window information');
+      if (isWindows()) {
+        // Windows: get list of visible windows with main window titles
+        const ps = `Get-Process | Where-Object { $_.MainWindowTitle -ne '' } | Select-Object ProcessName, MainWindowTitle, Id | ConvertTo-Json -Compress`;
+        const out = execPowerShell(ps);
+        let procs = [];
+        try {
+          procs = JSON.parse(out);
+          if (!Array.isArray(procs)) procs = [procs];
+        } catch { procs = []; }
+        
+        windows = procs.map(p => ({
+          app: p.ProcessName,
+          title: p.MainWindowTitle,
+          pid: p.Id
+        }));
+      } else if (isMacOS()) {
+        // Get current window information
+        const windowInfo = await tools.get_window_info({ type: 'all' });
+        if (!windowInfo.success) {
+          throw new Error('Failed to get current window information');
+        }
+        windows = windowInfo.data.windows;
+      } else {
+        throw new Error('Workspace save not supported on this platform');
       }
 
       const workspace = {
         name: name,
         description: description || '',
         created: new Date().toISOString(),
-        windows: windowInfo.data.windows,
-        screenInfo: getScreenInfo()
+        windows: windows,
+        platform: isWindows() ? 'windows' : 'macos'
       };
 
       const workspacePath = path.join(WORKSPACE_DIR, `${name}.json`);
@@ -609,7 +630,9 @@ const tools = {
         message: `Workspace "${name}" saved with ${workspace.windows.length} windows`,
         name: name,
         windowCount: workspace.windows.length,
-        path: workspacePath
+        apps: [...new Set(windows.map(w => w.app))],
+        path: workspacePath,
+        platform: workspace.platform
       };
     } catch (error) {
       return {
@@ -631,16 +654,23 @@ const tools = {
       }
 
       const workspace = JSON.parse(fs.readFileSync(workspacePath, 'utf8'));
+      const requiredApps = [...new Set(workspace.windows.map(w => w.app))];
+      let launchedApps = [];
+      let failedApps = [];
       
       if (launchApps) {
-        // Launch required apps
-        const requiredApps = [...new Set(workspace.windows.map(w => w.app))];
-        
         for (const app of requiredApps) {
           try {
-            await tools.window_focus({ app });
+            if (isWindows()) {
+              // Windows: use Start-Process
+              execPowerShell(`Start-Process -FilePath "${app}" -ErrorAction SilentlyContinue`);
+              launchedApps.push(app);
+            } else if (isMacOS()) {
+              await tools.window_focus({ app });
+              launchedApps.push(app);
+            }
           } catch (error) {
-            // App might not be installed, continue
+            failedApps.push(app);
             console.log(`Could not launch ${app}: ${error.message}`);
           }
         }
@@ -649,24 +679,21 @@ const tools = {
       // Wait a moment for apps to launch
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Restore window positions (simplified - would need more complex logic)
-      let restoredCount = 0;
-      for (const window of workspace.windows) {
-        try {
-          await tools.window_focus({ app: window.app });
-          // Could add more sophisticated position restoration here
-          restoredCount++;
-        } catch (error) {
-          // Continue with other windows
-        }
-      }
+      // On Windows, we can't easily restore exact window positions without additional tools
+      // Just report which apps were launched
+      const restoredCount = launchedApps.length;
       
       return {
         success: true,
-        message: `Workspace "${name}" restored (${restoredCount}/${workspace.windows.length} windows)`,
+        message: `Workspace "${name}" restored: launched ${restoredCount}/${requiredApps.length} apps`,
         name: name,
-        restoredWindows: restoredCount,
-        totalWindows: workspace.windows.length
+        launchedApps: launchedApps,
+        failedApps: failedApps,
+        totalApps: requiredApps.length,
+        platform: isWindows() ? 'windows' : 'macos',
+        note: isWindows() 
+          ? 'Windows tip: Use Win+Arrow to snap windows after restore.' 
+          : null
       };
     } catch (error) {
       return {
