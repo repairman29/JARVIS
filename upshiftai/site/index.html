@@ -24,7 +24,7 @@
     <section class="hero">
       <div class="wrap">
         <h1>When dependencies fork back to ancient sub-branches of projects of yore.</h1>
-        <p class="hero-lead">UpshiftAI surfaces them, so you can actually fix the tree.</p>
+        <p class="hero-lead">UpshiftAI surfaces them across npm, pip, and Go — with security audits, automated fixes, and conversational AI integration.</p>
         <div class="hero-actions">
           <a href="#try" class="btn btn-primary">Try it</a>
           <a href="docs.html" class="btn btn-secondary">How it works</a>
@@ -59,16 +59,19 @@ upshiftai-deps report [path] [--output FILE] [--pdf] [--no-full-tree]
 upshiftai-deps checkpoint [path] [--reason "..."]
 upshiftai-deps rollback [path] [--dry-run]
 
-# Apply upgrade or replace (checkpoint, verify, auto-rollback; HITL via .upshiftai.json)
-upshiftai-deps apply upgrade &lt;pkg&gt; [path] [--version latest] [--dry-run] [--yes]
-upshiftai-deps apply replace &lt;old&gt; &lt;new&gt; [path] [--yes]</code></pre>
+# Apply automated fixes (npm AND pip; checkpoint, verify, auto-rollback)
+upshiftai-deps apply fix [path] [--dry-run] [--yes] [--limit N]
+upshiftai-deps fix &lt;pkg&gt; [path] [--dry-run] [--yes]
+
+# Health check (OK/WARN/FAIL status for CI)
+upshiftai-deps health [path] [--exit-code] [--json]</code></pre>
         <p>Use <code>.upshiftai.json</code> (see <code>.upshiftai.example.json</code>) for webhooks and approval policy. Full reference: <a href="docs.html">How it works</a>.</p>
       </div>
     </section>
 
     <section class="cta">
       <div class="wrap">
-        <p>Integrate the engine into your workflow — reports, upgrade/replace with HITL and webhooks, or a JARVIS summary.</p>
+        <p><strong>NEW in v0.2.0:</strong> Go proxy integration, pip-audit security scanning, pip automated fixes, and JARVIS conversational AI skill. Integrate into your workflow — CI gates, webhooks, or conversational dependency management.</p>
         <a href="docs.html" class="btn btn-primary">Full CLI reference &amp; config</a>
       </div>
     </section>

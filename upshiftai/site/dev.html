@@ -22,7 +22,8 @@
 
   <main class="docs-content">
     <div class="wrap">
-      <h1>For developers</h1>
+      <h1>For developers — v0.2.0</h1>
+      <p><strong>NEW:</strong> Go proxy integration, pip-audit security scanning, pip automated fixes, JARVIS conversational AI skill.</p>
       <p>Everything you need to install, run, and integrate UpshiftAI: CLI, config, programmatic API, CI, and webhooks.</p>
 
       <h2>Install</h2>
@@ -33,13 +34,20 @@
       </ul>
       <p>Node 18+ required. No backend — runs locally.</p>
 
-      <h2>CLI at a glance</h2>
-      <pre class="code"><code>upshiftai-deps analyze [path] [--markdown] [--csv] [--no-registry] [--ecosystem=npm|pip|go]
-upshiftai-deps report [path] [--output FILE] [--pdf] [--no-full-tree] [--pip-tree FILE.json]
-upshiftai-deps checkpoint [path] [--reason "..."]
-upshiftai-deps rollback [path] [--dry-run]
-upshiftai-deps apply upgrade &lt;pkg&gt; [path] [--version VER] [--dry-run] [--yes]
-upshiftai-deps apply replace &lt;old&gt; &lt;new&gt; [path] [--dry-run] [--yes]</code></pre>
+      <h2>CLI at a glance — v0.2.0</h2>
+      <pre class="code"><code># Analysis with security audits (NEW: Go proxy, pip-audit)
+upshiftai-deps analyze [path] [--summary] [--exit-code] [--no-audit] [--ecosystem=npm|pip|go]
+upshiftai-deps report [path] [--summary] [--json] [--diff] [--licenses] [--pdf]
+upshiftai-deps health [path] [--exit-code] [--json]  # NEW: CI health check
+
+# Automated fixes (NEW: pip support)
+upshiftai-deps apply fix [path] [--dry-run] [--yes] [--limit N]  # NEW: batch fixes
+upshiftai-deps fix &lt;pkg&gt; [path] [--dry-run] [--yes]             # NEW: one-shot
+
+# Manual operations
+upshiftai-deps checkpoint [path] [--list]
+upshiftai-deps rollback [path] [--dry-run] [--checkpoint &lt;TS&gt;]
+upshiftai-deps apply upgrade|replace &lt;args&gt;  # works for npm + pip</code></pre>
       <p>Full options: <a href="docs.html">How it works</a>.</p>
 
       <h2>Config</h2>
