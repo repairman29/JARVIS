@@ -66,6 +66,7 @@ Advanced AI-powered skills for professionals: Notion Advanced Pro, GitHub Copilo
 | [**JARVIS_WINDOWS_EPIC.md**](./JARVIS_WINDOWS_EPIC.md) | Make JARVIS epic on Windows (Raycast-style, quick access, marketplace) |
 | [**ROG_ALLY_SETUP.md**](./ROG_ALLY_SETUP.md) / [JARVIS_ROG_ED.md](./JARVIS_ROG_ED.md) | Run JARVIS on ASUS ROG Ally (handheld) |
 | [**DEVELOPER_GUIDE.md**](./DEVELOPER_GUIDE.md) | Complete setup and development guide |
+| [**docs/REPO_INDEX.md**](./docs/REPO_INDEX.md) | Repo map: apps, services, skills, key docs |
 | [DISCORD_SETUP.md](./DISCORD_SETUP.md) | Discord bot configuration |
 | [RUNBOOK.md](./RUNBOOK.md) | Day-to-day operations |
 
@@ -306,19 +307,7 @@ code-roach crawl              # Build knowledge base
 
 > *"When dependencies fork back to ancient sub-branches of projects of yore."*
 
-Analyze dependency trees and surface ancient/legacy/forked packages for [upshiftai.dev](https://upshiftai.dev).
-
-| Feature | What It Does |
-|---------|--------------|
-| **Tree resolution** | npm lockfile → full tree with depth and "why" |
-| **Ancient detection** | Age since publish, deprecated, fork-name hints |
-| **Report output** | JSON + optional markdown for pipelines or JARVIS |
-
-```bash
-cd upshiftai && node bin/upshiftai-deps.js analyze /path/to/project [--markdown] [--no-registry]
-```
-
-**[See `upshiftai/README.md` →](./upshiftai/README.md)** · **Landing:** deploy `upshiftai/site/` to [upshiftai.dev](https://upshiftai.dev). **JARVIS skill:** `clawdbot skills install ./skills/upshiftai`
+UpshiftAI lives in its own repo: **[repairman29/upshift](https://github.com/repairman29/upshift)**. CLI, platform, and site: [upshiftai.dev](https://upshiftai.dev).
 
 ---
 
