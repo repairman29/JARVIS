@@ -14,22 +14,29 @@ import { getReplacementSuggestions } from './suggestions.js';
 export function buildReport(tree, metadata, options = {}) {
   const entries = [];
   let ancientCount = 0;
+  const nodeList = Array.isArray(tree) ? tree : [];
+  const metaMap = metadata && typeof metadata.get === 'function' ? metadata : new Map();
 
-  for (const node of tree) {
+  for (const node of nodeList) {
+    if (!node || typeof node !== 'object') continue;
     const key = node.key;
-    const meta = metadata.get(key) || metadata.get(node.name) || {};
+    const meta = metaMap.get(key) || metaMap.get(node.name) || {};
     const signals = analyzePackage(
       { name: node.name, version: node.version, deprecated: node.deprecated },
       meta,
       options
     );
 
+    const latestVersion = meta.latestVersion;
+    const license = meta.license;
     const entry = {
       key,
       name: node.name,
       version: node.version,
       depth: node.depth,
       why: node.why,
+      latestVersion: latestVersion || undefined,
+      license: license || undefined,
       ...signals,
     };
     entries.push(entry);
@@ -43,9 +50,13 @@ export function buildReport(tree, metadata, options = {}) {
     return (a.name || '').localeCompare(b.name || '');
   });
 
+  const directCount = entries.filter((e) => e.depth === 1).length;
+  const transitiveCount = entries.length - directCount;
   return {
     summary: {
       total: entries.length,
+      direct: directCount,
+      transitive: transitiveCount,
       ancient: ancientCount,
       deprecated: entries.filter((e) => e.deprecated).length,
       forkHint: entries.filter((e) => e.forkHint).length,
@@ -76,11 +87,20 @@ export function reportToMarkdown(report) {
   if (problematic.length === 0) {
     lines.push('None detected.');
   } else {
-    lines.push('| Package | Version | Depth | Reasons |');
-    lines.push('|---------|---------|-------|---------|');
+    const hasLatest = problematic.some((e) => e.latestVersion && e.latestVersion !== e.version);
+    const headers = hasLatest
+      ? '| Package | Version | Latest | Depth | Reasons |'
+      : '| Package | Version | Depth | Reasons |';
+    lines.push(headers);
+    lines.push(hasLatest ? '|---------|---------|-------|-------|---------|' : '|---------|---------|-------|---------|');
     for (const e of problematic) {
       const reasons = e.reasons.join('; ') || '—';
-      lines.push(`| ${e.name} | ${e.version} | ${e.depth} | ${reasons} |`);
+      if (hasLatest) {
+        const latest = e.latestVersion && e.latestVersion !== e.version ? e.latestVersion : '—';
+        lines.push(`| ${e.name} | ${e.version} | ${latest} | ${e.depth} | ${reasons} |`);
+      } else {
+        lines.push(`| ${e.name} | ${e.version} | ${e.depth} | ${reasons} |`);
+      }
     }
   }
 

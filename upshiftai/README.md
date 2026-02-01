@@ -11,13 +11,9 @@
 | **README** (this file) | Quick start, all command summaries, config (checkpoint, rollback, apply, HITL, webhooks). |
 | **site/docs.html** | Full CLI reference (analyze, report, checkpoint, rollback, apply), config, events, roadmap. |
 | **site/dev.html** | **For developers**: install, CLI at a glance, config, programmatic API, CI, webhooks, env vars. |
-| **site/pricing.html** | **Pricing & packaging**: tiers (Free / Pro / Team), packaging (CLI, npm, open source), usage. |
 | **site/index.html** | Try-it block with main commands; links to full docs. |
 | **docs/DESIGN-SUGGESTIONS-AUTOMATIONS.md** | Who benefits, suggestions, automations, HITL, webhooks, rollbacks. |
 | **.upshiftai.example.json** | Example `.upshiftai.json` for webhooks and approval. |
-| **docs/MONETIZATION-SOONER.md** | How to get to revenue sooner: sponsors, paid support, Pro founding, API key. |
-| **docs/PLATFORM.md** | Platform spec: dashboard, API, approval queue, billing (build it and charge). |
-| **platform/** | Hosted app (Next.js): auth, dashboard, reports API, Stripe Pro checkout. Run with `cd platform && npm run dev`. |
 
 This module:
 
@@ -43,7 +39,7 @@ Or from a project that has `package-lock.json`:
 npx upshiftai-deps analyze .
 ```
 
-Use `--no-registry` to skip registry lookups (faster). Use `--markdown` to append a markdown report, or `--csv` for spreadsheet output (includes replacement suggestions). Use `--ecosystem=npm|pip|go` to force; otherwise auto-detects.
+Use `--no-registry` to skip registry lookups (faster). Use `--markdown` to append a markdown report, or `--csv` for spreadsheet output (includes replacement suggestions). Use `--summary` to print only the one-pager. Use `--exit-code` with `--max-ancient=N` and/or `--max-deprecated=N` to exit 1 when thresholds are exceeded (CI gates). Use `--no-audit` to skip npm audit. Use `--ecosystem=npm|pip|go` to force; otherwise auto-detects. Registry metadata is **cached** in `.upshiftai-tmp/cache` (24h TTL) and fetched **in parallel** (10 at a time) for speed.
 
 ### Full “deep throat” report (pip)
 
@@ -62,7 +58,10 @@ For **pip projects**, `report` defaults to attempting a full transitive tree: it
 Options:
 
 - `--output FILE` — write markdown to a file (default: stdout)
+- `--summary` — print only the one-pager
+- `--json` — output structured JSON (summary, chains, entries); use with `--diff` to include comparison to last run
 - `--pdf` — also generate a PDF (requires `npx md-to-pdf`)
+- `--licenses` — add a Licenses section (npm/pip)
 - `--no-full-tree` — skip automatic pipdeptree; report direct deps only
 - `--full-tree` — explicitly request full tree (default for pip)
 - `--pip-tree FILE.json` — use existing `pipdeptree -o json` output instead of running it
@@ -86,7 +85,20 @@ To restore the last checkpoint:
 ```bash
 upshiftai-deps rollback /path/to/project
 upshiftai-deps rollback /path/to/project --dry-run   # show what would be restored
+upshiftai-deps rollback /path/to/project --checkpoint 2026-01-29T12-00-00   # restore specific checkpoint
 ```
+
+List checkpoints: `upshiftai-deps checkpoint --list`
+
+### Health (one-line status)
+
+```bash
+upshiftai-deps health [path]
+upshiftai-deps health . --exit-code   # exit 1 if not OK (CI)
+upshiftai-deps health . --json       # machine-readable
+```
+
+Prints **OK** / **WARN** / **FAIL** with counts (ancient, deprecated, high/critical vulns). Use `--exit-code` to fail CI when status is not OK.
 
 Design for **who benefits**, **suggestions**, **automations**, and **rollbacks** is in [docs/DESIGN-SUGGESTIONS-AUTOMATIONS.md](docs/DESIGN-SUGGESTIONS-AUTOMATIONS.md).
 
@@ -95,11 +107,17 @@ Design for **who benefits**, **suggestions**, **automations**, and **rollbacks**
 Apply an **upgrade** or **replace** with checkpoint, verify, and automatic rollback on failure. Actions that need “hand-holding” (replace, major upgrade) go through an **approval gate**; everything else can run automatically with **listeners** and **webhooks** so you can observe or trigger your own revert.
 
 ```bash
-# Upgrade one package (patch/minor: auto; major: approval if config says so)
+# Upgrade one package (patch/minor: auto; major: approval if config says so). Works for npm and pip (auto-detected).
 upshiftai-deps apply upgrade <pkg> [path] [--version latest] [--dry-run] [--yes]
 
-# Replace package (always requires approval unless --yes)
+# Replace package (always requires approval unless --yes). Works for npm and pip.
 upshiftai-deps apply replace <old> <new> [path] [--version latest] [--dry-run] [--yes]
+
+# Apply all suggested fixes for direct ancient/deprecated deps (npm; one checkpoint for the whole run)
+upshiftai-deps apply fix [path] [--dry-run] [--yes] [--limit N]
+
+# One-shot: suggest + apply for a single package (npm)
+upshiftai-deps fix <pkg> [path] [--dry-run] [--yes]
 ```
 
 - **HITL**: Put `.upshiftai.json` in the project (or use `--config`). Set `approval.mode` to `prompt` (CLI “y/n”), `webhook` (POST to your URL; you respond `{ "approved": true }`), or `none`. Set `approval.requireFor` to `["replace", "major"]` so replace and major upgrades require approval; patch/minor can run without.
@@ -145,4 +163,7 @@ Output is JSON (for pipelines) and optional markdown for humans.
 - [x] Full report + transitive “something old” chains
 - [x] Checkpoint & rollback
 - [x] Apply upgrade/replace + HITL + webhooks
-- [ ] pip apply (upgrade/replace) (planned)
+- [x] pip apply (upgrade/replace); apply fix (batch); fix \<pkg\> (one-shot)
+- [x] analyze --summary, --exit-code, --max-ancient/--max-deprecated, --no-audit
+- [x] report --summary, --json, --diff, --licenses; npm audit; latest vs installed; blast radius; checkpoint --list, rollback --checkpoint
+- [x] Go proxy metadata (GOPROXY lastPublish for age); pip-audit in report; pip apply fix + fix \<pkg\>; JARVIS/CLAWDBOT skill (analyze_dependencies, dependency_health)

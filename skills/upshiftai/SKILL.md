@@ -4,13 +4,20 @@ When the user asks to **analyze dependencies**, **check for ancient/legacy packa
 
 ## What it does
 
-- Runs UpshiftAI dependency analysis (npm and/or pip) on a project path.
-- Surfaces ancient, deprecated, and fork-hint packages.
-- Returns a short summary and, if asked, the full report or markdown.
+- Runs UpshiftAI dependency analysis (npm, pip, or go) on a project path.
+- Surfaces ancient, deprecated, fork-hint packages, and security vulns (npm audit / pip-audit).
+- Returns a short summary, one-pager ("do this first"), or full report.
 
-## How to run
+## Tools (call these when the user wants a dependency check)
 
-From the user's machine, analysis is run via the UpshiftAI CLI. The skill does not execute code; it tells the user the exact commands and how to interpret results.
+- **analyze_dependencies(projectPath?, summaryOnly?, includeFullReport?)** — Run analysis and return the one-pager (risk, TL;DR, do this first) and optional summary counts. Set `includeFullReport: true` for full JSON.
+- **dependency_health(projectPath?)** — Quick health: OK/WARN/FAIL and counts (ancient, deprecated, vulns). Use for "how are my deps?" or CI-style answer.
+
+If the skill tools are available, call them with the user's project path (or `.` for current workspace) and summarize the result. If not, give the CLI commands below.
+
+## How to run (CLI)
+
+From the user's machine, analysis can also be run via the UpshiftAI CLI:
 
 **If the user has CLAWDBOT repo (or upshiftai) locally:**
 
@@ -44,11 +51,11 @@ npx upshiftai-deps analyze /path/to/project [--markdown] [--no-registry]
 
 ## Ecosystems
 
-- **npm:** Looks for `package-lock.json`; reports depth and "why" for each package.
-- **pip:** Looks for `requirements.txt` (or `requirements/base.txt`, etc.); reports direct deps (depth 0).
-- **go:** Looks for `go.mod`; reports direct and indirect modules (no registry age; fork hints apply). Use `--ecosystem=go` to force.
+- **npm:** Looks for `package-lock.json`; reports depth, "why", npm audit vulns, and latest vs installed.
+- **pip:** Looks for `requirements.txt` or `pyproject.toml`; reports direct/transitive, pip-audit vulns when available.
+- **go:** Looks for `go.mod`; reports direct/indirect modules and GOPROXY age (last publish). Use `--ecosystem=go` to force.
 
-CLI auto-detects; use `--ecosystem=npm|pip|go` to force. Add `--csv` for CSV output (includes replacement suggestions).
+CLI auto-detects; use `--ecosystem=npm|pip|go` to force. Add `--csv` for CSV output (includes replacement suggestions). Use `report --summary` for the one-pager; `health` for OK/WARN/FAIL.
 
 ## When to use
 

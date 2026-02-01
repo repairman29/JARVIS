@@ -2,7 +2,45 @@
  * Replacement suggestions for known deprecated or legacy packages.
  * Key: package name (lowercase). Value: { replacement, note, action?, targetPackage?, targetVersion? }.
  * action: 'replace' | 'upgrade' | 'pin' for future automations.
+ * Load .upshiftai-suggestions.json from project root to merge custom suggestions.
  */
+
+import { readFileSync, existsSync } from 'fs';
+import { join, resolve } from 'path';
+
+const CUSTOM_FILE = '.upshiftai-suggestions.json';
+const customSuggestions = new Map();
+let lastLoadedRoot = null;
+
+/**
+ * Load custom suggestions from projectRoot/.upshiftai-suggestions.json (merge with built-in).
+ * @param {string} projectRoot
+ */
+export function loadCustomSuggestions(projectRoot) {
+  const root = resolve(projectRoot);
+  if (lastLoadedRoot === root) return;
+  lastLoadedRoot = root;
+  customSuggestions.clear();
+  const path = join(root, CUSTOM_FILE);
+  if (!existsSync(path)) return;
+  try {
+    const data = JSON.parse(readFileSync(path, 'utf8'));
+    for (const [name, value] of Object.entries(data)) {
+      if (value && typeof value.replacement === 'string') {
+        const key = name.toLowerCase().trim().replace(/_/g, '-');
+        customSuggestions.set(key, {
+          replacement: value.replacement,
+          note: value.note || '',
+          action: value.action || 'replace',
+          targetPackage: value.targetPackage,
+          targetVersion: value.targetVersion,
+        });
+      }
+    }
+  } catch {
+    // ignore invalid file
+  }
+}
 
 const REPLACEMENTS = new Map([
   // npm
@@ -25,6 +63,8 @@ const REPLACEMENTS = new Map([
   ['futures', { replacement: 'concurrent.futures (stdlib 3.2+)', note: 'futures is backport for 2.7; remove on 3.x', action: 'replace' }],
   ['configparser', { replacement: 'configparser (stdlib)', note: 'On Python 3 use stdlib configparser; drop backport', action: 'replace' }],
   ['typing', { replacement: 'typing (stdlib 3.5+)', note: 'On 3.5+ use stdlib typing; drop backport', action: 'replace' }],
+  ['backports.ssl-match-hostname', { replacement: 'stdlib ssl (Python 3.2+)', note: 'Backport for 2.x; remove on 3.x', action: 'replace' }],
+  ['subprocess32', { replacement: 'subprocess (stdlib 3.2+)', note: 'Backport for 2.7; remove on 3.x', action: 'replace' }],
 ]);
 
 /**
@@ -34,7 +74,7 @@ const REPLACEMENTS = new Map([
 export function getReplacementSuggestions(name) {
   if (!name || typeof name !== 'string') return undefined;
   const key = name.toLowerCase().trim().replace(/_/g, '-');
-  return REPLACEMENTS.get(key);
+  return customSuggestions.get(key) ?? REPLACEMENTS.get(key);
 }
 
 /**
