@@ -5,8 +5,18 @@
 
 import { readFileSync, existsSync } from 'fs';
 import { join, resolve } from 'path';
+import { cachePath, cacheGet, cacheSet } from '../cache.js';
 
 const PYPI_URL = 'https://pypi.org/pypi';
+
+async function fetchPyPIJson(normalized) {
+  try {
+    const { fetchJson } = await import('../network.js');
+    return await fetchJson(`${PYPI_URL}/${normalized}/json`, { timeoutMs: 15000, retries: 2 });
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Read [project] name and [project.urls] from pyproject.toml for report header.
@@ -212,17 +222,25 @@ export function requirementsToTree(requirements) {
 }
 
 /**
- * Fetch PyPI JSON for a package. Returns upload_time for latest release matching version or latest.
- * @param {string} name - normalized package name (e.g. django)
+ * Fetch PyPI metadata for a package.
+ * @param {string} name - package name
  * @param {string} [version] - constraint or *
- * @returns {Promise<{ lastPublish?: string, deprecated?: string, requiresPython?: string }>}
+ * @param {{ cacheDir?: string, cacheTtlMs?: number }} [options]
+ * @returns {Promise<{ lastPublish?: string, deprecated?: string, requiresPython?: string, latestVersion?: string, license?: string }>}
  */
-export async function fetchPyPIMetadata(name, version) {
+export async function fetchPyPIMetadata(name, version, options = {}) {
+  if (!name || typeof name !== 'string') return {};
+  const normalized = name.toLowerCase().replace(/_/g, '-');
+  const cacheDir = options.cacheDir;
+  const cacheTtlMs = options.cacheTtlMs ?? 24 * 60 * 60 * 1000;
+  if (cacheDir) {
+    const path = cachePath(cacheDir, 'pypi', normalized);
+    const cached = cacheGet(path, cacheTtlMs);
+    if (cached && typeof cached === 'object') return cached;
+  }
   try {
-    const normalized = name.toLowerCase().replace(/_/g, '-');
-    const res = await fetch(`${PYPI_URL}/${normalized}/json`, { headers: { Accept: 'application/json' } });
-    if (!res.ok) return {};
-    const data = await res.json();
+    const data = await fetchPyPIJson(normalized);
+    if (!data || typeof data !== 'object') return {};
     const releases = data.releases || {};
     let uploadTime = null;
     if (version && version !== '*' && releases[version]?.length) {
@@ -232,12 +250,29 @@ export async function fetchPyPIMetadata(name, version) {
       uploadTime = releases[data.info.version][0]?.upload_time;
     }
     const requiresPython = data.info?.requires_python || undefined;
-    return {
+    const latestVersion = data.info?.version || undefined;
+    const license = data.info?.license || (data.info?.classifiers && data.info.classifiers.find((c) => typeof c === 'string' && c.startsWith('License ::')));
+    const licenseVal = typeof license === 'string' ? license.replace(/^License ::\s*/i, '') : license;
+    const result = {
       lastPublish: uploadTime || undefined,
-      deprecated: data.info?.classifiers?.some((c) => c.includes('Development Status') && c.includes('Deprecated')) ? 'Deprecated' : undefined,
+      deprecated: data.info?.classifiers?.some((c) => typeof c === 'string' && c.includes('Development Status') && c.includes('Deprecated')) ? 'Deprecated' : undefined,
       requiresPython,
+      latestVersion,
+      license: licenseVal || undefined,
     };
+    if (cacheDir) cacheSet(cachePath(cacheDir, 'pypi', normalized), result);
+    return result;
   } catch {
     return {};
   }
+}
+
+/**
+ * Get latest version of a package from PyPI.
+ * @param {string} name - package name
+ * @returns {Promise<string|null>}
+ */
+export async function getPyPILatestVersion(name) {
+  const meta = await fetchPyPIMetadata(name, '*');
+  return meta.latestVersion || null;
 }

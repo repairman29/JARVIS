@@ -5,23 +5,30 @@
 
 import { readFileSync, existsSync } from 'fs';
 import { join, resolve } from 'path';
+import { fetchJson } from '../network.js';
+import { cachePath, cacheGet, cacheSet } from '../cache.js';
 
 const REGISTRY = 'https://registry.npmjs.org';
 
 /**
  * @param {string} projectRoot
- * @returns {{ lockfile: object, root: string } | null }
+ * @returns {{ lockfile: object, root: string } | { error: string } | null }
  */
 export function loadLockfile(projectRoot) {
+  if (!projectRoot || typeof projectRoot !== 'string') return { error: 'Invalid project root' };
   const root = resolve(projectRoot);
   const lockPath = join(root, 'package-lock.json');
   if (!existsSync(lockPath)) return null;
   try {
     const raw = readFileSync(lockPath, 'utf8');
+    if (!raw || !raw.trim()) return { error: 'package-lock.json is empty' };
     const lockfile = JSON.parse(raw);
+    if (!lockfile || typeof lockfile !== 'object') return { error: 'package-lock.json is invalid' };
+    if (!lockfile.packages && !lockfile.dependencies) return { error: 'package-lock.json has no packages or dependencies' };
     return { lockfile, root };
-  } catch {
-    return null;
+  } catch (err) {
+    const msg = err instanceof SyntaxError ? 'Invalid JSON in package-lock.json' : (err?.message || 'Failed to read package-lock.json');
+    return { error: msg };
   }
 }
 
@@ -164,24 +171,36 @@ export function buildTreeWithDepth(flat, lockfile) {
  *
  * @param {string} name - package name
  * @param {string} [version] - specific version (e.g. from lockfile)
- * @returns {Promise<{ lastPublish?: string, deprecated?: string }>}
+ * @param {{ cacheDir?: string, cacheTtlMs?: number }} [options]
+ * @returns {Promise<{ lastPublish?: string, deprecated?: string, latestVersion?: string, license?: string }>}
  */
-export async function fetchRegistryMetadata(name, version) {
+export async function fetchRegistryMetadata(name, version, options = {}) {
+  if (!name || typeof name !== 'string') return {};
+  const cacheDir = options.cacheDir;
+  const cacheTtlMs = options.cacheTtlMs ?? 24 * 60 * 60 * 1000;
+  if (cacheDir) {
+    const path = cachePath(cacheDir, 'npm', name);
+    const cached = cacheGet(path, cacheTtlMs);
+    if (cached && typeof cached === 'object') return cached;
+  }
   try {
-    const res = await fetch(`${REGISTRY}/${encodeURIComponent(name)}`, {
-      headers: { Accept: 'application/json' },
-    });
-    if (!res.ok) return {};
-    const data = await res.json();
+    const data = await fetchJson(`${REGISTRY}/${encodeURIComponent(name)}`, { timeoutMs: 15000, retries: 2 });
+    if (!data || typeof data !== 'object') return {};
     const latest = data['dist-tags']?.latest;
     const useVersion = (version && data.versions?.[version]) ? version : latest;
     const verData = data.versions?.[useVersion];
     const time = data.time && useVersion ? data.time[useVersion] : data.time?.modified;
-    return {
+    const license = verData?.license ?? data.license;
+    const licenseVal = typeof license === 'string' ? license : (license && license.type);
+    const result = {
       lastPublish: time || undefined,
       deprecated: verData?.deprecated ?? data.deprecated ?? undefined,
+      latestVersion: latest || undefined,
+      license: licenseVal || undefined,
     };
-  } catch {
+    if (cacheDir) cacheSet(cachePath(cacheDir, 'npm', name), result);
+    return result;
+  } catch (_) {
     return {};
   }
 }

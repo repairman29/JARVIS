@@ -4,7 +4,7 @@
  * rollback restores from latest checkpoint.
  */
 
-import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync, copyFileSync } from 'fs';
+import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync, copyFileSync, statSync } from 'fs';
 import { join, resolve } from 'path';
 
 const CHECKPOINTS_DIR = '.upshiftai-tmp/checkpoints';
@@ -62,7 +62,14 @@ export function getCheckpointFiles(projectRoot, ecosystem) {
  * @returns {{ path: string, timestamp: string, files: string[] } | { error: string }}
  */
 export function createCheckpoint(projectRoot, options = {}) {
+  if (!projectRoot || typeof projectRoot !== 'string') return { error: 'Invalid project root' };
   const root = resolve(projectRoot);
+  if (!existsSync(root)) return { error: `Path does not exist: ${root}` };
+  try {
+    if (!statSync(root).isDirectory()) return { error: `Path is not a directory: ${root}` };
+  } catch (e) {
+    return { error: e?.message || 'Invalid path' };
+  }
   const ecosystem = options.ecosystem ?? detectEcosystem(root);
   if (!ecosystem) {
     return { error: 'No npm or pip project found (no package-lock.json/pyproject.toml/requirements.txt)' };
@@ -73,22 +80,57 @@ export function createCheckpoint(projectRoot, options = {}) {
   }
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const cpDir = join(root, CHECKPOINTS_DIR, timestamp);
-  if (!existsSync(cpDir)) mkdirSync(cpDir, { recursive: true });
-
-  for (const { absolute, rel } of files) {
-    const dest = join(cpDir, rel);
-    const destDir = resolve(dest, '..');
-    if (!existsSync(destDir)) mkdirSync(destDir, { recursive: true });
-    copyFileSync(absolute, dest);
+  try {
+    if (!existsSync(cpDir)) mkdirSync(cpDir, { recursive: true });
+    for (const { absolute, rel } of files) {
+      if (!existsSync(absolute)) return { error: `Manifest file missing: ${absolute}` };
+      const dest = join(cpDir, rel);
+      const destDir = resolve(dest, '..');
+      if (!existsSync(destDir)) mkdirSync(destDir, { recursive: true });
+      copyFileSync(absolute, dest);
+    }
+    const meta = {
+      timestamp: new Date().toISOString(),
+      ecosystem,
+      reason: options.reason || 'manual',
+      files: files.map((f) => f.rel),
+    };
+    writeFileSync(join(cpDir, META_FILE), JSON.stringify(meta, null, 2), 'utf8');
+    return { path: cpDir, timestamp, files: files.map((f) => f.rel) };
+  } catch (e) {
+    return { error: e?.message || 'Checkpoint failed' };
   }
-  const meta = {
-    timestamp: new Date().toISOString(),
-    ecosystem,
-    reason: options.reason || 'manual',
-    files: files.map((f) => f.rel),
-  };
-  writeFileSync(join(cpDir, META_FILE), JSON.stringify(meta, null, 2), 'utf8');
-  return { path: cpDir, timestamp, files: files.map((f) => f.rel) };
+}
+
+/**
+ * List all checkpoints (newest first).
+ * @param {string} projectRoot
+ * @returns {Array<{ timestamp: string, path: string, reason: string }>}
+ */
+export function listCheckpoints(projectRoot) {
+  const root = resolve(projectRoot);
+  const base = join(root, CHECKPOINTS_DIR);
+  if (!existsSync(base)) return [];
+  const out = [];
+  try {
+    const names = readdirSync(base).filter((n) => {
+      const full = join(base, n);
+      return existsSync(join(full, META_FILE));
+    }).sort().reverse();
+    for (const name of names) {
+      const full = join(base, name);
+      try {
+        const raw = readFileSync(join(full, META_FILE), 'utf8');
+        const meta = raw && raw.trim() ? JSON.parse(raw) : {};
+        out.push({ timestamp: name, path: full, reason: meta.reason || 'manual' });
+      } catch (_) {
+        out.push({ timestamp: name, path: full, reason: 'manual' });
+      }
+    }
+  } catch (_) {
+    // ignore
+  }
+  return out;
 }
 
 /**
@@ -97,40 +139,37 @@ export function createCheckpoint(projectRoot, options = {}) {
  * @returns {string|null} path to checkpoint dir or null
  */
 export function getLatestCheckpoint(projectRoot) {
-  const root = resolve(projectRoot);
-  const base = join(root, CHECKPOINTS_DIR);
-  if (!existsSync(base)) return null;
-  let latest = null;
-  let latestTs = '';
-  try {
-    for (const name of readdirSync(base)) {
-      const full = join(base, name);
-      if (existsSync(join(full, META_FILE)) && name > latestTs) {
-        latestTs = name;
-        latest = full;
-      }
-    }
-  } catch {
-    return null;
-  }
-  return latest;
+  const list = listCheckpoints(projectRoot);
+  return list.length ? list[0].path : null;
 }
 
 /**
- * Restore project from latest checkpoint.
+ * Restore project from a checkpoint (latest or specified timestamp).
  * @param {string} projectRoot
- * @param {{ dryRun?: boolean }} options
+ * @param {{ dryRun?: boolean, checkpoint?: string }} options - checkpoint = timestamp dir name (e.g. from --checkpoint=2026-01-29T12-00-00)
  * @returns {{ restored: string[], checkpoint: string } | { error: string }}
  */
 export function rollback(projectRoot, options = {}) {
   const root = resolve(projectRoot);
-  const cpPath = getLatestCheckpoint(root);
+  let cpPath = null;
+  if (options.checkpoint) {
+    const full = join(root, CHECKPOINTS_DIR, options.checkpoint);
+    if (existsSync(full) && existsSync(join(full, META_FILE))) cpPath = full;
+  }
+  if (!cpPath) cpPath = getLatestCheckpoint(root);
   if (!cpPath) {
-    return { error: 'No checkpoint found. Run "upshiftai-deps checkpoint" first.' };
+    return { error: 'No checkpoint found. Run "upshiftai-deps checkpoint" first, or use --checkpoint=TS with "upshiftai-deps checkpoint --list".' };
   }
   const metaPath = join(cpPath, META_FILE);
-  const meta = JSON.parse(readFileSync(metaPath, 'utf8'));
-  const files = meta.files || [];
+  let meta;
+  try {
+    const raw = readFileSync(metaPath, 'utf8');
+    if (!raw || !raw.trim()) return { error: 'Checkpoint meta file is empty' };
+    meta = JSON.parse(raw);
+  } catch (e) {
+    return { error: e instanceof SyntaxError ? 'Invalid checkpoint meta' : (e?.message || 'Failed to read checkpoint') };
+  }
+  const files = Array.isArray(meta.files) ? meta.files : [];
   if (options.dryRun) {
     return { restored: files, checkpoint: cpPath, dryRun: true };
   }

@@ -17,11 +17,19 @@ function normName(s) {
 }
 
 export function parsePipdeptreeJson(jsonContent) {
-  const raw = JSON.parse(jsonContent);
+  if (!jsonContent || typeof jsonContent !== 'string') return { packages: new Map(), rootPackages: [] };
+  let raw;
+  try {
+    raw = JSON.parse(jsonContent);
+  } catch (_) {
+    return { packages: new Map(), rootPackages: [] };
+  }
+  if (!Array.isArray(raw)) return { packages: new Map(), rootPackages: [] };
   const packages = new Map();
   const seenAsRoot = new Set();
 
   for (const node of raw) {
+    if (!node || typeof node !== 'object' || !node.package) continue;
     const pkg = node.package;
     const name = normName(pkg.package_name || pkg.key);
     const version = pkg.installed_version || '*';
@@ -118,8 +126,12 @@ export function buildSomethingOldChains(packages, enriched) {
  * @returns {{ packages: Map, rootPackages: string[] }}
  */
 export function loadPipdeptreeFromFile(filePath) {
-  const content = readFileSync(filePath, 'utf8');
-  return parsePipdeptreeJson(content);
+  try {
+    const content = readFileSync(filePath, 'utf8');
+    return parsePipdeptreeJson(content);
+  } catch (_) {
+    return { packages: new Map(), rootPackages: [] };
+  }
 }
 
 /**

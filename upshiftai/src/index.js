@@ -3,9 +3,11 @@
  * Resolve tree, fetch registry metadata, detect ancient/legacy/fork, output report.
  */
 
+import { join, resolve } from 'path';
 import { loadLockfile, flattenPackages, buildTreeWithDepth, fetchRegistryMetadata } from './resolvers/npm.js';
+import { runNpmAudit, runPipAudit } from './audit.js';
 import { loadRequirements, requirementsToTree, fetchPyPIMetadata } from './resolvers/pip.js';
-import { loadGoMod, goModToTree } from './resolvers/go.js';
+import { loadGoMod, goModToTree, fetchGoProxyMetadata } from './resolvers/go.js';
 import { buildReport, reportToMarkdown } from './report.js';
 
 /**
@@ -20,7 +22,8 @@ export async function analyze(projectRoot, options = {}) {
   if (ecosystem === 'npm') return analyzeNpm(projectRoot, options);
   if (ecosystem === 'pip') return analyzePip(projectRoot, options);
   if (ecosystem === 'go') return analyzeGo(projectRoot, options);
-  if (loadLockfile(projectRoot)) return analyzeNpm(projectRoot, options);
+  const npmLoaded = loadLockfile(projectRoot);
+  if (npmLoaded && !npmLoaded.error) return analyzeNpm(projectRoot, options);
   if (loadRequirements(projectRoot)) return analyzePip(projectRoot, options);
   if (loadGoMod(projectRoot)) return analyzeGo(projectRoot, options);
   return {
@@ -49,6 +52,15 @@ export async function analyzeNpm(projectRoot, options = {}) {
       generatedAt: new Date().toISOString(),
     };
   }
+  if (loaded.error) {
+    return {
+      ok: false,
+      error: loaded.error,
+      summary: { total: 0, ancient: 0, deprecated: 0, forkHint: 0 },
+      entries: [],
+      generatedAt: new Date().toISOString(),
+    };
+  }
 
   const { lockfile } = loaded;
   const flat = flattenPackages(lockfile);
@@ -57,19 +69,43 @@ export async function analyzeNpm(projectRoot, options = {}) {
   const metadata = new Map();
   if (fetchRegistry) {
     const seen = new Set();
+    const uniqueNodes = [];
     for (const node of tree) {
       const key = node.key;
       if (seen.has(key)) continue;
       seen.add(key);
-      const meta = await fetchRegistryMetadata(node.name, node.version);
-      metadata.set(key, meta);
-      metadata.set(node.name, meta);
+      uniqueNodes.push(node);
+    }
+    const cacheDir = options.cacheDir ?? join(resolve(projectRoot), '.upshiftai-tmp', 'cache');
+    const concurrency = Math.min(options.concurrency ?? 10, 20);
+    const fetchOpts = { cacheDir, cacheTtlMs: options.cacheTtlMs };
+    for (let i = 0; i < uniqueNodes.length; i += concurrency) {
+      const batch = uniqueNodes.slice(i, i + concurrency);
+      const metas = await Promise.all(
+        batch.map((n) => fetchRegistryMetadata(n.name, n.version, fetchOpts))
+      );
+      batch.forEach((n, j) => {
+        metadata.set(n.key, metas[j]);
+        metadata.set(n.name, metas[j]);
+      });
     }
   }
 
   const report = buildReport(tree, metadata, { ancientMonths });
   report.ok = true;
   report.ecosystem = 'npm';
+  if (options.runAudit !== false) {
+    const audit = runNpmAudit(projectRoot);
+    if (audit) {
+      report.audit = {
+        critical: audit.critical,
+        high: audit.high,
+        moderate: audit.moderate,
+        low: audit.low,
+      };
+      report.auditVulnerabilities = audit.vulnerabilities;
+    }
+  }
   return report;
 }
 
@@ -94,24 +130,46 @@ export async function analyzePip(projectRoot, options = {}) {
   const tree = requirementsToTree(loaded.requirements);
   const metadata = new Map();
   if (fetchRegistry) {
-    for (const node of tree) {
-      const meta = await fetchPyPIMetadata(node.name, node.version);
-      metadata.set(node.key, meta);
-      metadata.set(node.name, meta);
+    const cacheDir = options.cacheDir ?? join(resolve(projectRoot), '.upshiftai-tmp', 'cache');
+    const concurrency = Math.min(options.concurrency ?? 10, 20);
+    const fetchOpts = { cacheDir, cacheTtlMs: options.cacheTtlMs };
+    const nodes = [...tree];
+    for (let i = 0; i < nodes.length; i += concurrency) {
+      const batch = nodes.slice(i, i + concurrency);
+      const metas = await Promise.all(
+        batch.map((n) => fetchPyPIMetadata(n.name, n.version, fetchOpts))
+      );
+      batch.forEach((n, j) => {
+        metadata.set(n.key, metas[j]);
+        metadata.set(n.name, metas[j]);
+      });
     }
   }
 
   const report = buildReport(tree, metadata, { ancientMonths });
   report.ok = true;
   report.ecosystem = 'pip';
+  if (options.runAudit !== false) {
+    const pipAudit = runPipAudit(projectRoot);
+    if (pipAudit) {
+      report.audit = {
+        critical: pipAudit.critical,
+        high: pipAudit.high,
+        moderate: pipAudit.moderate,
+        low: pipAudit.low,
+      };
+      report.auditVulnerabilities = pipAudit.vulnerabilities;
+    }
+  }
   return report;
 }
 
 /**
- * Analyze Go project (go.mod). No registry fetch (proxy API not wired).
+ * Analyze Go project (go.mod). Optionally fetch GOPROXY for lastPublish per module.
  */
 export async function analyzeGo(projectRoot, options = {}) {
   const ancientMonths = options.ancientMonths ?? 24;
+  const fetchRegistry = options.fetchRegistry !== false;
 
   const loaded = loadGoMod(projectRoot);
   if (!loaded) {
@@ -125,7 +183,22 @@ export async function analyzeGo(projectRoot, options = {}) {
   }
 
   const tree = goModToTree(loaded);
-  const metadata = new Map(); // Go proxy not wired; no lastPublish/deprecated
+  const metadata = new Map();
+  if (fetchRegistry) {
+    const cacheDir = options.cacheDir ?? join(resolve(projectRoot), '.upshiftai-tmp', 'cache');
+    const concurrency = Math.min(options.concurrency ?? 10, 20);
+    const fetchOpts = { cacheDir, cacheTtlMs: options.cacheTtlMs };
+    for (let i = 0; i < tree.length; i += concurrency) {
+      const batch = tree.slice(i, i + concurrency);
+      const metas = await Promise.all(
+        batch.map((n) => fetchGoProxyMetadata(n.name, n.version, fetchOpts))
+      );
+      batch.forEach((n, j) => {
+        metadata.set(n.key, metas[j]);
+        metadata.set(n.name, metas[j]);
+      });
+    }
+  }
   const report = buildReport(tree, metadata, { ancientMonths });
   report.ok = true;
   report.ecosystem = 'go';
@@ -147,11 +220,13 @@ export async function analyzeWithMarkdown(projectRoot, options = {}) {
 
 export { loadLockfile, flattenPackages, buildTreeWithDepth, fetchRegistryMetadata } from './resolvers/npm.js';
 export { loadRequirements, requirementsToTree, fetchPyPIMetadata } from './resolvers/pip.js';
-export { loadGoMod, goModToTree, loadGoSum } from './resolvers/go.js';
+export { loadGoMod, goModToTree, loadGoSum, fetchGoProxyMetadata } from './resolvers/go.js';
 export { analyzePackage, ageSignal, forkHint, isDeprecated, isOldPython } from './detectors/ancient.js';
 export { buildReport, reportToMarkdown, reportToCsv } from './report.js';
-export { getReplacementSuggestions } from './suggestions.js';
-export { createCheckpoint, rollback, getLatestCheckpoint, getCheckpointFiles } from './checkpoint.js';
+export { createCheckpoint, rollback, getLatestCheckpoint, getCheckpointFiles, listCheckpoints, detectEcosystem } from './checkpoint.js';
 export { loadConfig, requiresApproval } from './config.js';
 export { on, off, emit, requestApproval } from './events.js';
-export { approvalGate, applyNpmUpgrade, applyNpmReplace } from './apply.js';
+export { approvalGate, applyNpmUpgrade, applyNpmReplace, applyPipUpgrade, applyPipReplace } from './apply.js';
+export { getReplacementSuggestions, loadCustomSuggestions } from './suggestions.js';
+export { buildOnePager, buildFullReport } from './report-full.js';
+export { runNpmAudit, runPipAudit } from './audit.js';
