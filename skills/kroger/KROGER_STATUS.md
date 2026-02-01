@@ -64,5 +64,5 @@ The service automatically refreshes tokens weekly. If it ever fails:
 ## Files
 
 - `skills/kroger/index.js` - Main skill (uses Railway service when configured)
-- `services/kroger-oauth/` - Railway service code
+- **Kroger OAuth / Olive app** — [repairman29/olive](https://github.com/repairman29/olive) (shopolive.xyz, Kroger OAuth service)
 - `~/.clawdbot/.env` - Credentials (KROGER_SERVICE_URL, KROGER_USER_ID, etc.)
