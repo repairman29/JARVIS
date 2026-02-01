@@ -33,7 +33,7 @@ export default async function Dashboard() {
       )}
 
       <h2 style={{ fontSize: '1.1rem', marginBottom: '0.75rem' }}>Reports</h2>
-      <p style={{ color: '#888', marginBottom: '1rem' }}>Push reports from the CLI: <code style={{ background: '#1a1a1a', padding: '0.2rem 0.4rem', borderRadius: 4 }}>upshiftai-deps report . --upload</code> (requires API key).</p>
+      <p style={{ color: '#888', marginBottom: '1rem' }}>🤖 <strong>AI-powered analysis:</strong> Set <code style={{ background: '#1a1a1a', padding: '0.2rem 0.4rem', borderRadius: 4, color: '#f8f9fa' }}>UPSHIFTAI_API_KEY</code> to enable JARVIS conversational dependency intelligence. <Link href="/dashboard/ai-usage" style={{ color: '#007bff' }}>Get your API key →</Link></p>
       {reports.length === 0 ? (
         <p style={{ color: '#888' }}>No reports yet.</p>
       ) : (

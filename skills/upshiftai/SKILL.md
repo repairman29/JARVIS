@@ -1,19 +1,34 @@
-# UpshiftAI — Dependency lineage skill
+# UpshiftAI — AI-Powered Dependency Intelligence
 
-When the user asks to **analyze dependencies**, **check for ancient/legacy packages**, **audit the dependency tree**, or **find outdated or deprecated packages**, use this skill.
+🤖 **AI-POWERED SKILL** — Requires UpshiftAI Pro subscription and API key
+
+When the user asks to **analyze dependencies**, **check for ancient/legacy packages**, **audit the dependency tree**, or **find outdated or deprecated packages**, use this skill for intelligent conversational analysis.
 
 ## What it does
 
-- Runs UpshiftAI dependency analysis (npm, pip, or go) on a project path.
-- Surfaces ancient, deprecated, fork-hint packages, and security vulns (npm audit / pip-audit).
-- Returns a short summary, one-pager ("do this first"), or full report.
+- **AI-powered dependency analysis** across npm, pip, and Go ecosystems
+- **Conversational intelligence**: Ask natural questions, get smart answers
+- **Risk assessment**: ML-generated risk scoring and prioritized recommendations
+- **Security integration**: npm audit + pip-audit with intelligent interpretation
 
-## Tools (call these when the user wants a dependency check)
+## ⚡ Setup Required
 
-- **analyze_dependencies(projectPath?, summaryOnly?, includeFullReport?)** — Run analysis and return the one-pager (risk, TL;DR, do this first) and optional summary counts. Set `includeFullReport: true` for full JSON.
-- **dependency_health(projectPath?)** — Quick health: OK/WARN/FAIL and counts (ancient, deprecated, vulns). Use for "how are my deps?" or CI-style answer.
+**API Key Required**: Users must set `UPSHIFTAI_API_KEY` environment variable:
+1. Sign up at upshiftai.dev/pricing
+2. Get API key from dashboard
+3. Set `export UPSHIFTAI_API_KEY=uai_xxx`
 
-If the skill tools are available, call them with the user's project path (or `.` for current workspace) and summarize the result. If not, give the CLI commands below.
+**Quota Limits**:
+- **Free**: 10 AI queries/month
+- **Pro ($19/mo)**: 1,000 AI queries/month  
+- **Team ($99/mo)**: 10,000 AI queries/month
+
+## Tools (AI-powered, quota counted)
+
+- **analyze_dependencies(projectPath?, summaryOnly?, includeFullReport?)** — 🤖 **AI Analysis**: Intelligent dependency assessment with risk scoring, contextual suggestions, and conversational summary.
+- **dependency_health(projectPath?)** — 🤖 **AI Health Check**: Smart health assessment with ML-powered recommendations and natural language explanations.
+
+**Error Handling**: If no API key or quota exceeded, tools return helpful upgrade messaging with pricing links.
 
 ## How to run (CLI)
 
