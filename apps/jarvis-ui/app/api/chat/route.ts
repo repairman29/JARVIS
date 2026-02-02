@@ -92,10 +92,15 @@ export async function POST(req: NextRequest) {
           },
         });
       }
-      const data = (await res.json()) as { content?: string; meta?: { prompt_trimmed_to?: number } };
+      const data = (await res.json()) as { content?: string; meta?: { prompt_trimmed_to?: number; tools_used?: string[] } };
       const edgeContent = typeof data?.content === 'string' ? data.content : 'No response from JARVIS.';
-      const body: { content: string; meta?: { prompt_trimmed_to: number } } = { content: edgeContent };
-      if (data?.meta?.prompt_trimmed_to != null) body.meta = { prompt_trimmed_to: data.meta.prompt_trimmed_to };
+      const body: { content: string; meta?: { prompt_trimmed_to?: number; tools_used?: string[] } } = { content: edgeContent };
+      if (data?.meta != null) {
+        body.meta = {};
+        if (typeof data.meta.prompt_trimmed_to === 'number') body.meta.prompt_trimmed_to = data.meta.prompt_trimmed_to;
+        if (Array.isArray(data.meta.tools_used) && data.meta.tools_used.length > 0) body.meta.tools_used = data.meta.tools_used;
+        if (Object.keys(body.meta).length === 0) delete body.meta;
+      }
       return NextResponse.json(body, {
         headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
       });
@@ -158,8 +163,16 @@ export async function POST(req: NextRequest) {
       const meta = (obj?.meta as Record<string, unknown>) ?? (obj?.usage as Record<string, unknown>);
       const promptTrimmedTo =
         typeof meta?.prompt_trimmed_to === 'number' ? meta.prompt_trimmed_to : undefined;
-      const body: { content: string; meta?: { prompt_trimmed_to: number } } = { content: fallback };
-      if (promptTrimmedTo != null) body.meta = { prompt_trimmed_to: promptTrimmedTo };
+      const toolsUsed =
+        Array.isArray(meta?.tools_used) && (meta.tools_used as unknown[]).every((t) => typeof t === 'string')
+          ? (meta.tools_used as string[])
+          : undefined;
+      const body: { content: string; meta?: { prompt_trimmed_to?: number; tools_used?: string[] } } = { content: fallback };
+      if (promptTrimmedTo != null || (toolsUsed != null && toolsUsed.length > 0)) {
+        body.meta = {};
+        if (promptTrimmedTo != null) body.meta.prompt_trimmed_to = promptTrimmedTo;
+        if (toolsUsed != null && toolsUsed.length > 0) body.meta.tools_used = toolsUsed;
+      }
       return NextResponse.json(body, {
         headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
       });

@@ -86,7 +86,7 @@ Phased plan to deliver the **developer-grade JARVIS chat UI** described in [JARV
 | 4.5 | **Export** — Copy thread as markdown or "Save transcript" for session | ✅ Done | Header: "Copy thread" and "Save transcript" (.md download) when messages exist. |
 | 4.6 | **Global shortcut (optional)** — Win+J / Cmd+J to focus or show JARVIS window | ✅ Done | Cmd+J / Ctrl+J focuses composer when tab has focus (browser-only; true global needs desktop wrapper). |
 | 4.7 | **Multiple sessions (optional)** — Switch/start "work", "quick"; simple switcher | ✅ Done | Session dropdown in header: current + list, "New session", switch clears thread. |
-| 4.8 | **CLI parity (optional)** — If gateway supports "run and return," UI "Run and copy result" | ⬜ | Gateway-dependent. |
+| 4.8 | **CLI parity (optional)** — If gateway supports "run and return," UI "Run and copy result" | ⬜ | Contract in [JARVIS_UI_GATEWAY_CONTRACT.md](./JARVIS_UI_GATEWAY_CONTRACT.md); UI control when gateway supports. |
 
 **Phase 4 done when:** The UI feels fast, predictable, and respectful of privacy (local gateway; no sneaky telemetry).
 

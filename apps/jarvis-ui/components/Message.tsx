@@ -12,6 +12,8 @@ export interface MessageProps {
   role: MessageRole;
   content: string;
   isStreaming?: boolean;
+  /** When gateway/edge sends meta.tools_used (roadmap 2.6). */
+  toolsUsed?: string[];
 }
 
 function PreWithCopy({ children }: { children: React.ReactNode }) {
@@ -39,8 +41,9 @@ function PreWithCopy({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function Message({ role, content, isStreaming }: MessageProps) {
+export function Message({ role, content, isStreaming, toolsUsed }: MessageProps) {
   const isUser = role === 'user';
+  const showToolsUsed = !isUser && Array.isArray(toolsUsed) && toolsUsed.length > 0;
 
   return (
     <div
@@ -61,6 +64,33 @@ export function Message({ role, content, isStreaming }: MessageProps) {
           border: '1px solid var(--border)',
         }}
       >
+        {showToolsUsed && (
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '0.35rem',
+              marginBottom: '0.5rem',
+            }}
+            aria-label="Skills used"
+          >
+            {(toolsUsed as string[]).map((name) => (
+              <span
+                key={name}
+                style={{
+                  fontSize: '11px',
+                  padding: '0.15rem 0.5rem',
+                  borderRadius: 'var(--radius-sm, 4px)',
+                  backgroundColor: 'var(--bg-elevated, rgba(0,0,0,0.06))',
+                  color: 'var(--text-muted)',
+                  border: '1px solid var(--border)',
+                }}
+              >
+                Used: {name}
+              </span>
+            ))}
+          </div>
+        )}
         {isUser ? (
           <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{content}</div>
         ) : (

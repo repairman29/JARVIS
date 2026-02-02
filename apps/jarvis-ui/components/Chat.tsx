@@ -12,6 +12,8 @@ export interface ChatMessage {
   id: string;
   role: MessageRole;
   content: string;
+  /** When gateway/edge sends meta.tools_used for this turn (roadmap 2.6). */
+  meta?: { tools_used?: string[] };
 }
 
 const SESSION_KEY = 'jarvis-ui-session';
@@ -672,7 +674,12 @@ export function Chat() {
           </>
         )}
         {messages.map((m) => (
-          <MessageComponent key={m.id} role={m.role} content={m.content} />
+          <MessageComponent
+            key={m.id}
+            role={m.role}
+            content={m.content}
+            toolsUsed={m.meta?.tools_used}
+          />
         ))}
         {streamingContent && (
           <MessageComponent role="assistant" content={streamingContent} isStreaming />

@@ -54,6 +54,7 @@ Quick reference for where things live and what to use.
 | **docs/JARVIS_UI_DEVELOPER_SPEC.md** | What a developer wants from a JARVIS chat UI — product/UX spec for web or desktop. |
 | **docs/JARVIS_UI_ROADMAP.md** | Phased roadmap for the JARVIS UI (foundation → readability → context → polish). |
 | **docs/JARVIS_UI_AUDIT.md** | Roadmap vs code: what’s already built in apps/jarvis-ui (so we don’t redo work). |
+| **docs/JARVIS_UI_GATEWAY_CONTRACT.md** | Response shapes for tool visibility (2.6), structured output (2.7), run-and-copy (4.8); gateway/Edge can send when ready. |
 | **docs/JARVIS_OLIVE_VIDEO_PROMO.md** | JARVIS Olive (shopolive.xyz) video promo: MP4, GIFs, pipeline; run `./scripts/olive-promo-video.sh`. |
 | **docs/JARVIS_MCP_SUPABASE.md** | JARVIS MCP: use Supabase (Edge Function + Vault) to expose JARVIS as MCP tools in Cursor. Spec and checklist. |
 | **supabase/README.md** | Host and call JARVIS on Supabase: deploy `jarvis` Edge Function, set secrets, call from anywhere (REST). |
