@@ -3,7 +3,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Message as MessageComponent } from './Message';
 import { Composer } from './Composer';
+import { SettingsModal } from './SettingsModal';
+import { SkillsPanel } from './SkillsPanel';
 import type { MessageRole } from './Message';
+import type { ConfigInfo } from './SettingsModal';
 
 export interface ChatMessage {
   id: string;
@@ -12,6 +15,8 @@ export interface ChatMessage {
 }
 
 const SESSION_KEY = 'jarvis-ui-session';
+const SESSION_LIST_KEY = 'jarvis-ui-session-list';
+const SESSION_LIST_MAX = 20;
 
 function getSessionId(): string {
   if (typeof window === 'undefined') return '';
@@ -23,6 +28,31 @@ function getSessionId(): string {
   return id;
 }
 
+function setSessionIdStorage(value: string): void {
+  if (typeof window === 'undefined') return;
+  const id = value.trim() || `jarvis-ui-${Date.now().toString(36)}`;
+  localStorage.setItem(SESSION_KEY, id);
+}
+
+function getSessionList(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(SESSION_LIST_KEY);
+    const list = raw ? (JSON.parse(raw) as string[]) : [];
+    return Array.isArray(list) ? list.slice(0, SESSION_LIST_MAX) : [];
+  } catch {
+    return [];
+  }
+}
+
+function addToSessionList(id: string): void {
+  if (typeof window === 'undefined' || !id) return;
+  const list = getSessionList();
+  if (list.includes(id)) return;
+  const next = [...list, id].slice(-SESSION_LIST_MAX);
+  localStorage.setItem(SESSION_LIST_KEY, JSON.stringify(next));
+}
+
 export function Chat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streamingContent, setStreamingContent] = useState('');
@@ -32,12 +62,33 @@ export function Chat() {
   const [gatewayHint, setGatewayHint] = useState<string | null>(null);
   const [gatewayMode, setGatewayMode] = useState<'local' | 'edge'>('local');
   const [sessionId, setSessionId] = useState<string>('');
+  const [sessionList, setSessionList] = useState<string[]>([]);
+  const [sessionDropdownOpen, setSessionDropdownOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [skillsOpen, setSkillsOpen] = useState(false);
+  const [config, setConfig] = useState<ConfigInfo | null>(null);
+  const [promptTrimmedTo, setPromptTrimmedTo] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const sessionDropdownRef = useRef<HTMLDivElement>(null);
   const mountedRef = useRef(true);
 
   useEffect(() => {
+    if (!sessionDropdownOpen) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (sessionDropdownRef.current && !sessionDropdownRef.current.contains(e.target as Node)) {
+        setSessionDropdownOpen(false);
+      }
+    };
+    document.addEventListener('click', onDocClick);
+    return () => document.removeEventListener('click', onDocClick);
+  }, [sessionDropdownOpen]);
+
+  useEffect(() => {
     mountedRef.current = true;
-    setSessionId(getSessionId());
+    const id = getSessionId();
+    setSessionId(id);
+    addToSessionList(id);
+    setSessionList(getSessionList());
     return () => {
       mountedRef.current = false;
     };
@@ -119,16 +170,87 @@ export function Chat() {
   }, []);
 
   useEffect(() => {
-    checkHealth();
-    const t1 = window.setTimeout(checkHealth, 500);
-    const t2 = window.setTimeout(checkHealth, 1500);
-    const t = setInterval(checkHealth, 5000);
+    const safeCheck = () => void checkHealth().catch(() => {});
+    safeCheck();
+    const t1 = window.setTimeout(safeCheck, 500);
+    const t2 = window.setTimeout(safeCheck, 1500);
+    const t = setInterval(safeCheck, 5000);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
       clearInterval(t);
     };
   }, [checkHealth]);
+
+  // Fetch public config when Settings opens (no secrets)
+  useEffect(() => {
+    if (!settingsOpen) return;
+    fetch('/api/config', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((d) => mountedRef.current && setConfig(d))
+      .catch(() => mountedRef.current && setConfig({ mode: 'local', gatewayDisplay: '—' }));
+  }, [settingsOpen]);
+
+  const copySessionId = useCallback(() => {
+    if (typeof navigator?.clipboard !== 'undefined' && sessionId) {
+      navigator.clipboard.writeText(sessionId);
+    }
+  }, [sessionId]);
+
+  /** Build thread as markdown for export. */
+  const exportAsMarkdown = useCallback(() => {
+    const lines: string[] = ['# JARVIS thread', ''];
+    for (const m of messages) {
+      const label = m.role === 'user' ? '**You**' : '**JARVIS**';
+      lines.push(`${label}\n\n${m.content}\n\n---\n`);
+    }
+    if (streamingContent) {
+      lines.push('**JARVIS** (streaming)\n\n' + streamingContent + '\n\n---\n');
+    }
+    return lines.join('\n');
+  }, [messages, streamingContent]);
+
+  const copyThread = useCallback(() => {
+    const md = exportAsMarkdown();
+    if (typeof navigator?.clipboard !== 'undefined') navigator.clipboard.writeText(md);
+  }, [exportAsMarkdown]);
+
+  const saveTranscript = useCallback(() => {
+    const md = exportAsMarkdown();
+    const blob = new Blob([md], { type: 'text/markdown' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `jarvis-transcript-${sessionId.slice(0, 12)}-${Date.now().toString(36)}.md`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }, [exportAsMarkdown, sessionId]);
+
+  const clearMessages = useCallback(() => setMessages([]), []);
+  const handleSessionChange = useCallback((name: string) => {
+    setSessionIdStorage(name.trim() || `jarvis-ui-${Date.now().toString(36)}`);
+    const id = getSessionId();
+    addToSessionList(id);
+    setSessionList(getSessionList());
+    setSessionId(id);
+    setSessionDropdownOpen(false);
+  }, []);
+
+  const startNewSession = useCallback(() => {
+    const newId = `jarvis-ui-${Date.now().toString(36)}`;
+    setSessionIdStorage(newId);
+    addToSessionList(newId);
+    setSessionList(getSessionList());
+    setSessionId(newId);
+    setMessages([]);
+    setSessionDropdownOpen(false);
+  }, []);
+
+  const switchSession = useCallback((id: string) => {
+    setSessionIdStorage(id);
+    setSessionId(id);
+    setMessages([]);
+    setSessionDropdownOpen(false);
+  }, []);
 
   const CHAT_TIMEOUT_MS = 30000; // 30s so "Thinking…" doesn't hang forever
 
@@ -142,6 +264,7 @@ export function Chat() {
       setMessages((prev) => [...prev, userMsg]);
       setStreamingContent('');
       setErrorMessage(null);
+      setPromptTrimmedTo(null);
       setIsLoading(true);
 
       const messageHistory = [...messages, userMsg].map((m) => ({
@@ -228,8 +351,11 @@ export function Chat() {
                   : '';
           const fallback =
             'No response from the gateway. Restart the JARVIS UI dev server (npm run dev in apps/jarvis-ui), then try again. If it persists, run: clawdbot gateway logs';
+          const meta = obj?.meta as Record<string, unknown> | undefined;
+          const trimmedTo = typeof meta?.prompt_trimmed_to === 'number' ? meta.prompt_trimmed_to : null;
 
           if (mountedRef.current) {
+            if (trimmedTo != null) setPromptTrimmedTo(trimmedTo);
             setMessages((prev) => [
               ...prev,
               {
@@ -277,10 +403,168 @@ export function Chat() {
           alignItems: 'center',
           justifyContent: 'space-between',
           flexShrink: 0,
+          flexWrap: 'wrap',
+          gap: '0.5rem',
         }}
       >
-        <h1 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>JARVIS</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '13px', color: 'var(--text-muted)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <h1 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>JARVIS</h1>
+          <div ref={sessionDropdownRef} style={{ position: 'relative' }}>
+            <button
+              type="button"
+              className="btn-surface"
+              onClick={() => {
+                setSessionList(getSessionList());
+                setSessionDropdownOpen((o) => !o);
+              }}
+              style={{
+                padding: '0.2rem 0.5rem',
+                fontSize: '12px',
+                background: 'transparent',
+                color: 'var(--text-muted)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-sm)',
+                cursor: 'pointer',
+              }}
+              aria-expanded={sessionDropdownOpen}
+              aria-haspopup="listbox"
+            >
+              Session: {sessionId ? sessionId.slice(0, 12) + (sessionId.length > 12 ? '…' : '') : '—'} ▼
+            </button>
+            {sessionDropdownOpen && (
+              <div
+                role="listbox"
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  marginTop: '2px',
+                  minWidth: '160px',
+                  maxHeight: '240px',
+                  overflow: 'auto',
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                  zIndex: 100,
+                }}
+              >
+                <button
+                  type="button"
+                  role="option"
+                  onClick={startNewSession}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    padding: '0.4rem 0.75rem',
+                    fontSize: '12px',
+                    textAlign: 'left',
+                    background: 'transparent',
+                    color: 'var(--accent)',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  + New session
+                </button>
+                {sessionList.map((id) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="option"
+                    aria-selected={id === sessionId}
+                    onClick={() => switchSession(id)}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      padding: '0.4rem 0.75rem',
+                      fontSize: '12px',
+                      textAlign: 'left',
+                      background: id === sessionId ? 'var(--border)' : 'transparent',
+                      color: 'var(--text)',
+                      border: 'none',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {id.slice(0, 16)}{id.length > 16 ? '…' : ''}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', fontSize: '13px', color: 'var(--text-muted)' }}>
+          {messages.length > 0 && (
+            <>
+              <button
+                type="button"
+                className="btn-surface"
+                onClick={copyThread}
+                style={{
+                  padding: '0.2rem 0.5rem',
+                  fontSize: '12px',
+                  background: 'transparent',
+                  color: 'var(--text-muted)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-sm)',
+                  cursor: 'pointer',
+                }}
+              >
+                Copy thread
+              </button>
+              <button
+                type="button"
+                className="btn-surface"
+                onClick={saveTranscript}
+                style={{
+                  padding: '0.2rem 0.5rem',
+                  fontSize: '12px',
+                  background: 'transparent',
+                  color: 'var(--text-muted)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-sm)',
+                  cursor: 'pointer',
+                }}
+              >
+                Save transcript
+              </button>
+            </>
+          )}
+          <button
+            type="button"
+            className="btn-surface"
+            onClick={() => setSkillsOpen(true)}
+            data-testid="header-skills"
+            style={{
+              padding: '0.2rem 0.5rem',
+              fontSize: '12px',
+              background: 'transparent',
+              color: 'var(--text-muted)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              cursor: 'pointer',
+            }}
+          >
+            Skills
+          </button>
+          <button
+            type="button"
+            className="btn-surface"
+            onClick={() => setSettingsOpen(true)}
+            data-testid="header-settings"
+            style={{
+              padding: '0.2rem 0.5rem',
+              fontSize: '12px',
+              background: 'transparent',
+              color: 'var(--text-muted)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              cursor: 'pointer',
+            }}
+          >
+            Settings
+          </button>
+          <span style={{ width: '1px', height: '14px', background: 'var(--border)' }} aria-hidden />
           <span
             style={{
               width: '8px',
@@ -293,11 +577,12 @@ export function Chat() {
           />
           {status === 'ok' && (gatewayMode === 'edge' ? 'Edge' : 'Gateway: local')}
           {status === 'error' && 'Disconnected'}
-          {(status === 'connecting' || status === 'idle') && 'Checking…'}
+          {status === 'connecting' && 'Reconnecting…'}
+          {status === 'idle' && 'Checking…'}
           {status !== 'ok' && (
             <button
               type="button"
-              onClick={() => checkHealth()}
+              onClick={() => void checkHealth().catch(() => {})}
               style={{
                 marginLeft: '0.5rem',
                 padding: '0.2rem 0.5rem',
@@ -334,7 +619,7 @@ export function Chat() {
             type="button"
             onClick={() => {
               setErrorMessage(null);
-              if (status === 'error') checkHealth();
+              if (status === 'error') void checkHealth().catch(() => {});
             }}
             style={{
               padding: '0.35rem 0.75rem',
@@ -401,10 +686,37 @@ export function Chat() {
         )}
       </div>
 
+      {promptTrimmedTo != null && (
+        <p
+          style={{
+            padding: '0.25rem 1rem',
+            margin: 0,
+            fontSize: '12px',
+            color: 'var(--text-muted)',
+            borderTop: '1px solid var(--border)',
+          }}
+          aria-live="polite"
+        >
+          Prompt trimmed to {promptTrimmedTo.toLocaleString()} characters.
+        </p>
+      )}
+
       <Composer
-        disabled={status === 'error' || isLoading}
+        disabled={isLoading}
         onSubmit={sendMessage}
+        onSlashClear={clearMessages}
+        onSlashTools={() => setSkillsOpen(true)}
+        onSlashSession={handleSessionChange}
       />
+
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        sessionId={sessionId}
+        config={config}
+        onCopySessionId={copySessionId}
+      />
+      <SkillsPanel open={skillsOpen} onClose={() => setSkillsOpen(false)} />
     </div>
   );
 }

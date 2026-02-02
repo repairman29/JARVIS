@@ -1,5 +1,13 @@
 import type { Metadata } from 'next';
+import { Outfit } from 'next/font/google';
 import './globals.css';
+
+const outfit = Outfit({
+  subsets: ['latin'],
+  variable: '--font-display',
+  display: 'swap',
+  preload: false, // avoids "preloaded but not used" console warning
+});
 
 export const metadata: Metadata = {
   title: 'JARVIS',
@@ -12,14 +20,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={outfit.variable}>
       <body
         data-root
+        className={outfit.className}
         style={{
           margin: 0,
           minHeight: '100vh',
-          background: '#0f0f12',
-          color: '#e4e4e7',
+          background: 'var(--bg)',
+          color: 'var(--text)',
         }}
       >
         {children}

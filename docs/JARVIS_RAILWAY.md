@@ -2,6 +2,8 @@
 
 Yes — you can run the Clawdbot gateway on Railway so JARVIS is fully in the cloud. Your machine can be off; the Supabase Edge Function will proxy to the Railway URL.
 
+**Quick lift:** If you already started (Railway project + domain exist), use the step-by-step checklist: **[JARVIS_LIFT_TO_RAILWAY.md](./JARVIS_LIFT_TO_RAILWAY.md)**.
+
 ---
 
 ## What you get

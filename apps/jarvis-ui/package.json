@@ -5,22 +5,26 @@
   "description": "Developer-grade JARVIS chat UI — talks to Clawdbot gateway",
   "scripts": {
     "dev": "next dev -p 3001",
+    "dev:fresh": "rm -rf .next && next dev -p 3001",
     "build": "next build",
     "start": "next start -p 3001",
     "lint": "next lint",
     "e2e": "bash scripts/e2e.sh http://localhost:3001",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "test:chat": "node scripts/test-chat.js http://localhost:3001"
   },
   "dependencies": {
+    "highlight.js": "^11.9.0",
     "next": "^14.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-markdown": "^9.0.1",
-    "remark-gfm": "^4.0.0",
     "rehype-highlight": "^7.0.0",
-    "highlight.js": "^11.9.0"
+    "remark-gfm": "^4.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.1",
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
