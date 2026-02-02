@@ -116,6 +116,20 @@ async function main() {
     const repoClawdbot = path.join(repoRoot, '.clawdbot');
     if (!fs.existsSync(repoClawdbot)) fs.mkdirSync(repoClawdbot, { recursive: true });
     fs.copyFileSync(configPath, path.join(repoClawdbot, 'clawdbot.json'));
+    // Force agent to use OpenAI primary (overrides any persisted agent models.json)
+    const agentDir = path.join(repoClawdbot, 'agents', 'main', 'agent');
+    if (!fs.existsSync(agentDir)) fs.mkdirSync(agentDir, { recursive: true });
+    const agentModelsPath = path.join(agentDir, 'models.json');
+    const primaryModel = 'openai/gpt-4o-mini';
+    try {
+      const existing = fs.existsSync(agentModelsPath)
+        ? JSON.parse(fs.readFileSync(agentModelsPath, 'utf8'))
+        : {};
+      const updated = { ...existing, primary: primaryModel };
+      fs.writeFileSync(agentModelsPath, JSON.stringify(updated, null, 2), 'utf8');
+    } catch (_) {
+      fs.writeFileSync(agentModelsPath, JSON.stringify({ primary: primaryModel }, null, 2), 'utf8');
+    }
   }
 
   const args = ['clawdbot', 'gateway', 'run'];

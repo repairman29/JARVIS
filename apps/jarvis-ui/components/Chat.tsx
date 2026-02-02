@@ -346,6 +346,14 @@ export function Chat() {
           const msg = err?.error?.message || res.statusText;
           if (mountedRef.current) {
             setErrorMessage(msg);
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: `a-${Date.now()}`,
+                role: 'assistant',
+                content: `Error (${res.status}): ${msg}`,
+              },
+            ]);
             setIsLoading(false);
           }
           return;
