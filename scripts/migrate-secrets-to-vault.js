@@ -8,7 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { loadEnvFile, getSupabaseConfig } = require('./vault.js');
+const { loadEnvFile, getVaultConfig } = require('./vault.js');
 
 const ENV_KEYS_TO_MIGRATE = [
   'SUPABASE_URL',
@@ -92,9 +92,9 @@ async function upsertAppSecret(supabaseUrl, serviceKey, name, secretId, source, 
 async function main() {
   const writePlaceholders = process.argv.includes('--write-placeholders');
   loadEnvFile();
-  const config = getSupabaseConfig();
+  const config = getVaultConfig();
   if (!config.url || !config.key) {
-    console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY. Set in ~/.clawdbot/.env');
+    console.error('Missing VAULT_SUPABASE_URL and VAULT_SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_*). Set in ~/.clawdbot/.env pointing at the project where you ran the Vault SQL.');
     process.exit(1);
   }
 

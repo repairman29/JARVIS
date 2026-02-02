@@ -7,7 +7,7 @@
  */
 const path = require('path');
 const os = require('os');
-const { loadEnvFile } = require('./vault.js');
+const { loadEnvFile, getVaultConfig } = require('./vault.js');
 
 function dollarQuote(value) {
   const base = 'vault';
@@ -18,11 +18,10 @@ function dollarQuote(value) {
   return `$${tag}$${value}$${tag}$`;
 }
 
-async function execSql(sqlQuery) {
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+async function execSql(sqlQuery, vaultConfig) {
+  const { url: supabaseUrl, key: serviceKey } = vaultConfig;
   if (!supabaseUrl || !serviceKey) {
-    throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY. Set in ~/.clawdbot/.env');
+    throw new Error('Missing VAULT_SUPABASE_URL and VAULT_SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_*) in ~/.clawdbot/.env. Point them at the project where you ran the Vault SQL.');
   }
   const res = await fetch(`${supabaseUrl}/rest/v1/rpc/exec_sql`, {
     method: 'POST',
@@ -40,9 +39,8 @@ async function execSql(sqlQuery) {
   return res.json();
 }
 
-async function restSelect(table, select, filter) {
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+async function restSelect(table, select, filter, vaultConfig) {
+  const { url: supabaseUrl, key: serviceKey } = vaultConfig;
   const url = new URL(`${supabaseUrl}/rest/v1/${table}`);
   url.searchParams.set('select', select);
   Object.entries(filter || {}).forEach(([k, v]) => url.searchParams.set(k, v));
@@ -63,8 +61,9 @@ async function main() {
     process.exit(1);
   }
   loadEnvFile();
+  const vaultConfig = getVaultConfig();
   const name = `env/clawdbot/${key}`;
-  const rows = await restSelect('app_secrets', 'name', { name: `eq.${name}` });
+  const rows = await restSelect('app_secrets', 'name', { name: `eq.${name}` }, vaultConfig);
   if (Array.isArray(rows) && rows.length > 0) {
     console.log(JSON.stringify({ name, updated: false, message: 'already exists' }, null, 2));
     return;
@@ -80,7 +79,7 @@ insert into public.app_secrets (name, secret_id, source, notes)
 select ${nameSql}, s.id, 'env', ${notesSql}
 from s;
 `;
-  await execSql(sql);
+  await execSql(sql, vaultConfig);
   console.log(JSON.stringify({ name, created: true }, null, 2));
 }
 

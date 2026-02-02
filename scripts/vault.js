@@ -40,6 +40,30 @@ function getSupabaseConfig(env) {
   return { url, key };
 }
 
+/**
+ * Config for the Supabase project that holds the Vault (app_secrets + vault.decrypted_secrets).
+ * Use VAULT_SUPABASE_URL and VAULT_SUPABASE_SERVICE_ROLE_KEY to point at the "secrets" project
+ * so one project can serve Vault for all others. Falls back to SUPABASE_* if VAULT_* not set.
+ */
+function getVaultConfig(env) {
+  const e = env || loadEnvFile();
+  const url =
+    process.env.VAULT_SUPABASE_URL ||
+    e.VAULT_SUPABASE_URL ||
+    process.env.SUPABASE_URL ||
+    e.SUPABASE_URL;
+  const key =
+    process.env.VAULT_SUPABASE_SERVICE_ROLE_KEY ||
+    e.VAULT_SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.VAULT_SUPABASE_SERVICE_KEY ||
+    e.VAULT_SUPABASE_SERVICE_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_KEY ||
+    e.SUPABASE_SERVICE_ROLE_KEY ||
+    e.SUPABASE_SERVICE_KEY;
+  return { url, key };
+}
+
 async function callRpc(supabaseUrl, serviceKey, fnName, payload) {
   const res = await fetch(`${supabaseUrl}/rest/v1/rpc/${fnName}`, {
     method: 'POST',
@@ -84,13 +108,38 @@ async function getSecretByName(supabaseUrl, serviceKey, name) {
 }
 
 /**
+ * List app_secrets names with a given prefix (e.g. env/clawdbot/).
+ * Uses REST GET on app_secrets with PostgREST like filter (* = %).
+ * @param {string} supabaseUrl
+ * @param {string} serviceKey
+ * @param {string} namePrefix - e.g. 'env/clawdbot/'
+ * @returns {Promise<string[]>} array of full names
+ */
+async function listAppSecretNames(supabaseUrl, serviceKey, namePrefix) {
+  const pattern = namePrefix.replace(/\*/g, '') + '*';
+  const url = `${supabaseUrl}/rest/v1/app_secrets?select=name&name=like.${encodeURIComponent(pattern)}`;
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+      Accept: 'application/json',
+    },
+  });
+  if (!res.ok) return [];
+  const rows = await res.json();
+  if (!Array.isArray(rows)) return [];
+  return rows.map((r) => r.name).filter(Boolean);
+}
+
+/**
  * Resolve env key: try Vault name env/clawdbot/<KEY>, then process.env / fallback env.
  * @param {string} key - e.g. SUPABASE_SERVICE_ROLE_KEY
  * @param {object} fallbackEnv - optional env map (e.g. from loadEnvFile())
  * @returns {Promise<string|undefined>}
  */
 async function resolveEnv(key, fallbackEnv) {
-  const config = getSupabaseConfig(fallbackEnv);
+  const config = getVaultConfig(fallbackEnv);
   if (!config.url || !config.key) {
     return sanitizeEnvValue(process.env[key] || (fallbackEnv && fallbackEnv[key]));
   }
@@ -117,8 +166,10 @@ function sanitizeEnvValue(value) {
 module.exports = {
   loadEnvFile,
   getSupabaseConfig,
+  getVaultConfig,
   getDecryptedSecret,
   getSecretByName,
+  listAppSecretNames,
   resolveEnv,
   getEnv
 };

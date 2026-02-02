@@ -1,0 +1,111 @@
+{
+  "name": "pull-request",
+  "version": "1.0.0",
+  "description": "GitHub pull request workflow: list, create, get, merge, comment, submit review, request reviewers. Uses GITHUB_TOKEN.",
+  "env": ["GITHUB_TOKEN"],
+  "tools": [
+    {
+      "name": "list_prs",
+      "description": "List pull requests in a repo. Use when the user asks for open PRs, PRs by branch, or PR status.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "owner": { "type": "string", "description": "Repo owner (e.g. org or user)" },
+          "repo": { "type": "string", "description": "Repo name" },
+          "state": { "type": "string", "description": "Filter: open, closed, all", "enum": ["open", "closed", "all"], "default": "open" },
+          "head": { "type": "string", "description": "Filter by head branch (e.g. user:branch)" },
+          "base": { "type": "string", "description": "Filter by base branch" },
+          "per_page": { "type": "number", "description": "Max PRs to return", "default": 20 }
+        },
+        "required": ["owner", "repo"]
+      }
+    },
+    {
+      "name": "get_pr",
+      "description": "Get a single pull request by number. Use for PR details, body, diff link, or before merge/review.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "owner": { "type": "string", "description": "Repo owner" },
+          "repo": { "type": "string", "description": "Repo name" },
+          "pull_number": { "type": "number", "description": "PR number" }
+        },
+        "required": ["owner", "repo", "pull_number"]
+      }
+    },
+    {
+      "name": "create_pr",
+      "description": "Create a pull request. Use when the user wants to open a PR from a branch.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "owner": { "type": "string", "description": "Repo owner" },
+          "repo": { "type": "string", "description": "Repo name" },
+          "title": { "type": "string", "description": "PR title" },
+          "body": { "type": "string", "description": "PR body (markdown)" },
+          "head": { "type": "string", "description": "Head branch (e.g. user:feature or branch name)" },
+          "base": { "type": "string", "description": "Base branch", "default": "main" }
+        },
+        "required": ["owner", "repo", "title", "head"]
+      }
+    },
+    {
+      "name": "merge_pr",
+      "description": "Merge a pull request. Use when the user says merge PR #N, squash and merge, etc.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "owner": { "type": "string", "description": "Repo owner" },
+          "repo": { "type": "string", "description": "Repo name" },
+          "pull_number": { "type": "number", "description": "PR number" },
+          "merge_method": { "type": "string", "description": "merge, squash, or rebase", "enum": ["merge", "squash", "rebase"], "default": "merge" },
+          "commit_title": { "type": "string", "description": "Optional commit title (for squash/rebase)" }
+        },
+        "required": ["owner", "repo", "pull_number"]
+      }
+    },
+    {
+      "name": "pr_comment",
+      "description": "Add a comment to a pull request. Use for general PR comments (not line-specific review comments).",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "owner": { "type": "string", "description": "Repo owner" },
+          "repo": { "type": "string", "description": "Repo name" },
+          "pull_number": { "type": "number", "description": "PR number (issue number for PRs)" },
+          "body": { "type": "string", "description": "Comment body (markdown)" }
+        },
+        "required": ["owner", "repo", "pull_number", "body"]
+      }
+    },
+    {
+      "name": "pr_review",
+      "description": "Submit a pull request review (approve, request changes, or comment). Use when the user wants to approve or request changes on a PR.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "owner": { "type": "string", "description": "Repo owner" },
+          "repo": { "type": "string", "description": "Repo name" },
+          "pull_number": { "type": "number", "description": "PR number" },
+          "event": { "type": "string", "description": "APPROVE, REQUEST_CHANGES, or COMMENT", "enum": ["APPROVE", "REQUEST_CHANGES", "COMMENT"], "default": "COMMENT" },
+          "body": { "type": "string", "description": "Review summary (required for REQUEST_CHANGES, optional for others)" }
+        },
+        "required": ["owner", "repo", "pull_number", "event"]
+      }
+    },
+    {
+      "name": "request_review",
+      "description": "Request reviewers on a pull request. Use when the user wants to add or request reviewers.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "owner": { "type": "string", "description": "Repo owner" },
+          "repo": { "type": "string", "description": "Repo name" },
+          "pull_number": { "type": "number", "description": "PR number" },
+          "reviewers": { "type": "array", "items": { "type": "string" }, "description": "GitHub usernames to request" }
+        },
+        "required": ["owner", "repo", "pull_number", "reviewers"]
+      }
+    }
+  ]
+}

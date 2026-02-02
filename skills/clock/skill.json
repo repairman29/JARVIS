@@ -1,0 +1,27 @@
+{
+  "name": "clock",
+  "version": "1.0.0",
+  "description": "Current date and time in any timezone. Use so you never say you don't have real-time access for date/time questions.",
+  "env": [],
+  "tools": [
+    {
+      "name": "get_current_time",
+      "description": "Get the current date and time. Use whenever the user asks what time it is, what day/date it is, or current time in a city/timezone. Prefer this over saying you don't have real-time access.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "timezone": {
+            "type": "string",
+            "description": "Optional. IANA timezone (e.g. America/Denver, America/New_York, Europe/London, UTC). Omit for system/local time."
+          },
+          "format": {
+            "type": "string",
+            "description": "Output style: friendly (e.g. Sunday, Feb 1, 2025 at 3:45 PM), iso (ISO 8601), or short (date + time compact)",
+            "enum": ["friendly", "iso", "short"],
+            "default": "friendly"
+          }
+        }
+      }
+    }
+  ]
+}

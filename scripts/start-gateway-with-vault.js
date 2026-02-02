@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
  * Start Clawdbot gateway with env hydrated from Supabase Vault.
- * Resolves env/clawdbot/<KEY> from app_secrets + vault, writes them to ~/.clawdbot/.env
- * and ~/.openclaw/.env (so the gateway sees them regardless of which dir it uses), then runs
- * `npx clawdbot gateway run`.
+ * - Resolves every env/clawdbot/<KEY> from the Vault (full access to all secrets in app_secrets).
+ * - Also resolves GATEWAY_KEYS from Vault or ~/.clawdbot/.env.
+ * Writes merged env to ~/.clawdbot/.env and ~/.openclaw/.env, then runs `npx clawdbot gateway run`.
  *
- * Prereqs: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in %USERPROFILE%\.clawdbot\.env
- * (or in Vault as env/clawdbot/SUPABASE_URL and env/clawdbot/SUPABASE_SERVICE_ROLE_KEY).
+ * Prereqs: VAULT_SUPABASE_URL and VAULT_SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_*) in
+ * ~/.clawdbot/.env pointing at the project where app_secrets + Vault SQL are set up.
  *
  * Run from repo root: node scripts/start-gateway-with-vault.js
  */
@@ -15,7 +15,9 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { spawn } = require('child_process');
-const { loadEnvFile, resolveEnv } = require('./vault.js');
+const { loadEnvFile, getVaultConfig, listAppSecretNames, resolveEnv } = require('./vault.js');
+
+const ENV_CLAWDBOT_PREFIX = 'env/clawdbot/';
 
 const GATEWAY_KEYS = [
   'CLAWDBOT_GATEWAY_TOKEN',
@@ -52,11 +54,33 @@ const GATEWAY_KEYS = [
 
 async function main() {
   const env = loadEnvFile();
+
+  // Resolve known gateway keys
   for (const key of GATEWAY_KEYS) {
     const value = await resolveEnv(key, env);
     if (value) {
       process.env[key] = value;
       env[key] = value;
+    }
+  }
+
+  // Pull all env/clawdbot/* keys from Vault so JARVIS has full access to every secret in the Vault
+  const vaultConfig = getVaultConfig(env);
+  if (vaultConfig.url && vaultConfig.key) {
+    try {
+      const names = await listAppSecretNames(vaultConfig.url, vaultConfig.key, ENV_CLAWDBOT_PREFIX);
+      for (const name of names) {
+        if (!name.startsWith(ENV_CLAWDBOT_PREFIX)) continue;
+        const key = name.slice(ENV_CLAWDBOT_PREFIX.length);
+        if (!key || env[key]) continue; // already set from GATEWAY_KEYS or .env
+        const value = await resolveEnv(key, env);
+        if (value) {
+          process.env[key] = value;
+          env[key] = value;
+        }
+      }
+    } catch (e) {
+      // Non-fatal: we still have GATEWAY_KEYS and .env
     }
   }
 
@@ -75,12 +99,76 @@ async function main() {
   }
 
   const repoRoot = path.resolve(__dirname, '..');
-  const child = spawn('npx', ['clawdbot', 'gateway', 'run'], {
+  // On Railway (or any cloud with PORT), ensure OpenClaw config enables HTTP chat completions
+  const isCloud = process.env.RAILWAY_PUBLIC_DOMAIN || (process.env.PORT && process.env.RAILWAY_PROJECT_ID);
+  if (isCloud) {
+    const configPath = path.join(repoRoot, 'config', 'railway-openclaw.json');
+    const openclawDir = path.join(home, '.openclaw');
+    if (!fs.existsSync(openclawDir)) fs.mkdirSync(openclawDir, { recursive: true });
+    if (fs.existsSync(configPath)) {
+      const destPath = path.join(openclawDir, 'openclaw.json');
+      fs.copyFileSync(configPath, destPath);
+    }
+  }
+
+  const args = ['clawdbot', 'gateway', 'run'];
+  // On Railway: gateway listens on 18789; we run a proxy on PORT so Railway's proxy gets immediate accept
+  const gatewayPort = isCloud ? '18789' : (process.env.PORT || '18789');
+  args.push('--port', gatewayPort);
+  if (process.env.RAILWAY_PUBLIC_DOMAIN || process.env.PORT) args.push('--bind', 'lan');
+  args.push('--allow-unconfigured');
+
+  const child = spawn('npx', args, {
     cwd: repoRoot,
     stdio: 'inherit',
     shell: true,
-    env: process.env
+    env: { ...process.env, PORT: gatewayPort }
   });
+
+  if (isCloud && process.env.PORT && process.env.PORT !== gatewayPort) {
+    // Run proxy on Railway's PORT so we respond to the proxy immediately; forward to gateway
+    const http = require('http');
+    const gatewayOrigin = `http://127.0.0.1:${gatewayPort}`;
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const waitForGateway = async () => {
+      for (let i = 0; i < 90; i++) {
+        try {
+          const res = await fetch(`${gatewayOrigin}/`, { method: 'GET', signal: AbortSignal.timeout(3000) });
+          if (res.status < 500) return true;
+        } catch (_) {}
+        await wait(2000);
+      }
+      return false;
+    };
+    waitForGateway().then((ok) => {
+      if (!ok) {
+        console.error('Gateway did not become ready on port', gatewayPort);
+        return;
+      }
+      const server = http.createServer((req, res) => {
+        const opts = {
+          method: req.method,
+          headers: { ...req.headers, host: `127.0.0.1:${gatewayPort}` },
+          hostname: '127.0.0.1',
+          port: gatewayPort,
+          path: req.url || '/'
+        };
+        const proxyReq = http.request(opts, (proxyRes) => {
+          res.writeHead(proxyRes.statusCode, proxyRes.headers);
+          proxyRes.pipe(res);
+        });
+        proxyReq.on('error', (e) => {
+          res.writeHead(502, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: String(e.message) }));
+        });
+        req.pipe(proxyReq);
+      });
+      server.listen(process.env.PORT, '0.0.0.0', () => {
+        console.log('Proxy listening on', process.env.PORT, '->', gatewayPort);
+      });
+    });
+  }
+
   child.on('exit', (code) => process.exit(code ?? 0));
 }
 

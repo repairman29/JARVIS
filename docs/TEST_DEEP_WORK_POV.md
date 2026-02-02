@@ -7,7 +7,7 @@ Quick checklist to verify the POV/echeovid setup and run a deep-work test with J
 ## Check (done)
 
 - **products.json** — POV is listed with `repo: "echeovid"`, `shipAccess: true`, `deepWorkAccess: true`, description: last-mile work, branding POV.
-- **repos.json** — `echeovid` exists (repairman29/echeovid).
+- **repos.json** — `echeovid` exists (your echeovid repo).
 - **jarvis/AGENTS.md** — Deep work section references products.json and DEEP_WORK_PRODUCT.md.
 - **jarvis/DEEP_WORK_PRODUCT.md** — Trigger phrases and planning → development → execution flow are defined.
 
@@ -77,7 +77,7 @@ From a live CLI run and the full-access docs, JARVIS will need:
 | Need | Purpose |
 |------|--------|
 | **Elevated exec** (clawdbot.json) | So JARVIS can run `git`, deploy CLIs, and repo scripts when you say "ship" or "run the operation." Your Discord/user ID in `tools.elevated.allowFrom.discord` (and web/CLI if you use those). |
-| **GITHUB_TOKEN** (env or Vault) | So JARVIS can push to repairman29/echeovid, create/update issues and PRs, and trigger workflow_dispatch. Token needs `repo` scope (read/write). |
+| **GITHUB_TOKEN** (env or Vault) | So JARVIS can push to your echeovid repo, create/update issues and PRs, and trigger workflow_dispatch. Token needs `repo` scope (read/write). |
 | **Deploy credentials** (if POV deploys somewhere) | e.g. Vercel, Railway, Netlify — add the token for that platform to `~/.clawdbot/.env` or Vault so JARVIS can run deploy commands. |
 | **sessions_spawn** (if JARVIS says so) | For long deep-work runs JARVIS may ask to spawn a subagent. If Clawdbot has an allowlist for spawn (e.g. allowed agent IDs), add what it asks for so it can run background passes. |
 | **Bootstrap / context** | AGENTS.md and TOOLS.md are large; they get truncated (e.g. 2000 chars). If you see "context overflow," increase `agents.defaults.bootstrapMaxChars` in clawdbot.json or trim workspace files. |

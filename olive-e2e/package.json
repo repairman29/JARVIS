@@ -1,0 +1,38 @@
+{
+  "name": "cartpilot",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test:e2e": "playwright test",
+    "test:e2e:prod": "PLAYWRIGHT_TEST_BASE_URL=https://shopolive.xyz playwright test",
+    "test:e2e:prod:smoke": "PLAYWRIGHT_TEST_BASE_URL=https://shopolive.xyz playwright test e2e/home.spec.ts e2e/login.spec.ts && PLAYWRIGHT_TEST_BASE_URL=https://shopolive.xyz playwright test e2e/dashboard.spec.ts -g \"redirects to login when not signed in\"",
+    "test:e2e:auth-setup": "playwright test e2e/auth.setup.ts --headed",
+    "test:e2e:dashboard-authed": "playwright test e2e/dashboard.spec.ts --project=chromium-authed",
+    "test:e2e:ui": "playwright test --ui",
+    "create-test-user": "node scripts/create-test-user.js",
+    "vercel:set-supabase-key": "bash scripts/set-vercel-supabase-env.sh"
+  },
+  "dependencies": {
+    "@supabase/auth-helpers-nextjs": "^0.15.0",
+    "@supabase/supabase-js": "^2.93.3",
+    "next": "16.1.6",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.0",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "dotenv": "^17.2.3",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

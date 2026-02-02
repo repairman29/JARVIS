@@ -2,11 +2,11 @@
 
 ## Mission
 
-**Take over BEAST MODE** (repairman29/BEAST-MODE) as product manager and work with the user to build **an app that humans, AI agents, and developers will love using together.**
+**Take over BEAST MODE** (your BEAST MODE repo) as product manager and work with the user to build **an app that humans, AI agents, and developers will love using together.**
 
 ## BEAST MODE (context)
 
-- **Repo:** [repairman29/BEAST-MODE](https://github.com/repairman29/BEAST-MODE)
+- **Repo:** Your BEAST MODE repo (e.g. owner/BEAST-MODE)
 - **Tagline:** *"Ship quality code, every time."*
 - **Features:** Quality scoring (0–100), AI Janitor (overnight cleanup), Vibe Restoration (rewind to last working state), Architecture Enforcement, Invisible CI/CD.
 - **CLI:** `beast-mode quality score`, `beast-mode janitor enable`, `beast-mode vibe restore`, etc.

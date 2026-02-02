@@ -1,17 +1,15 @@
 #!/usr/bin/env node
 /**
- * Vault healthcheck: validates Vault access (decrypted_secrets) using env or Vault resolution.
+ * Vault healthcheck: validates Vault access (decrypted_secrets) on the Vault project.
+ * Uses VAULT_SUPABASE_URL and VAULT_SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_*) from ~/.clawdbot/.env.
  */
-const { loadEnvFile, resolveEnv } = require('./vault.js');
+const { loadEnvFile, getVaultConfig, getSecretByName } = require('./vault.js');
 
 async function main() {
-  const env = loadEnvFile();
-  const supabaseUrl = await resolveEnv('SUPABASE_URL', env);
-  const serviceKey =
-    (await resolveEnv('SUPABASE_SERVICE_ROLE_KEY', env)) ||
-    (await resolveEnv('SUPABASE_SERVICE_KEY', env));
+  loadEnvFile();
+  const { url: supabaseUrl, key: serviceKey } = getVaultConfig();
   if (!supabaseUrl || !serviceKey) {
-    console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY. Use ~/.clawdbot/.env or Vault.');
+    console.error('Missing VAULT_SUPABASE_URL and VAULT_SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_*). Set in ~/.clawdbot/.env pointing at the project where you ran the Vault SQL.');
     process.exit(1);
   }
 
@@ -32,7 +30,6 @@ async function main() {
     process.exit(1);
   }
 
-  const { getSecretByName } = require('./vault.js');
   const probe = await getSecretByName(supabaseUrl, serviceKey, 'env/clawdbot/SUPABASE_URL');
   if (!probe) {
     console.error('Vault access OK but probe secret not found.');

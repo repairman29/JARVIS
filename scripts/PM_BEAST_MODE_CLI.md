@@ -1,6 +1,6 @@
 # JARVIS as Product Manager for Beast-Mode — CLI Tests
 
-Run JARVIS in **product manager** mode to take over **BEAST MODE** (repairman29/BEAST-MODE) and work with you to build **an app that humans, AI agents, and developers will love using together.**
+Run JARVIS in **product manager** mode to take over **BEAST MODE** (your BEAST MODE repo) and work with you to build **an app that humans, AI agents, and developers will love using together.**
 
 ## Prerequisites
 
@@ -34,7 +34,7 @@ powershell -ExecutionPolicy Bypass -File scripts\test-pm-beast-mode.ps1
 Use the **same** `--session-id "beast-mode-pm"` for follow-up messages so JARVIS keeps context:
 
 ```powershell
-npx clawdbot agent --session-id "beast-mode-pm" --message "Draft the first milestone as a GitHub issue in repairman29/BEAST-MODE." --local
+npx clawdbot agent --session-id "beast-mode-pm" --message "Draft the first milestone as a GitHub issue in owner/BEAST-MODE." --local
 npx clawdbot agent --session-id "beast-mode-pm" --message "What's our north star metric and 2 KPIs?" --local
 ```
 
@@ -53,4 +53,4 @@ npx clawdbot agent --session-id "beast-mode-pm" --message "What's our north star
 | PM instructions | `jarvis/AGENTS.md` (Product Manager Mode, Beast-Mode PM) |
 | Mission & vision | `jarvis/BEAST_MODE_PM.md` |
 | Tools (including GitHub) | `jarvis/TOOLS.md` |
-| BEAST MODE repo | [github.com/repairman29/BEAST-MODE](https://github.com/repairman29/BEAST-MODE) |
+| BEAST MODE repo | Your BEAST MODE repo (e.g. owner/BEAST-MODE) |

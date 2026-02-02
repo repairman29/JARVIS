@@ -5,7 +5,7 @@
 | Component | Status | Details |
 |-----------|--------|---------|
 | **Railway Service** | ✅ Running | `https://kroger-oauth-production.up.railway.app` |
-| **Supabase Tokens** | ✅ Connected | Project: `mgeydloygmoiypnwaqmn` |
+| **Supabase Tokens** | ✅ Connected | Project: `YOUR_PROJECT_REF` |
 | **Token Refresh** | ✅ Scheduled | Every Sunday at 3am |
 | **Your User ID** | `jeff` | Stored in `~/.clawdbot/.env` |
 | **Store** | King Soopers Westside/Uintah | ID: `62000006` |

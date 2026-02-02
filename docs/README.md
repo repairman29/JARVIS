@@ -6,6 +6,17 @@ Welcome to the comprehensive documentation for JARVIS (Just A Rather Very Intell
 
 ---
 
+## 📍 **Start here (this repo)**
+
+| Goal | Doc |
+|------|-----|
+| **How docs are organized; full map by topic** | [DOCUMENTATION_MAP.md](./DOCUMENTATION_MAP.md) |
+| **Repo map: where things live, key docs, apps** | [REPO_INDEX.md](./REPO_INDEX.md) |
+| **Teach another Cursor session how to use this repo** | [CURSOR_SESSION_ONBOARDING.md](./CURSOR_SESSION_ONBOARDING.md) |
+| **Hosted JARVIS (Edge/Supabase, MCP in Cursor)** | [REPO_INDEX.md](./REPO_INDEX.md) → Key docs (JARVIS_EDGE_*, JARVIS_MCP_*, supabase/README) or [DOCUMENTATION_MAP.md](./DOCUMENTATION_MAP.md) → Edge/Supabase |
+
+---
+
 ## 🚀 **Quick Start**
 
 ### **New to JARVIS?**

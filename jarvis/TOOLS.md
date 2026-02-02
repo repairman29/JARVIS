@@ -1,6 +1,30 @@
 # Available Tools / Skills
 
-Tools and skills JARVIS can use. Call the appropriate tool when the user asks; then summarize the result.
+Tools and skills JARVIS can use. Call the appropriate tool when the user asks; then summarize the result. **Never say you don't have real-time access when you have these tools — use them.**
+
+---
+
+## Web Search (Brave)
+
+**Skill:** `web-search` (installed). Use for current information, news, facts, and anything that requires live data.
+
+| Tool | When to use |
+|------|-------------|
+| `web_search` | User asks for real-time info: "what's the date today?", "current time Denver", "latest news", "weather 80202", "search the web for X". **Prefer calling this over saying you don't have access to real-time information.** |
+
+**Env:** `BRAVE_API_KEY` (or `BRAVE_SEARCH_API_KEY`) in `~/.clawdbot/.env`. Start gateway with `node scripts/start-gateway-with-vault.js`.
+
+---
+
+## Clock (current date/time)
+
+**Skill:** `clock` (installed). Use so you never say you don't have real-time access for date/time.
+
+| Tool | When to use |
+|------|-------------|
+| `get_current_time` | "what time is it?", "what's the date?", "current time in Denver", "time in London", "what day is it?" Use timezone (e.g. America/Denver) when user mentions a place. |
+
+**Env:** None. Always available.
 
 ---
 
@@ -193,6 +217,44 @@ Tools and skills JARVIS can use. Call the appropriate tool when the user asks; t
 
 ---
 
+## Pull requests (GitHub)
+
+**Skill:** `pull-request` (installed). GitHub PR workflow: list, create, get, merge, comment, submit review, request reviewers. Uses same GITHUB_TOKEN as GitHub skill.
+
+**Env:** `GITHUB_TOKEN` in `~/.clawdbot/.env` or `%USERPROFILE%\.clawdbot\.env` (do not commit).
+
+| Tool | When to use |
+|------|--------------|
+| `list_prs` | "list open PRs in owner/repo", "PRs for branch X", "show PRs" |
+| `get_pr` | "get PR #5", "details of PR 12", "what's in PR #3?" |
+| `create_pr` | "create a PR from feature to main", "open a PR for branch X" |
+| `merge_pr` | "merge PR #7", "squash and merge PR #3", "merge the open PR" |
+| `pr_comment` | "comment on PR #5: LGTM", "add a comment to PR #3" |
+| `pr_review` | "approve PR #5", "request changes on PR #3", "submit review on PR #7" |
+| `request_review` | "request alice and bob to review PR #5", "add reviewers to PR #2" |
+
+**Path:** `skills/pull-request/` — distinct from PR (Public Relations). Prefer for merge, review, request-review; use GitHub skill for issues, workflow_dispatch, branches.
+
+---
+
+## PR (Public Relations / comms)
+
+**Skill:** `pr` (installed). Public Relations and communications: key messages, press release outline, social post templates, media pitch, comms brief. Use for comms strategy and drafting.
+
+**Env:** None.
+
+| Tool | When to use |
+|------|--------------|
+| `key_messages` | "key messages for [product] for press", "talking points for [audience]" |
+| `press_release_outline` | "press release outline for [announcement]", "press release structure" |
+| `social_post_templates` | "social post for [topic] for Twitter/LinkedIn", "tweet ideas for launch" |
+| `media_pitch_outline` | "media pitch for [story angle]", "pitch outline for tech press" |
+| `comms_brief` | "comms brief for [launch]", "comms playbook for [announcement]" |
+
+**Path:** `skills/pr/` — SKILL.md for examples. Tools return outlines/templates; agent or user fills in copy.
+
+---
+
 ## Master product list (work top-down)
 
 **products.json** (repo root) is the ordered list of products; **array order = priority** (top = work first). See **PRODUCTS.md**.
@@ -249,6 +311,16 @@ See **docs/REPAIRMAN29_OPERATIONS.md** → "Autonomous Build (scheduled)".
 | `npx clawdbot gateway run` | Run gateway locally for interactive ops. |
 | `npx clawdbot agent --session-id <id> --message \"...\" --local` | Run a single agent turn in CLI. |
 | `npx clawdbot message send --channel discord --target user:<id> --message \"...\"` | Send a message to Discord via CLI (delivery check). |
+
+### Video creation / Olive promo
+
+| Command / Script | When to use |
+|------|-------------|
+| `./scripts/olive-promo-video.sh` | **Olive (shopolive.xyz) promo**: record demo → MP4 + GIF. Use when user asks for “videos for Olive,” “promo for shopolive.xyz,” “MP4 and GIF for Olive.” Output: `scripts/olive-promo-output/olive-hero.mp4`, `olive-hero.gif`, `olive-micro.gif`. |
+| `./scripts/olive-promo-video.sh --skip-record` | Regenerate GIFs from existing recording (e.g. after re-running record and having a new .webm in output/recordings). |
+| `skills/video-creation/create-website-demo.sh olive https://shopolive.xyz [script.txt] [voice-id]` | Full website demo with optional ElevenLabs voiceover. Then run olive-promo-video.sh or ffmpeg to produce GIFs. |
+
+**Video-creation skill:** `skills/video-creation/` — Playwright browser recording, ffmpeg (MP4, GIF), optional voiceover. See **skills/video-creation/SKILL.md** and **docs/JARVIS_OLIVE_VIDEO_PROMO.md** for Olive promo scope and JARVIS instructions.
 
 ---
 

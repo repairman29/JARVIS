@@ -67,6 +67,9 @@ Advanced AI-powered skills for professionals: Notion Advanced Pro, GitHub Copilo
 | [**ROG_ALLY_SETUP.md**](./ROG_ALLY_SETUP.md) / [JARVIS_ROG_ED.md](./JARVIS_ROG_ED.md) | Run JARVIS on ASUS ROG Ally (handheld) |
 | [**DEVELOPER_GUIDE.md**](./DEVELOPER_GUIDE.md) | Complete setup and development guide |
 | [**docs/REPO_INDEX.md**](./docs/REPO_INDEX.md) | Repo map: apps, services, skills, key docs |
+| [**docs/CURSOR_SESSION_ONBOARDING.md**](./docs/CURSOR_SESSION_ONBOARDING.md) | Teach another Cursor session: what to read, @ mentions, Edge/Supabase |
+| [**docs/DOCUMENTATION_MAP.md**](./docs/DOCUMENTATION_MAP.md) | How docs are organized; start here by topic (Edge, Olive, Vault, etc.) |
+| [**Hosted JARVIS (Edge/MCP)**](./docs/JARVIS_EDGE_WHAT_CHANGES.md) | Supabase Edge Function, MCP in Cursor, UI→Edge — [supabase/README](./supabase/README.md), [JARVIS_MCP_CURSOR](./docs/JARVIS_MCP_CURSOR.md) |
 | [DISCORD_SETUP.md](./DISCORD_SETUP.md) | Discord bot configuration |
 | [RUNBOOK.md](./RUNBOOK.md) | Day-to-day operations |
 
@@ -253,7 +256,7 @@ beast-mode janitor enable     # Let AI clean overnight
 beast-mode vibe restore       # Fix regressions
 ```
 
-**[Learn more about BEAST MODE →](https://github.com/repairman29/BEAST-MODE)**
+**BEAST MODE** — Quality intelligence, AI Janitor, vibe restore. (Integration repo available to contributors.)
 
 ---
 
@@ -299,7 +302,7 @@ code-roach health             # Check codebase health
 code-roach crawl              # Build knowledge base
 ```
 
-**[Learn more about Code Roach →](https://github.com/repairman29/code-roach)**
+**Code Roach** — Self-learning code quality. (Integration repo available to contributors.)
 
 ---
 
@@ -307,7 +310,7 @@ code-roach crawl              # Build knowledge base
 
 > *"When dependencies fork back to ancient sub-branches of projects of yore."*
 
-UpshiftAI lives in its own repo: **[repairman29/upshift](https://github.com/repairman29/upshift)**. CLI, platform, and site: [upshiftai.dev](https://upshiftai.dev).
+UpshiftAI lives in its own repo. CLI, platform, and site: [upshiftai.dev](https://upshiftai.dev).
 
 ---
 
@@ -327,7 +330,7 @@ Full RPG with AI-generated narratives, dynamic quests, and persistent worlds.
 
 Video companion for async communication with AI-powered editing and personas.
 
-**[Learn more about Echeovid →](https://github.com/repairman29/echeovid)**
+**Echeovid** — Async video communication. (Integration repo available to contributors.)
 
 ---
 

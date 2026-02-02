@@ -1,0 +1,21 @@
+# Supabase config for CLAWDBOT (JARVIS Edge Function).
+# Link to your project: supabase link --project-ref YOUR_PROJECT_REF
+# Deploy: supabase functions deploy jarvis
+
+[project]
+# Set via supabase link or override here
+# project_id = ""
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[functions]
+# JARVIS Edge Function: REST chat proxy to Clawdbot gateway.
+# Set secrets: JARVIS_GATEWAY_URL, CLAWDBOT_GATEWAY_TOKEN, (optional) JARVIS_AUTH_TOKEN
+[functions.jarvis]
+verify_jwt = false
+# If you set JARVIS_AUTH_TOKEN, the function will require Authorization: Bearer <that token>.

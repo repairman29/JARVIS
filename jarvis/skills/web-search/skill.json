@@ -1,0 +1,31 @@
+{
+  "name": "web-search",
+  "version": "1.0.0",
+  "description": "Search the web for current information, news, facts, and real-time data using Brave Search",
+  "env": ["BRAVE_API_KEY", "BRAVE_SEARCH_API_KEY"],
+  "tools": [
+    {
+      "name": "web_search",
+      "description": "Search the web for current information. Use this whenever the user asks for real-time data, today's date/time, news, weather, facts that may change, or anything you cannot answer from training data. Prefer this over saying you don't have access to real-time information.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search query (e.g. 'current time Denver Colorado', 'today date', 'latest news headline', 'weather 80202')"
+          },
+          "count": {
+            "type": "number",
+            "description": "Maximum number of results to return (default 5)",
+            "default": 5
+          },
+          "freshness": {
+            "type": "string",
+            "description": "Optional. Prefer recent results: pd (24h), pw (7d), pm (31d), py (year). Omit for general relevance."
+          }
+        },
+        "required": ["query"]
+      }
+    }
+  ]
+}

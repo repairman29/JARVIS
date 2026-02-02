@@ -53,6 +53,7 @@ node scripts/vault-set-secret.js JARVIS_DISCORD_USER_ID <your_discord_id> "Disco
 # Optional:
 node scripts/vault-set-secret.js VERCEL_TOKEN <token> "Vercel deploy"
 node scripts/vault-set-secret.js RAILWAY_API_KEY <key> "Railway deploy"
+node scripts/vault-set-secret.js BRAVE_API_KEY <your_brave_key> "Brave Search API (web search)"
 ```
 
 Get your Discord user ID: Discord → User Settings → Advanced → Developer Mode → On. Right‑click your avatar → Copy User ID. After adding **JARVIS_DISCORD_USER_ID** to Vault (or .env), re-run **setup-jarvis-vault-and-access.js** so your ID is merged into `tools.elevated.allowFrom.discord`.
@@ -88,4 +89,24 @@ The script resolves: DISCORD_BOT_TOKEN, GROQ_API_KEY, GITHUB_TOKEN, SUPABASE_*, 
 | Start gateway with Vault | `node scripts/start-gateway-with-vault.js` |
 | Vault healthcheck | `node scripts/vault-healthcheck.js` |
 
-**TL;DR:** Run **setup-jarvis-vault-and-access.js** once (with SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in ~/.clawdbot/.env). Add **GITHUB_TOKEN** and **JARVIS_DISCORD_USER_ID** to Vault with **vault-set-secret.js**. Start the gateway with **start-gateway-with-vault.js** so JARVIS has access to Vault and can ship when you ask.
+**TL;DR:** Run **setup-jarvis-vault-and-access.js** once (with SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in ~/.clawdbot/.env). Add **GITHUB_TOKEN** and **JARVIS_DISCORD_USER_ID** to Vault with **vault-set-secret.js**. **Start the gateway with `node scripts/start-gateway-with-vault.js`** (not `clawdbot gateway run`) so JARVIS gets all API keys from Vault (Brave, Groq, GitHub, etc.).
+
+---
+
+## JARVIS can't see my API keys / Brave key didn't make it
+
+If JARVIS doesn't have access to keys that are in the Vault (e.g. Brave Search, GitHub, etc.):
+
+1. **You must start the gateway with Vault** — `clawdbot gateway run` only reads ~/.clawdbot/.env; it does **not** pull from the Vault. Use:
+   ```bash
+   node scripts/start-gateway-with-vault.js
+   ```
+   That script resolves all keys (including BRAVE_API_KEY, BRAVE_SEARCH_API_KEY, GITHUB_TOKEN, etc.) from Vault, writes them to ~/.clawdbot/.env, then runs the gateway.
+
+2. **Add the Brave key to Vault** (if not already):
+   ```bash
+   node scripts/vault-set-secret.js BRAVE_API_KEY <your_brave_search_api_key> "Brave Search API"
+   ```
+   Get a key at https://brave.com/search/api/ or https://api-dashboard.search.brave.com.
+
+3. **Restart the gateway** — Stop the current gateway (Ctrl+C or `clawdbot gateway stop`), then run `node scripts/start-gateway-with-vault.js` again from the repo root.

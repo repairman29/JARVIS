@@ -24,6 +24,8 @@ Skills in `skills/` and `jarvis/skills/` are already loaded. Just **restart the 
 
 | Skill | Example prompts |
 |-------|------------------|
+| **Web Search** | "What's the date today?", "Search for latest news", "weather 80202", "current time Denver" |
+| **Clock** | "What time is it?", "What's the date?", "Current time in London" |
 | **Launcher** | "Launch Chrome", "Open github.com", "Take a screenshot", "Lock screen" |
 | **Calculator** | "15% of 240", "Convert 5 miles to km", "What's 2^10?" |
 | **File search** | "Find PDFs from last week", "Search for 'API key' in my docs" |

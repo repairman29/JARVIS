@@ -1,16 +1,16 @@
-# Supabase + MCP Setup (Smuggler project)
+# Supabase + MCP Setup
 
-Your **smuggler** app and **Clawdbot** can both use the same Supabase project. This doc ties env and MCP together without touching secrets.
+Your app and **Clawdbot** can both use the same Supabase project. This doc ties env and MCP together without touching secrets.
 
 ---
 
-## Your Supabase project (from smuggler `env.example`)
+## Your Supabase project
 
 | What | Value |
 |------|--------|
-| **Project ref** | `rbfzlqmkwhbvrrfdcain` |
-| **URL** | `https://rbfzlqmkwhbvrrfdcain.supabase.co` |
-| **Dashboard** | https://supabase.com/dashboard/project/rbfzlqmkwhbvrrfdcain |
+| **Project ref** | `YOUR_PROJECT_REF` (from [Supabase Dashboard](https://supabase.com/dashboard)) |
+| **URL** | `https://YOUR_PROJECT_REF.supabase.co` |
+| **Dashboard** | https://supabase.com/dashboard/project/YOUR_PROJECT_REF |
 
 ---
 
@@ -18,18 +18,17 @@ Your **smuggler** app and **Clawdbot** can both use the same Supabase project. T
 
 Set these **yourself** (in `.env` or system env). Never commit real values.
 
-| Variable | Used by | Purpose |
-|----------|---------|--------|
-| `SUPABASE_URL` | smuggler root, smuggler-ai-gm | Project URL |
-| `SUPABASE_ANON_KEY` | smuggler, ai-gm | Client-safe public key |
-| `SUPABASE_SERVICE_ROLE_KEY` | smuggler server, ai-gm services | Server-side admin; keep secret |
-| `SUPABASE_READ_REPLICA_1_URL` | ai-gm (optional) | Read replica |
-| `SUPABASE_READ_REPLICA_2_URL` | ai-gm (optional) | Read replica |
+| Variable | Purpose |
+|----------|---------|
+| `SUPABASE_URL` | Project URL |
+| `SUPABASE_ANON_KEY` | Client-safe public key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-side admin; keep secret |
+| `SUPABASE_READ_REPLICA_1_URL` | (Optional) Read replica |
+| `SUPABASE_READ_REPLICA_2_URL` | (Optional) Read replica |
 
 **Where to set them**
 
-- **Smuggler app:** `~/smuggler/.env` (copy from `~/smuggler/env.example`, fill keys from [Supabase Dashboard → Settings → API](https://supabase.com/dashboard/project/rbfzlqmkwhbvrrfdcain/settings/api)).
-- **Smuggler AI GM:** `~/smuggler/consultant-package/technical/smuggler-ai-gm/.env` (same keys; see that folder’s `.env.example`).
+- **Your app:** Copy your app’s `env.example` to `.env` and fill keys from [Supabase Dashboard → Settings → API](https://supabase.com/dashboard/project/YOUR_PROJECT_REF/settings/api).
 - **Clawdbot / Cursor:** If a tool needs Supabase env (e.g. a custom skill), use `~/.clawdbot/.env` or your shell profile so one place feeds everything.
 
 ---
@@ -40,19 +39,19 @@ Supabase’s **hosted MCP server** lets Cursor (and other MCP clients) talk to y
 
 - **MCP URL:** `https://mcp.supabase.com/mcp`
 - **Auth:** Browser login to Supabase when you first use it (no PAT required).
-- **Project scope:** This workspace’s Cursor MCP config is scoped to `rbfzlqmkwhbvrrfdcain` so only that project is used.
+- **Project scope:** In Cursor MCP config, scope to `YOUR_PROJECT_REF` so only that project is used.
 
 **In Cursor**
 
 1. **Settings → Cursor Settings → Tools & MCP** (or open `.cursor/mcp.json` in this project).
-2. Supabase is already added in this repo (see `.cursor/mcp.json`).
+2. Add Supabase MCP (see `.cursor/mcp.json.example` if present).
 3. Use the assistant and ask e.g. “What tables are in my Supabase database? Use MCP tools.” Cursor will prompt you to log in to Supabase once; after that, the MCP server can query your project.
 
 **Security (from Supabase docs)**
 
 - Prefer a **dev** Supabase project for MCP, not production.
 - Keep **manual approval** for tool calls enabled in Cursor.
-- You can use **read-only** and **project scoping** (already scoped to `rbfzlqmkwhbvrrfdcain` here).
+- Use **read-only** and **project scoping** where possible.
 
 ---
 
@@ -63,24 +62,14 @@ Clawdbot’s gateway uses **skills** and **plugins**; it doesn’t load Cursor�
 - **Cursor:** Uses Supabase MCP via `.cursor/mcp.json` (this project) → you get “AI + Supabase” in the IDE.
 - **Clawdbot (Telegram/local agent):** To have the agent query Supabase you’d add a **skill** or **plugin** that talks to Supabase (e.g. using the same env vars). That’s a separate step; for now, Cursor + MCP gives you AI + Supabase while you code.
 
----
-
-## Auto-sync (Repo Knowledge)
-
-The repo indexer pushes to Supabase directly (REST) and can be scheduled:
-
-- **Index once:** `node scripts/index-repos.js --repo JARVIS`
-- **Schedule nightly (Windows):** `powershell -ExecutionPolicy Bypass -File scripts/add-repo-index-schedule.ps1`
-
-This keeps the cross-repo knowledge base synced without manual runs.
+**JARVIS MCP (optional):** You can use Supabase to build an MCP server so JARVIS is available inside Cursor as tools (e.g. “ask JARVIS”, “JARVIS web search”). See **docs/JARVIS_MCP_SUPABASE.md** and **docs/JARVIS_MCP_CURSOR.md** for the spec and setup.
 
 ---
 
 ## Quick checklist
 
-- [ ] Copy `env.example` → `.env` in `~/smuggler` and `~/smuggler/consultant-package/technical/smuggler-ai-gm`.
-- [ ] Fill `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` from the [API settings](https://supabase.com/dashboard/project/rbfzlqmkwhbvrrfdcain/settings/api).
-- [ ] In Cursor, open this project (CLAWDBOT); MCP is configured in `.cursor/mcp.json`.
+- [ ] Copy your app’s `env.example` → `.env` and fill Supabase keys from the [API settings](https://supabase.com/dashboard/project/YOUR_PROJECT_REF/settings/api).
+- [ ] In Cursor, open this project (CLAWDBOT); add Supabase MCP in `.cursor/mcp.json` (see `.cursor/mcp.json.example` if present).
 - [ ] Ask Cursor: “What tables are in my Supabase database? Use MCP.” and complete the one-time Supabase login if prompted.
 
-Done. Your folders (smuggler + env files) lead to this one Supabase project; MCP in Cursor is scoped to it.
+Done. Your env and MCP are scoped to your Supabase project.

@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+:root {
+  /* Olive Color Palette - Organic & Warm */
+  --olive-50: #f8faf5;
+  --olive-100: #eef2e6;
+  --olive-200: #dce5cc;
+  --olive-300: #c2d1a3;
+  --olive-400: #a5b878;
+  --olive-500: #87a05a;
+  --olive-600: #6b8245;
+  --olive-700: #536538;
+  --olive-800: #445230;
+  --olive-900: #3a4529;
+
+  /* Olive Brand Tokens */
+  --parchment: #fffdf0;
+  --sage-advice: #556b2f;
+  --basil: #8fbc8f;
+  --cast-iron: #2f4f4f;
+  --heirloom-tomato: #d24d33;
+
+  --cream: #fdfcf9;
+  --cream-dark: #f5f3ed;
+  --terracotta: #c4704b;
+  --sage: #9caf88;
+
+  --hero-gradient: radial-gradient(70% 60% at 50% 0%, #f3f7ef 0%, #fffdf0 60%);
+
+  --background: var(--parchment);
+  --foreground: var(--cast-iron);
+  --card: #ffffff;
+  --card-foreground: var(--cast-iron);
+  --border: #eef2e6;
+  --input: #f8faf5;
+  --muted: #87a05a;
+  --muted-foreground: #536538;
+}
+
+.dark {
+  --background: #12140e;
+  --foreground: #e1e3da;
+  --card: #1a1c16;
+  --card-foreground: #e1e3da;
+  --border: #2d3129;
+  --input: #1f221a;
+  --muted: #a4a999;
+  --muted-foreground: #a4a999;
+  
+  --parchment: #12140e;
+  --cast-iron: #e1e3da;
+  --sage-advice: #9caf88;
+  --olive-100: #1f221a;
+  --olive-50: #1a1c16;
+  --cream: #12140e;
+  --hero-gradient: radial-gradient(70% 60% at 50% 0%, #1a1c16 0%, #12140e 60%);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body), system-ui, -apple-system, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-heading), var(--font-body), system-ui, -apple-system, sans-serif;
+}
+
+::selection {
+  background: rgba(143, 188, 143, 0.35);
+}
+
+/* The Olive Pulse Animation */
+@keyframes olive-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(156, 175, 136, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 20px rgba(156, 175, 136, 0);
+  }
+}
+
+.olive-pulse {
+  animation: olive-pulse 2s ease-in-out infinite;
+}
+
+/* Gentle fade in */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fade-in 0.5s ease-out;
+}

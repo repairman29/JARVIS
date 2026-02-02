@@ -1,6 +1,8 @@
-# Public Repo Checklist — JARVIS ROG Ed.
+# Public Repo Checklist — JARVIS / CLAWDBOT
 
-Use this checklist when creating and publishing the **Ally JARVIS ROG Ed.** public repository.
+**Main repo (this repo):** Use [**docs/PUBLIC_REPO_CHECKLIST.md**](docs/PUBLIC_REPO_CHECKLIST.md) for the full checklist (strip internal refs, replace project refs, repos/products examples, quick scan commands).
+
+**ROG Ed. (Ally):** Use the section below when creating and publishing the **Ally JARVIS ROG Ed.** public repository.
 
 ---
 

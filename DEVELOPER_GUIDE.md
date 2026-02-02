@@ -32,7 +32,9 @@ So you want your own AI assistant that you can chat with on Discord, iMessage, o
     - [Command Cheat Sheet](#the-jarvis-arsenal-command-cheat-sheet)
     - [Heartbeat Checks](#proactive-heartbeat-checks)
     - [Product Owner Mode](#building-products-together-product-owner-mode)
-14. [Your Turn: Start Simple, Build Up](#your-turn-start-simple-build-up)
+14. [Hosted JARVIS (Edge/Supabase & MCP)](#hosted-jarvis-edgesupabase--mcp)
+15. [Cursor session onboarding](#cursor-session-onboarding)
+16. [Your Turn: Start Simple, Build Up](#your-turn-start-simple-build-up)
 
 ---
 
@@ -1264,6 +1266,32 @@ JARVIS isn't just an assistant — it's a development partner that tracks your p
 
 ---
 
+## Hosted JARVIS (Edge/Supabase & MCP)
+
+You can put JARVIS behind a **public URL** via a Supabase Edge Function (proxy to your gateway), use it as **MCP in Cursor** (tool: `jarvis_chat`), and point the **JARVIS UI** at Edge or local gateway.
+
+| Doc | Use |
+|-----|-----|
+| [docs/JARVIS_EDGE_WHAT_CHANGES.md](docs/JARVIS_EDGE_WHAT_CHANGES.md) | What changes when JARVIS runs behind the Edge Function. |
+| [supabase/README.md](supabase/README.md) | Deploy `jarvis` Edge Function, set secrets, REST. |
+| [docs/JARVIS_MCP_SUPABASE.md](docs/JARVIS_MCP_SUPABASE.md) | JARVIS MCP on Supabase (Edge + Vault); spec. |
+| [docs/JARVIS_MCP_CURSOR.md](docs/JARVIS_MCP_CURSOR.md) | Add JARVIS as MCP server in Cursor. |
+| [docs/JARVIS_SUPERPOWERS_UNLOCKED.md](docs/JARVIS_SUPERPOWERS_UNLOCKED.md) | What the setup unlocks (one URL, MCP, UI→Edge). |
+
+Code: **supabase/functions/jarvis/** (Edge Function). **apps/jarvis-ui/** — set `NEXT_PUBLIC_JARVIS_EDGE_URL` to use Edge backend. Full map: [docs/REPO_INDEX.md](docs/REPO_INDEX.md) and [docs/DOCUMENTATION_MAP.md](docs/DOCUMENTATION_MAP.md).
+
+---
+
+## Cursor session onboarding
+
+When **teaching another Cursor session** (or yourself) how to work in this repo, point it at:
+
+- [docs/CURSOR_SESSION_ONBOARDING.md](docs/CURSOR_SESSION_ONBOARDING.md) — what to read first (REPO_INDEX, jarvis/TOOLS.md, jarvis/AGENTS.md), rules, @ mentions, Edge/Supabase.
+- [docs/REPO_INDEX.md](docs/REPO_INDEX.md) — canonical repo map.
+- [docs/DOCUMENTATION_MAP.md](docs/DOCUMENTATION_MAP.md) — how docs are organized by topic.
+
+---
+
 ## Your Turn: Start Simple, Build Up
 
 Don't try to build everything at once. Here's a suggested progression:
@@ -1327,7 +1355,7 @@ beast-mode janitor enable
 # → Next morning: "Janitor completed. Fixed 12 issues, improved score to 92."
 ```
 
-**[GitHub: repairman29/BEAST-MODE](https://github.com/repairman29/BEAST-MODE)**
+**BEAST MODE** — Quality intelligence, AI Janitor, vibe restore. (Integration repo available to contributors.)
 
 ---
 
@@ -1375,7 +1403,7 @@ code-roach health
 # → Codebase health report with trends
 ```
 
-**[GitHub: repairman29/code-roach](https://github.com/repairman29/code-roach)**
+**Code Roach** — Self-learning code quality. (Integration repo available to contributors.)
 
 ---
 
@@ -1403,7 +1431,7 @@ Record your thoughts, reduce meetings, get to the point. Video companion for asy
 - 7 different AI personas for content
 - YouTube publishing integration
 
-**[GitHub: repairman29/echeovid](https://github.com/repairman29/echeovid)**
+**Echeovid** — Async video platform. (Integration repo available to contributors.)
 
 ---
 
@@ -1411,7 +1439,7 @@ Record your thoughts, reduce meetings, get to the point. Video companion for asy
 
 Modern project management with OKRs. Track objectives, key results, and team alignment.
 
-**[GitHub: repairman29/project-forge](https://github.com/repairman29/project-forge)**
+**Project Forge** — OKR platform. (Integration repo available to contributors.)
 
 ---
 

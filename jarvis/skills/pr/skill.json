@@ -1,0 +1,76 @@
+{
+  "name": "pr",
+  "version": "1.0.0",
+  "description": "Public Relations and communications: key messages, press release outline, social post templates, media pitch. Use for comms strategy and drafting.",
+  "env": [],
+  "tools": [
+    {
+      "name": "key_messages",
+      "description": "Generate key messages / talking points for a topic and audience. Use when the user wants PR messaging, elevator pitch, or consistent talking points.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "topic": { "type": "string", "description": "What you're communicating (product, launch, announcement)" },
+          "audience": { "type": "string", "description": "Who you're talking to (press, customers, investors, internal)" },
+          "tone": { "type": "string", "description": "Tone: professional, friendly, urgent, technical", "enum": ["professional", "friendly", "urgent", "technical", "any"], "default": "professional" },
+          "differentiators": { "type": "string", "description": "Optional: what makes this different or new" }
+        },
+        "required": ["topic", "audience"]
+      }
+    },
+    {
+      "name": "press_release_outline",
+      "description": "Generate a press release outline (headline, subhead, sections). Use when the user wants a press release structure or draft outline.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "topic": { "type": "string", "description": "Announcement or story topic" },
+          "audience": { "type": "string", "description": "Target media / readers" },
+          "key_points": { "type": "string", "description": "Optional: 2-5 key points to include" },
+          "quote_placeholder": { "type": "string", "description": "Optional: who will be quoted (e.g. CEO, founder)" }
+        },
+        "required": ["topic"]
+      }
+    },
+    {
+      "name": "social_post_templates",
+      "description": "Generate social post templates for a topic and platform. Use when the user wants tweets, LinkedIn posts, or social copy.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "platform": { "type": "string", "description": "Platform", "enum": ["twitter", "linkedin", "generic"], "default": "generic" },
+          "topic": { "type": "string", "description": "What to post about" },
+          "tone": { "type": "string", "description": "Tone", "enum": ["professional", "friendly", "urgent", "casual"], "default": "professional" },
+          "call_to_action": { "type": "string", "description": "Optional: CTA (e.g. link, sign up, learn more)" }
+        },
+        "required": ["topic"]
+      }
+    },
+    {
+      "name": "media_pitch_outline",
+      "description": "Generate a media pitch outline (subject line, hook, body). Use when the user wants to pitch a story to press or bloggers.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "outlet_type": { "type": "string", "description": "Type of outlet: tech press, trade, blog, podcast", "enum": ["tech_press", "trade", "blog", "podcast", "any"], "default": "any" },
+          "story_angle": { "type": "string", "description": "The story or angle you're pitching" },
+          "hook": { "type": "string", "description": "Optional: one-line hook or news peg" }
+        },
+        "required": ["story_angle"]
+      }
+    },
+    {
+      "name": "comms_brief",
+      "description": "Generate a short comms brief: do's and don'ts, key messages, and suggested channels. Use when the user wants a quick comms playbook for a launch or announcement.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "topic": { "type": "string", "description": "Launch, announcement, or campaign" },
+          "audience": { "type": "string", "description": "Primary audience" },
+          "channels": { "type": "string", "description": "Optional: preferred channels (press, social, email, blog)" }
+        },
+        "required": ["topic", "audience"]
+      }
+    }
+  ]
+}

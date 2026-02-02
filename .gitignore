@@ -57,6 +57,12 @@ dist/
 build/
 out/
 
+# Olive promo video outputs (remove to version assets in repo)
+scripts/olive-promo-output/
+
+# Supabase CLI temp
+supabase/.temp/
+
 # Local development
 .cursor/mcp.json
 

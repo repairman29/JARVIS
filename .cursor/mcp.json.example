@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "jarvis": {
+      "url": "https://rbfzlqmkwhbvrrfdcain.supabase.co/functions/v1/jarvis"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "name": "jarvis-ui",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Developer-grade JARVIS chat UI — talks to Clawdbot gateway",
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start -p 3001",
+    "lint": "next lint",
+    "e2e": "bash scripts/e2e.sh http://localhost:3001",
+    "test:chat": "node scripts/test-chat.js http://localhost:3001"
+  },
+  "dependencies": {
+    "next": "^14.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-markdown": "^9.0.1",
+    "remark-gfm": "^4.0.0",
+    "rehype-highlight": "^7.0.0",
+    "highlight.js": "^11.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "typescript": "^5.0.0"
+  }
+}

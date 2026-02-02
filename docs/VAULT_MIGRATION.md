@@ -2,7 +2,11 @@
 
 Secrets are migrated from local env files and DB plaintext columns into Supabase Vault. Runtime code resolves secrets via the `app_secrets` registry and `vault.decrypted_secrets`.
 
-**Prerequisites:** Run `docs/sql/001_app_secrets.sql` and `docs/sql/002_vault_helpers.sql` in Supabase SQL Editor (project `rbfzlqmkwhbvrrfdcain`) once before migrating or using Vault resolution.
+**Vault is per project.** Supabase doesn’t provide one global Vault; each project has its own. For JARVIS, you pick **one** Supabase project as your “Vault project,” run the SQL there once, and set `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` in `~/.clawdbot/.env` to that project. All JARVIS Vault scripts then use that project’s Vault for every secret (Brave, GitHub, Discord, etc.).
+
+**One Vault for all projects:** Set `VAULT_SUPABASE_URL` and `VAULT_SUPABASE_SERVICE_ROLE_KEY` in `~/.clawdbot/.env` to the **one** Supabase project where you run the Vault SQL. All JARVIS scripts then use that project’s Vault; other projects (and `SUPABASE_URL`) can stay pointed at different DBs. If you don’t set `VAULT_*`, scripts use `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` for Vault.
+
+**Prerequisites:** Run `docs/sql/001_app_secrets.sql` and `docs/sql/002_vault_helpers.sql` in the Supabase SQL Editor of **the project you use for Vault** (the one in `VAULT_SUPABASE_URL` or `SUPABASE_URL`). You can use any project (e.g. `YOUR_PROJECT_REF`)—run the SQL there and point `VAULT_*` (or `SUPABASE_*`) at it.
 
 ## Naming scheme
 
