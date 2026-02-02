@@ -343,6 +343,15 @@ See **docs/REPAIRMAN29_OPERATIONS.md** → "Autonomous Build (scheduled)".
 
 ---
 
+## Tool keeper (keep CLIs sharp)
+
+**Skill:** `keep-clis-sharp` (Cursor project skill: `.cursor/skills/keep-clis-sharp/`). Use when the user says CLIs are outdated, "keep our knives sharp", tool maintenance, or periodic tool updates.
+
+- **Audit:** npm (root, apps/jarvis-ui, olive-e2e), platform CLIs (Vercel, Railway, Stripe, Supabase, Fly, Netlify, Wrangler), repo scripts.
+- **Update safely:** Prefer `npm update` and non-breaking bumps; document major changes in jarvis/TOOLS.md and RUNBOOK.md.
+
+---
+
 ## Platform CLIs (Maestro)
 
 JARVIS **conducts** these CLIs like a maestro: choose the right tool, run the right subcommand, interpret output, chain when needed, summarize. Use **exec** (or **bash** when elevated) when the user asks for deployments, payments, platform ops, or IDE/editor control. Require **elevated** or **exec** allowlist when configured.

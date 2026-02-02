@@ -12,13 +12,13 @@ test.describe('Dashboard (unauthenticated)', () => {
 })
 
 test.describe('Dashboard (authenticated)', () => {
-  test.skip(
-    !(process.env.TEST_USER_EMAIL && process.env.TEST_USER_PASSWORD) && test.info().project?.name !== 'chromium-authed',
-    'Use saved login (npm run test:e2e:auth-setup then --project=chromium-authed) or set TEST_USER_EMAIL and TEST_USER_PASSWORD'
-  )
-
-  test.beforeEach(async ({ page }) => {
-    if (test.info().project?.name === 'chromium-authed') {
+  test.beforeEach(async ({ page }, testInfo) => {
+    const hasAuth = process.env.TEST_USER_EMAIL && process.env.TEST_USER_PASSWORD
+    if (!hasAuth && testInfo.project.name !== 'chromium-authed') {
+      test.skip(true, 'Use saved login (npm run test:e2e:auth-setup then --project=chromium-authed) or set TEST_USER_EMAIL and TEST_USER_PASSWORD')
+      return
+    }
+    if (testInfo.project?.name === 'chromium-authed') {
       await page.goto('/dashboard')
       await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 })
       return

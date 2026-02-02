@@ -59,6 +59,14 @@ If you see **"Chat API not enabled on gateway"** when sending a message, do this
 
 If it still fails, check the gateway logs for config errors (`clawdbot gateway logs` or the terminal where the gateway runs). Some gateways use slightly different config keys; see [OpenClaw gateway config](https://docs.clawd.bot/gateway/configuration) and [OpenAI HTTP API](https://docs.clawd.bot/gateway/openai-http-api) for reference.
 
+## 401 Unauthorized (Edge)
+
+If the UI is using the **Edge** backend (`NEXT_PUBLIC_JARVIS_EDGE_URL` set) and you get **401 Unauthorized**, the Edge function has `JARVIS_AUTH_TOKEN` set and the UI isn't sending it.
+
+**Fix:** In `apps/jarvis-ui/.env` or `.env.local` set **`JARVIS_AUTH_TOKEN`** to the **same value** as the Edge secret (Supabase Dashboard → Edge Functions → jarvis → Secrets). Restart the dev server (`npm run dev`).
+
+**Alternative:** To use the **local gateway** instead of Edge, remove or comment out `NEXT_PUBLIC_JARVIS_EDGE_URL` in `.env`. The UI will then use `NEXT_PUBLIC_GATEWAY_URL` (default `http://127.0.0.1:18789`). Make sure the gateway is running locally.
+
 ## No response from Clawdbot
 
 If you send a message and see **"No response from Clawdbot"** (or the UI shows that text in the assistant bubble), the request reached the gateway but the response had no usable content. Check:

@@ -8,12 +8,21 @@ import 'highlight.js/styles/github-dark.css';
 
 export type MessageRole = 'user' | 'assistant';
 
+/** Per JARVIS_UI_GATEWAY_CONTRACT: list, table, key_value, or raw object. */
+export type StructuredResult =
+  | { type: 'list'; items: unknown[] }
+  | { type: 'table'; headers: string[]; rows: unknown[][] }
+  | { type: 'key_value'; entries: { key: string; value: string }[] }
+  | Record<string, unknown>;
+
 export interface MessageProps {
   role: MessageRole;
   content: string;
   isStreaming?: boolean;
   /** When gateway/edge sends meta.tools_used (roadmap 2.6). */
   toolsUsed?: string[];
+  /** When gateway/edge sends meta.structured_result (roadmap 2.7). */
+  structuredResult?: unknown;
 }
 
 function PreWithCopy({ children }: { children: React.ReactNode }) {
@@ -41,9 +50,137 @@ function PreWithCopy({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function Message({ role, content, isStreaming, toolsUsed }: MessageProps) {
+const blockStyle: React.CSSProperties = {
+  marginTop: '0.5rem',
+  marginBottom: '0.5rem',
+  padding: '0.75rem 1rem',
+  borderRadius: 'var(--radius-md, 8px)',
+  backgroundColor: 'var(--code-bg, rgba(0,0,0,0.06))',
+  border: '1px solid var(--border)',
+  fontSize: '0.9em',
+  overflow: 'auto',
+};
+
+function StructuredResultView({ data }: { data: unknown }) {
+  if (data == null || typeof data !== 'object') return null;
+  const obj = data as Record<string, unknown>;
+  const type = typeof obj.type === 'string' ? obj.type : null;
+
+  if (type === 'list' && Array.isArray(obj.items)) {
+    return (
+      <div style={blockStyle} className="markdown-body" role="list">
+        <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
+          {obj.items.map((item, i) => (
+            <li key={i}>{typeof item === 'string' ? item : String(item)}</li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
+  if (type === 'table' && Array.isArray(obj.headers) && Array.isArray(obj.rows)) {
+    const headers = obj.headers as string[];
+    const rows = obj.rows as unknown[][];
+    return (
+      <div style={{ ...blockStyle, overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr>
+              {headers.map((h, i) => (
+                <th
+                  key={i}
+                  style={{
+                    textAlign: 'left',
+                    padding: '0.35rem 0.75rem',
+                    borderBottom: '2px solid var(--border)',
+                    fontWeight: 600,
+                  }}
+                >
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, ri) => (
+              <tr key={ri}>
+                {row.map((cell, ci) => (
+                  <td
+                    key={ci}
+                    style={{
+                      padding: '0.35rem 0.75rem',
+                      borderBottom: '1px solid var(--border)',
+                    }}
+                  >
+                    {typeof cell === 'string' ? cell : String(cell ?? '')}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  if (type === 'key_value' && Array.isArray(obj.entries)) {
+    const entries = obj.entries as { key: string; value: string }[];
+    return (
+      <div style={blockStyle}>
+        <dl style={{ margin: 0, display: 'grid', gap: '0.25rem 1rem', gridTemplateColumns: 'auto 1fr' }}>
+          {entries.map((e, i) => (
+            <span key={i} style={{ display: 'contents' }}>
+              <dt style={{ margin: 0, fontWeight: 600, color: 'var(--text-muted)' }}>{e.key}:</dt>
+              <dd style={{ margin: 0 }}>{e.value}</dd>
+            </span>
+          ))}
+        </dl>
+      </div>
+    );
+  }
+
+  // Fallback: expandable JSON (guard against circular refs)
+  const [expanded, setExpanded] = useState(false);
+  let json = '';
+  try {
+    json = JSON.stringify(obj, null, 2);
+  } catch {
+    return (
+      <div style={blockStyle}>
+        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Unable to display result</span>
+      </div>
+    );
+  }
+  return (
+    <div style={blockStyle}>
+      <button
+        type="button"
+        onClick={() => setExpanded((e) => !e)}
+        style={{
+          fontSize: '12px',
+          background: 'none',
+          border: 'none',
+          color: 'var(--accent)',
+          cursor: 'pointer',
+          padding: 0,
+        }}
+      >
+        {expanded ? 'Collapse JSON' : 'Expand JSON'}
+      </button>
+      {expanded && (
+        <pre style={{ marginTop: '0.5rem', marginBottom: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+          {json}
+        </pre>
+      )}
+    </div>
+  );
+}
+
+export function Message({ role, content, isStreaming, toolsUsed, structuredResult }: MessageProps) {
+  const safeContent = typeof content === 'string' ? content : '';
   const isUser = role === 'user';
   const showToolsUsed = !isUser && Array.isArray(toolsUsed) && toolsUsed.length > 0;
+  const showStructured = !isUser && structuredResult != null && typeof structuredResult === 'object';
 
   return (
     <div
@@ -91,8 +228,9 @@ export function Message({ role, content, isStreaming, toolsUsed }: MessageProps)
             ))}
           </div>
         )}
+        {showStructured && <StructuredResultView data={structuredResult} />}
         {isUser ? (
-          <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{content}</div>
+          <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{safeContent}</div>
         ) : (
           <div className="markdown-body" style={{ fontSize: '0.95em' }}>
             <ReactMarkdown
@@ -102,7 +240,7 @@ export function Message({ role, content, isStreaming, toolsUsed }: MessageProps)
                 pre: ({ children }) => <PreWithCopy>{children}</PreWithCopy>,
               }}
             >
-              {content}
+              {safeContent}
             </ReactMarkdown>
             {isStreaming && (
               <span

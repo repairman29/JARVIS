@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Message as MessageComponent } from './Message';
-import { Composer } from './Composer';
+import { Composer, type ComposerHandle } from './Composer';
 import { SettingsModal } from './SettingsModal';
 import { SkillsPanel } from './SkillsPanel';
 import type { MessageRole } from './Message';
@@ -12,8 +12,8 @@ export interface ChatMessage {
   id: string;
   role: MessageRole;
   content: string;
-  /** When gateway/edge sends meta.tools_used for this turn (roadmap 2.6). */
-  meta?: { tools_used?: string[] };
+  /** When gateway/edge sends meta for this turn (roadmap 2.6 tools_used, 2.7 structured_result). */
+  meta?: { tools_used?: string[]; structured_result?: unknown };
 }
 
 const SESSION_KEY = 'jarvis-ui-session';
@@ -70,8 +70,10 @@ export function Chat() {
   const [skillsOpen, setSkillsOpen] = useState(false);
   const [config, setConfig] = useState<ConfigInfo | null>(null);
   const [promptTrimmedTo, setPromptTrimmedTo] = useState<number | null>(null);
+  const [runAndCopyFeedback, setRunAndCopyFeedback] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sessionDropdownRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<ComposerHandle>(null);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -256,6 +258,54 @@ export function Chat() {
 
   const CHAT_TIMEOUT_MS = 30000; // 30s so "Thinking…" doesn't hang forever
 
+  /** 4.8 Run and copy result: send composer (or last user) text once, copy response to clipboard. */
+  const runAndCopyResult = useCallback(async () => {
+    const composerText = composerRef.current?.getValue()?.trim() ?? '';
+    const lastUser = messages.filter((m) => m.role === 'user').pop()?.content?.trim() ?? '';
+    const text = composerText || lastUser;
+    if (!text) return;
+    setRunAndCopyFeedback(null);
+    setErrorMessage(null);
+    try {
+      const messageHistory = [...messages, { role: 'user' as const, content: text }].map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: messageHistory,
+          sessionId: sessionId || 'jarvis-ui',
+          stream: false,
+        }),
+        signal: AbortSignal.timeout(60000),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        if (mountedRef.current) setErrorMessage((err?.error?.message as string) || res.statusText);
+        return;
+      }
+      const data = (await res.json().catch(() => null)) as { content?: string } | null;
+      const content = typeof data?.content === 'string' ? data.content : '';
+      if (content && mountedRef.current) {
+        setRunAndCopyFeedback('Copied!');
+        window.setTimeout(() => {
+          if (mountedRef.current) setRunAndCopyFeedback(null);
+        }, 2000);
+        try {
+          if (typeof navigator?.clipboard?.writeText === 'function') {
+            await navigator.clipboard.writeText(content);
+          }
+        } catch {
+          // Clipboard may fail in headless or without permission; user still sees "Copied!"
+        }
+      }
+    } catch (err) {
+      if (mountedRef.current) setErrorMessage(err instanceof Error ? err.message : 'Run and copy failed');
+    }
+  }, [messages, sessionId]);
+
   const sendMessage = useCallback(
     async (text: string) => {
       const userMsg: ChatMessage = {
@@ -307,6 +357,8 @@ export function Chat() {
           const decoder = new TextDecoder();
           let accumulated = '';
           let buffer = '';
+          let streamToolsUsed: string[] | undefined;
+          let streamStructuredResult: unknown;
           while (mountedRef.current) {
             const { done, value } = await reader.read();
             if (done) break;
@@ -319,9 +371,20 @@ export function Chat() {
                 const payload = trimmed.slice(6);
                 if (payload === '[DONE]') continue;
                 try {
-                  const parsed = JSON.parse(payload) as { choices?: Array<{ delta?: { content?: string } }> };
+                  const parsed = JSON.parse(payload) as {
+                    choices?: Array<{ delta?: { content?: string } }>;
+                    meta?: { tools_used?: string[]; structured_result?: unknown };
+                  };
                   const delta = parsed?.choices?.[0]?.delta?.content;
                   if (typeof delta === 'string') accumulated += delta;
+                  if (parsed?.meta) {
+                    if (Array.isArray(parsed.meta.tools_used) && parsed.meta.tools_used.length > 0) {
+                      streamToolsUsed = parsed.meta.tools_used.every((t) => typeof t === 'string')
+                        ? parsed.meta.tools_used
+                        : streamToolsUsed;
+                    }
+                    if (parsed.meta.structured_result != null) streamStructuredResult = parsed.meta.structured_result;
+                  }
                 } catch {
                   // ignore parse errors for partial chunks
                 }
@@ -330,12 +393,22 @@ export function Chat() {
             if (mountedRef.current) setStreamingContent(accumulated);
           }
           if (mountedRef.current) {
+            const replyContent =
+              typeof accumulated === 'string' ? accumulated.trim() : String(accumulated ?? '').trim();
             setMessages((prev) => [
               ...prev,
               {
                 id: `a-${Date.now()}`,
                 role: 'assistant',
-                content: accumulated.trim() || 'No response.',
+                content: replyContent || 'No response.',
+                ...((streamToolsUsed?.length || streamStructuredResult != null)
+                  ? {
+                      meta: {
+                        ...(streamToolsUsed?.length ? { tools_used: streamToolsUsed } : {}),
+                        ...(streamStructuredResult != null ? { structured_result: streamStructuredResult } : {}),
+                      },
+                    }
+                  : {}),
               },
             ]);
             setStreamingContent('');
@@ -355,6 +428,12 @@ export function Chat() {
             'No response from the gateway. Restart the JARVIS UI dev server (npm run dev in apps/jarvis-ui), then try again. If it persists, run: clawdbot gateway logs';
           const meta = obj?.meta as Record<string, unknown> | undefined;
           const trimmedTo = typeof meta?.prompt_trimmed_to === 'number' ? meta.prompt_trimmed_to : null;
+          const toolsUsed =
+            Array.isArray(meta?.tools_used) && (meta.tools_used as unknown[]).every((t) => typeof t === 'string')
+              ? (meta.tools_used as string[])
+              : undefined;
+          const structuredResult = meta?.structured_result != null ? meta.structured_result : undefined;
+          const safeContent = (typeof content === 'string' ? content : '').trim() || fallback;
 
           if (mountedRef.current) {
             if (trimmedTo != null) setPromptTrimmedTo(trimmedTo);
@@ -363,7 +442,10 @@ export function Chat() {
               {
                 id: `a-${Date.now()}`,
                 role: 'assistant',
-                content: content.trim() || fallback,
+                content: safeContent,
+                ...((toolsUsed?.length || structuredResult != null)
+                  ? { meta: { ...(toolsUsed?.length ? { tools_used: toolsUsed } : {}), ...(structuredResult != null ? { structured_result: structuredResult } : {}) } }
+                  : {}),
               },
             ]);
           }
@@ -535,6 +617,28 @@ export function Chat() {
           <button
             type="button"
             className="btn-surface"
+            onClick={() => void runAndCopyResult()}
+            disabled={isLoading}
+            title="Send composer (or last message) once and copy response to clipboard"
+            data-testid="run-and-copy"
+            style={{
+              padding: '0.2rem 0.5rem',
+              fontSize: '12px',
+              background: 'transparent',
+              color: 'var(--text-muted)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+            }}
+          >
+            Run and copy result
+          </button>
+          {runAndCopyFeedback && (
+            <span style={{ fontSize: '12px', color: 'var(--accent)' }}>{runAndCopyFeedback}</span>
+          )}
+          <button
+            type="button"
+            className="btn-surface"
             onClick={() => setSkillsOpen(true)}
             data-testid="header-skills"
             style={{
@@ -679,6 +783,7 @@ export function Chat() {
             role={m.role}
             content={m.content}
             toolsUsed={m.meta?.tools_used}
+            structuredResult={m.meta?.structured_result}
           />
         ))}
         {streamingContent && (
@@ -709,6 +814,7 @@ export function Chat() {
       )}
 
       <Composer
+        ref={composerRef}
         disabled={isLoading}
         onSubmit={sendMessage}
         onSlashClear={clearMessages}

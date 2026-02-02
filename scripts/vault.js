@@ -116,7 +116,7 @@ async function getSecretByName(supabaseUrl, serviceKey, name) {
  * @returns {Promise<string[]>} array of full names
  */
 async function listAppSecretNames(supabaseUrl, serviceKey, namePrefix) {
-  const pattern = namePrefix.replace(/\*/g, '') + '*';
+  const pattern = namePrefix.replace(/\*/g, '').replace(/%/g, '') + '%';
   const url = `${supabaseUrl}/rest/v1/app_secrets?select=name&name=like.${encodeURIComponent(pattern)}`;
   const res = await fetch(url, {
     method: 'GET',

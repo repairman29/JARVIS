@@ -1,12 +1,46 @@
 # Olive E2E Tests (Playwright)
 
-## Run all tests
+## Run all tests — checklist
+
+To run **all 50 tests** (including authenticated dashboard and chromium-authed):
+
+1. **Credentials in `.env.test`**  
+   `TEST_USER_EMAIL` and `TEST_USER_PASSWORD` for a user that exists in the **same Supabase project** as the app.  
+   Example (already set locally): `jeffadkins1@gmail.com` / `OliveE2eTest123!`  
+   (`.env.test` is gitignored.)
+
+2. **App can reach Supabase**  
+   In `olive-e2e`, the dev server needs Supabase (e.g. `.env.local` with `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`) so login and dashboard work. If you use shopolive.xyz’s project, point those env vars at that project.
+
+3. **Saved login for chromium-authed (20 tests)**  
+   Run once (browser opens; sign in with Google or the same email/password):
+
+   ```bash
+   npm run test:e2e:auth-setup
+   ```
+
+   This writes `.auth/user.json` (gitignored). Without it, the **chromium-authed** project fails with `ENOENT: .auth/user.json`.
+
+4. **Run the full suite**
+
+   ```bash
+   cd olive-e2e && npm run test:e2e
+   ```
+
+   Playwright starts the dev server on **port 3003** if needed (`reuseExistingServer: true`).  
+   To run against production instead: `PLAYWRIGHT_TEST_BASE_URL=https://shopolive.xyz npm run test:e2e` (and do auth-setup against prod if you want chromium-authed to pass).
+
+**TL;DR:** `.env.test` with TEST_USER_* → run `npm run test:e2e:auth-setup` once (headed) → then `npm run test:e2e`. App must have Supabase env (e.g. `.env.local`) so login works.
+
+---
+
+## Run all tests (command)
 
 ```bash
 npm run test:e2e
 ```
 
-Uses `http://localhost:3001` (starts dev server if not running).
+Uses `http://localhost:3003` (starts dev server if not running). Port 3003 avoids clash with jarvis-ui on 3001.
 
 ## Run against production (shopolive.xyz)
 
@@ -36,7 +70,7 @@ npm run test:e2e:ui
 
 ## Authenticated dashboard tests (add-to-cart, King Soopers cart)
 
-These tests need a signed-in user. You can use **saved login (Google)** or **email/password**.
+These tests need a signed-in user. The **chromium-authed** project uses `.auth/user.json`; if that file is missing, those tests fail with `ENOENT: no such file or directory, open '.auth/user.json'`. Run `npm run test:e2e:auth-setup` once (headed) to create it, or use **email/password** (see below).
 
 ### Option A — Use your Google login (e.g. jeffadkins1@gmail.com)
 

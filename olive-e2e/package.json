@@ -17,7 +17,7 @@
     "vercel:set-supabase-key": "bash scripts/set-vercel-supabase-env.sh"
   },
   "dependencies": {
-    "@supabase/auth-helpers-nextjs": "^0.15.0",
+    "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.93.3",
     "next": "16.1.6",
     "react": "19.2.3",

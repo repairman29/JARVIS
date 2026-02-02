@@ -30,7 +30,7 @@ function LoginContent() {
     setMessage('')
 
     try {
-      if (!isSupabaseConfigured() || !supabase) {
+      if (!isSupabaseConfigured || !supabase) {
         throw new Error('Olive is not configured yet. Please check the Supabase keys.')
       }
       if (isSignUp) {
@@ -71,7 +71,7 @@ function LoginContent() {
         </Link>
 
         <div className="bg-[var(--card)] p-8 rounded-3xl shadow-sm border border-[var(--border)]">
-          {!isSupabaseConfigured() && (
+          {!isSupabaseConfigured && (
             <div className="bg-[#fff7ed] dark:bg-[#2d1a0e] text-[var(--heirloom-tomato)] p-3 rounded-xl text-sm mb-4">
               Olive isn&apos;t configured yet. Add Supabase keys to continue.
             </div>

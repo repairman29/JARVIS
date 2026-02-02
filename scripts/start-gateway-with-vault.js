@@ -99,24 +99,23 @@ async function main() {
   }
 
   const repoRoot = path.resolve(__dirname, '..');
-  // On Railway (or any cloud with PORT), ensure OpenClaw config enables HTTP chat completions
+  // On Railway (or any cloud with PORT), ensure OpenClaw config enables HTTP chat completions.
+  // Locally: do not overwrite ~/.clawdbot/clawdbot.json so user's primary model and tools stay intact.
   const isCloud = process.env.RAILWAY_PUBLIC_DOMAIN || (process.env.PORT && process.env.RAILWAY_PROJECT_ID);
   const configPath = path.join(repoRoot, 'config', 'railway-openclaw.json');
-  if (fs.existsSync(configPath)) {
+  if (isCloud && fs.existsSync(configPath)) {
     const openclawDirs = [path.join(home, '.openclaw')];
     const clawdbotDir = path.join(home, '.clawdbot');
-    if (isCloud) openclawDirs.push(path.join(repoRoot, '.openclaw'));
+    openclawDirs.push(path.join(repoRoot, '.openclaw'));
     for (const openclawDir of openclawDirs) {
       if (!fs.existsSync(openclawDir)) fs.mkdirSync(openclawDir, { recursive: true });
       fs.copyFileSync(configPath, path.join(openclawDir, 'openclaw.json'));
     }
     if (!fs.existsSync(clawdbotDir)) fs.mkdirSync(clawdbotDir, { recursive: true });
     fs.copyFileSync(configPath, path.join(clawdbotDir, 'clawdbot.json'));
-    if (isCloud) {
-      const repoClawdbot = path.join(repoRoot, '.clawdbot');
-      if (!fs.existsSync(repoClawdbot)) fs.mkdirSync(repoClawdbot, { recursive: true });
-      fs.copyFileSync(configPath, path.join(repoClawdbot, 'clawdbot.json'));
-    }
+    const repoClawdbot = path.join(repoRoot, '.clawdbot');
+    if (!fs.existsSync(repoClawdbot)) fs.mkdirSync(repoClawdbot, { recursive: true });
+    fs.copyFileSync(configPath, path.join(repoClawdbot, 'clawdbot.json'));
   }
 
   const args = ['clawdbot', 'gateway', 'run'];

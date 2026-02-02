@@ -75,9 +75,9 @@ Include in the **same JSON object** that contains the assistant text (e.g. top-l
 }
 ```
 
-### UI behavior (future)
+### UI behavior
 
-- When `meta.structured_result` is present, the UI can render it as list, table, or expandable block **in addition to** (or instead of) the text in `content`, depending on design. Current UI does not yet render `structured_result`; this contract allows the gateway to send it so the UI can add rendering later.
+- When `meta.structured_result` is present, the UI renders it **in addition to** the text in `content`: list (`type: "list"`, `items`), table (`type: "table"`, `headers`, `rows`), key_value (`type: "key_value"`, `entries`), or any other object as an expandable JSON block (Message.tsx `StructuredResultView`).
 
 ---
 
@@ -112,7 +112,9 @@ Until the gateway implements Option A or B, the UI will not show this control (o
 | Item | Gateway/Edge sends | UI today |
 |------|--------------------|----------|
 | 2.6 Tool visibility | `meta.tools_used: string[]` | Shows "Used: X" chips when present |
-| 2.7 Structured output | `meta.structured_result` (object/array) | Contract only; rendering TBD |
+| 2.7 Structured output | `meta.structured_result` (object/array) | Renders list/table/key_value/expandable JSON |
 | 4.8 Run and copy | `run_once` (or dedicated endpoint) + same JSON body | Button/control when supported |
 
 **Pass-through:** The Next.js API route in `apps/jarvis-ui/app/api/chat/route.ts` forwards `meta` from gateway/Edge to the client when present (non-stream and, when implemented, final stream event).
+
+**Gateway implementers:** See [JARVIS_GATEWAY_META.md](./JARVIS_GATEWAY_META.md) for how to send `meta` from your gateway (non-stream and streaming).

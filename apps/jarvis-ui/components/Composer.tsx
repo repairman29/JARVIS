@@ -1,6 +1,10 @@
 'use client';
 
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
+
+export interface ComposerHandle {
+  getValue: () => string;
+}
 
 export interface ComposerProps {
   disabled?: boolean;
@@ -11,15 +15,25 @@ export interface ComposerProps {
   onSlashSession?: (name: string) => void;
 }
 
-export function Composer({
-  disabled,
-  placeholder = 'Message JARVIS…',
-  onSubmit,
-  onSlashClear,
-  onSlashTools,
-  onSlashSession,
-}: ComposerProps) {
+export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Composer(
+  {
+    disabled,
+    placeholder = 'Message JARVIS…',
+    onSubmit,
+    onSlashClear,
+    onSlashTools,
+    onSlashSession,
+  },
+  ref
+) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  useImperativeHandle(
+    ref,
+    () => ({
+      getValue: () => textareaRef.current?.value?.trim() ?? '',
+    }),
+    []
+  );
 
   // 4.6: Cmd+J / Ctrl+J focus composer when app has focus
   useEffect(() => {
@@ -149,4 +163,4 @@ export function Composer({
       </p>
     </div>
   );
-}
+});

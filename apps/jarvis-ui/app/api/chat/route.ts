@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://127.0.0.1:18789';
-const EDGE_URL = process.env.NEXT_PUBLIC_JARVIS_EDGE_URL || '';
+const GATEWAY_URL = (process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://127.0.0.1:18789').trim();
+const EDGE_URL = (process.env.NEXT_PUBLIC_JARVIS_EDGE_URL || '').trim();
 const TOKEN = process.env.CLAWDBOT_GATEWAY_TOKEN || process.env.OPENCLAW_GATEWAY_TOKEN || '';
-const EDGE_TOKEN = process.env.JARVIS_AUTH_TOKEN || '';
+const EDGE_TOKEN = (process.env.JARVIS_AUTH_TOKEN || '').trim();
 const CHAT_URL = `${GATEWAY_URL.replace(/\/$/, '')}/v1/chat/completions`;
 
 /** Extract assistant text from gateway JSON (OpenAI-style or OpenResponses-style). */
@@ -69,20 +69,27 @@ export async function POST(req: NextRequest) {
         }),
         signal: AbortSignal.timeout(120000),
       });
-      if (!res.ok) {
-        const errBody = await res.text();
-        let errJson: { error?: string } = {};
-        try {
-          errJson = errBody ? JSON.parse(errBody) : {};
-        } catch {
-          errJson = { error: errBody || res.statusText };
-        }
+    if (!res.ok) {
+      const errBody = await res.text();
+      let errMessage: string = res.statusText;
+      try {
+        const errJson = errBody ? (JSON.parse(errBody) as { error?: string }) : {};
+        const raw = errJson.error;
+        errMessage = typeof raw === 'string' ? raw : res.status === 502 ? 'Edge or gateway unreachable. Check Supabase Edge logs and JARVIS_GATEWAY_URL.' : res.statusText;
+      } catch {
+        if (errBody && errBody.length < 200) errMessage = errBody;
+      }
+      if (res.status === 403 && /OAuth|organization/i.test(errMessage)) {
+        errMessage += ' — Your LLM provider’s org may have OAuth disabled; use a personal API key or switch provider (e.g. Groq). See GETTING_STARTED_MODES.md or DISCORD_SETUP.md.';
+      }
         return NextResponse.json(
-          { error: { message: errJson.error || res.statusText, type: 'api_error' } },
+          { error: { message: errMessage, type: 'api_error' } },
           { status: res.status }
         );
       }
-      if (stream && res.body) {
+      const edgeContentType = res.headers.get('content-type') || '';
+      const isEventStream = edgeContentType.includes('text/event-stream');
+      if (stream && res.body && isEventStream) {
         return new Response(res.body, {
           status: 200,
           headers: {
@@ -92,13 +99,30 @@ export async function POST(req: NextRequest) {
           },
         });
       }
-      const data = (await res.json()) as { content?: string; meta?: { prompt_trimmed_to?: number; tools_used?: string[] } };
-      const edgeContent = typeof data?.content === 'string' ? data.content : 'No response from JARVIS.';
-      const body: { content: string; meta?: { prompt_trimmed_to?: number; tools_used?: string[] } } = { content: edgeContent };
-      if (data?.meta != null) {
+      const raw = await res.text();
+      let data: { content?: string; meta?: { prompt_trimmed_to?: number; tools_used?: string[]; structured_result?: unknown } } | null = null;
+      try {
+        data = raw ? (JSON.parse(raw) as typeof data) : null;
+      } catch {
+        data = null;
+      }
+      if (!data || typeof data !== 'object') {
+        return NextResponse.json(
+          { error: { message: 'Edge returned invalid JSON', type: 'api_error' } },
+          { status: 502 }
+        );
+      }
+      const edgeData = data as { content?: string; meta?: { prompt_trimmed_to?: number; tools_used?: string[]; structured_result?: unknown } };
+      const edgeContent = typeof edgeData.content === 'string' ? edgeData.content : 'No response from JARVIS.';
+      const body: {
+        content: string;
+        meta?: { prompt_trimmed_to?: number; tools_used?: string[]; structured_result?: unknown };
+      } = { content: edgeContent };
+      if (edgeData.meta != null) {
         body.meta = {};
-        if (typeof data.meta.prompt_trimmed_to === 'number') body.meta.prompt_trimmed_to = data.meta.prompt_trimmed_to;
-        if (Array.isArray(data.meta.tools_used) && data.meta.tools_used.length > 0) body.meta.tools_used = data.meta.tools_used;
+        if (typeof edgeData.meta.prompt_trimmed_to === 'number') body.meta.prompt_trimmed_to = edgeData.meta.prompt_trimmed_to;
+        if (Array.isArray(edgeData.meta.tools_used) && edgeData.meta.tools_used.length > 0) body.meta.tools_used = edgeData.meta.tools_used;
+        if (edgeData.meta.structured_result != null) body.meta.structured_result = edgeData.meta.structured_result;
         if (Object.keys(body.meta).length === 0) delete body.meta;
       }
       return NextResponse.json(body, {
@@ -132,10 +156,13 @@ export async function POST(req: NextRequest) {
       } catch {
         errJson = { error: { message: errBody || res.statusText, type: 'api_error' } };
       }
-      const message =
+      let message =
         res.status === 405
           ? 'Chat API not enabled on gateway. Enable chat completions in gateway config (see apps/jarvis-ui/README.md).'
           : errJson.error?.message || res.statusText;
+      if (res.status === 403 && /OAuth|organization/i.test(message)) {
+        message += ' — Your LLM provider’s org may have OAuth disabled; use a personal API key or switch provider (e.g. Groq). See GETTING_STARTED_MODES.md or DISCORD_SETUP.md.';
+      }
       return NextResponse.json(
         { error: { ...errJson.error, message, type: errJson.error?.type || 'api_error' } },
         { status: res.status }
@@ -167,11 +194,16 @@ export async function POST(req: NextRequest) {
         Array.isArray(meta?.tools_used) && (meta.tools_used as unknown[]).every((t) => typeof t === 'string')
           ? (meta.tools_used as string[])
           : undefined;
-      const body: { content: string; meta?: { prompt_trimmed_to?: number; tools_used?: string[] } } = { content: fallback };
-      if (promptTrimmedTo != null || (toolsUsed != null && toolsUsed.length > 0)) {
+      const structuredResult = meta?.structured_result;
+      const body: {
+        content: string;
+        meta?: { prompt_trimmed_to?: number; tools_used?: string[]; structured_result?: unknown };
+      } = { content: fallback };
+      if (promptTrimmedTo != null || (toolsUsed != null && toolsUsed.length > 0) || structuredResult != null) {
         body.meta = {};
         if (promptTrimmedTo != null) body.meta.prompt_trimmed_to = promptTrimmedTo;
         if (toolsUsed != null && toolsUsed.length > 0) body.meta.tools_used = toolsUsed;
+        if (structuredResult != null) body.meta.structured_result = structuredResult;
       }
       return NextResponse.json(body, {
         headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },

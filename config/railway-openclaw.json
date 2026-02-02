@@ -9,7 +9,10 @@
   },
   "agents": {
     "defaults": {
-      "workspace": "/tmp/openclaw-workspace"
+      "workspace": "/tmp/openclaw-workspace",
+      "model": {
+        "primary": "openai/gpt-4o-mini"
+      }
     }
   }
 }

@@ -8,8 +8,9 @@ test.describe('JARVIS UI — Settings', () => {
     await expect(page.getByTestId('settings-modal-content')).toBeVisible({ timeout: 5000 });
     await expect(page.getByText('Session ID')).toBeVisible();
     await expect(page.getByText('Backend')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Copy' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Done' })).toBeVisible();
+    const modal = page.getByTestId('settings-modal-content');
+    await expect(modal.getByRole('button', { name: 'Copy' })).toBeVisible();
+    await expect(modal.getByRole('button', { name: 'Done' })).toBeVisible();
   });
 
   test('Done closes Settings modal', async ({ page }) => {
@@ -17,7 +18,7 @@ test.describe('JARVIS UI — Settings', () => {
     await expect(page.getByTestId('header-settings')).toBeVisible({ timeout: 10000 });
     await page.getByTestId('header-settings').click();
     await expect(page.getByTestId('settings-modal-content')).toBeVisible({ timeout: 5000 });
-    await page.getByRole('button', { name: 'Done' }).click();
+    await page.getByTestId('settings-modal-content').getByRole('button', { name: 'Done' }).click();
     await expect(page.getByTestId('settings-modal-content')).not.toBeVisible();
   });
 

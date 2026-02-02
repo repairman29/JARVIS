@@ -38,6 +38,7 @@ When the work touches **hosted JARVIS**, **MCP in Cursor**, or **UI talking to E
 
 | Doc | Use |
 |-----|-----|
+| **docs/JARVIS_EDGE_AUTH.md** | **Edge auth:** Required in cloud when `JARVIS_AUTH_TOKEN` set; no auth locally. Sync UI token: `node scripts/sync-edge-auth-token.js`. |
 | **docs/JARVIS_EDGE_WHAT_CHANGES.md** | What changes when JARVIS runs behind the Edge Function; one URL, proxy to gateway. |
 | **supabase/README.md** | Deploy `jarvis` Edge Function, set secrets, call from anywhere (REST). |
 | **docs/JARVIS_MCP_SUPABASE.md** | JARVIS MCP on Supabase (Edge + Vault); spec and checklist. |
@@ -65,7 +66,7 @@ Paste or reference in the first message so the session has context:
 - `@jarvis/AGENTS.md` — agent behavior (includes “repairman29 repos = goodies”)
 - `@docs/JARVIS_AND_YOUR_REPOS.md` — repos.json, index, goodies: check repairman29 repos first
 
-Or: *"Read docs/CURSOR_SESSION_ONBOARDING.md and use REPO_INDEX + jarvis/TOOLS.md as the source of truth. Check repairman29 repos for existing goodies before building from scratch."*
+Or: *"Read docs/CURSOR_SESSION_ONBOARDING.md and docs/HANDOFF.md. Use REPO_INDEX + jarvis/TOOLS.md as the source of truth. Edge auth: docs/JARVIS_EDGE_AUTH.md. Check repairman29 repos for existing goodies before building from scratch."*
 
 ---
 
@@ -77,10 +78,16 @@ Or: *"Read docs/CURSOR_SESSION_ONBOARDING.md and use REPO_INDEX + jarvis/TOOLS.m
 
 **JARVIS smarter:** [docs/JARVIS_SMARTER.md](docs/JARVIS_SMARTER.md) — current smarts + next-level levers (bootstrap context, cite sources, when-to-invoke, decision memory).
 
-**UI roadmap:** [docs/JARVIS_UI_ROADMAP.md](docs/JARVIS_UI_ROADMAP.md) | **Audit:** [docs/JARVIS_UI_AUDIT.md](docs/JARVIS_UI_AUDIT.md).
+**UI roadmap:** [docs/JARVIS_UI_ROADMAP.md](docs/JARVIS_UI_ROADMAP.md) | **Audit:** [docs/JARVIS_UI_AUDIT.md](docs/JARVIS_UI_AUDIT.md) | **Gateway contract (2.6, 2.7, 4.8):** [docs/JARVIS_UI_GATEWAY_CONTRACT.md](docs/JARVIS_UI_GATEWAY_CONTRACT.md).
+
+---
+
+## Handoff
+
+**docs/HANDOFF.md** — Current state, where to start, good first message for next session, likely next work.
 
 ---
 
 ## One-line cheat sheet
 
-**Doc map** → docs/DOCUMENTATION_MAP.md | **Repo map** → REPO_INDEX | **Tools** → jarvis/TOOLS.md | **Behavior** → jarvis/AGENTS.md | **PM mode** → .cursor/rules | **Edge/Supabase** → JARVIS_EDGE_*, supabase/README, JARVIS_MCP_* | **Roadmap** → JARVIS_PRODUCT_PLAN §5b.
+**Doc map** → docs/DOCUMENTATION_MAP.md | **Repo map** → REPO_INDEX | **Tools** → jarvis/TOOLS.md | **Behavior** → jarvis/AGENTS.md | **PM mode** → .cursor/rules | **Edge auth** → docs/JARVIS_EDGE_AUTH.md | **Handoff** → docs/HANDOFF.md | **Roadmap** → JARVIS_PRODUCT_PLAN §5b.

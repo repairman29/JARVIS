@@ -50,8 +50,8 @@ Phased plan to deliver the **developer-grade JARVIS chat UI** described in [JARV
 | 2.3 | **Full markdown rendering** — Headings, lists, bold/italic, links, blockquotes | ✅ Done | Message.tsx: ReactMarkdown + remarkGfm; globals.css .markdown-body. |
 | 2.4 | **Code blocks** — Syntax highlighting by language; monospace; optional copy button | ✅ Done | rehype-highlight + PreWithCopy in Message.tsx; copy button on code blocks. |
 | 2.5 | **Inline code** — Backticks as monospace | ✅ Done | .markdown-body code in globals.css. |
-| 2.6 | **Tool/skill visibility** — Show when JARVIS used a skill (e.g. "Used: launcher"; collapsible or chip) | ⬜ | Depends on gateway exposing tool calls in response. |
-| 2.7 | **Structured tool output** — Render lists/tables/expandable when gateway returns structured results | ⬜ | |
+| 2.6 | **Tool/skill visibility** — Show when JARVIS used a skill (e.g. "Used: launcher"; collapsible or chip) | 🟡 Ready | UI shows chips when gateway/edge sends `meta.tools_used`; contract in [JARVIS_UI_GATEWAY_CONTRACT.md](./JARVIS_UI_GATEWAY_CONTRACT.md). |
+| 2.7 | **Structured tool output** — Render lists/tables/expandable when gateway returns structured results | ✅ Done | Message.tsx: StructuredResultView for list/table/key_value/expandable JSON; API + Chat pass-through. |
 | 2.8 | **Clear error states** — "Gateway unreachable," "Session expired," "Rate limited," "Context too long" with short copy | ✅ Done | Error banner + gatewayHint; Reconnect/Dismiss. |
 | 2.9 | **Retry** — "Retry" / "Send again" for transient errors so user doesn't re-paste | ✅ Done | Reconnect/Dismiss on error banner; Recheck in header. |
 | 2.10 | **Reconnect gracefully** — "Reconnecting…" then "Back" when gateway restarts or network blips | ✅ Done | Status shows "Reconnecting…" when connecting; "Edge" / "Gateway: local" when ok. |
@@ -86,7 +86,7 @@ Phased plan to deliver the **developer-grade JARVIS chat UI** described in [JARV
 | 4.5 | **Export** — Copy thread as markdown or "Save transcript" for session | ✅ Done | Header: "Copy thread" and "Save transcript" (.md download) when messages exist. |
 | 4.6 | **Global shortcut (optional)** — Win+J / Cmd+J to focus or show JARVIS window | ✅ Done | Cmd+J / Ctrl+J focuses composer when tab has focus (browser-only; true global needs desktop wrapper). |
 | 4.7 | **Multiple sessions (optional)** — Switch/start "work", "quick"; simple switcher | ✅ Done | Session dropdown in header: current + list, "New session", switch clears thread. |
-| 4.8 | **CLI parity (optional)** — If gateway supports "run and return," UI "Run and copy result" | ⬜ | Contract in [JARVIS_UI_GATEWAY_CONTRACT.md](./JARVIS_UI_GATEWAY_CONTRACT.md); UI control when gateway supports. |
+| 4.8 | **CLI parity (optional)** — If gateway supports "run and return," UI "Run and copy result" | ✅ Done | Header "Run and copy result" sends composer (or last message) once, copies response to clipboard; works with current gateway (non-stream). |
 
 **Phase 4 done when:** The UI feels fast, predictable, and respectful of privacy (local gateway; no sneaky telemetry).
 

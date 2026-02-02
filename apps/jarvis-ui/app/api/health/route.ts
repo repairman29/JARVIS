@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 
-const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://127.0.0.1:18789';
-const EDGE_URL = process.env.NEXT_PUBLIC_JARVIS_EDGE_URL || '';
+const GATEWAY_URL = (process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://127.0.0.1:18789').trim();
+const EDGE_URL = (process.env.NEXT_PUBLIC_JARVIS_EDGE_URL || '').trim();
 const TOKEN = process.env.CLAWDBOT_GATEWAY_TOKEN || process.env.OPENCLAW_GATEWAY_TOKEN || '';
+const EDGE_TOKEN = (process.env.JARVIS_AUTH_TOKEN || '').trim();
 
 const CACHE_HEADERS = {
   'Cache-Control': 'no-store, no-cache, must-revalidate',
@@ -26,8 +27,11 @@ async function pingGateway(url: string): Promise<boolean> {
 async function pingEdge(url: string): Promise<boolean> {
   try {
     const base = url.replace(/\/$/, '');
+    const headers: Record<string, string> = {};
+    if (EDGE_TOKEN) headers['Authorization'] = `Bearer ${EDGE_TOKEN}`;
     const res = await fetch(base, {
       method: 'GET',
+      headers,
       signal: AbortSignal.timeout(4000),
     });
     if (!res.ok) return false;

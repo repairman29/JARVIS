@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseServer, isSupabaseServerConfigured } from '@/lib/supabaseServer'
+import { createClient, isSupabaseServerConfigured } from '@/lib/supabaseServer'
 
 const KROGER_SERVICE = process.env.NEXT_PUBLIC_KROGER_SERVICE_URL
 const SERVICE_SECRET = process.env.KROGER_SERVICE_SECRET
@@ -165,6 +165,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const supabaseServer = await createClient()
     const { userId, items, shopping_mode: bodyMode, quantity_strategy: bodyStrategy } = await request.json()
 
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -176,7 +177,7 @@ export async function POST(request: NextRequest) {
     let preferencesByTerm: Record<string, string | null> = {}
     let locationId = DEFAULT_LOCATION_ID
 
-    if (isSupabaseServerConfigured() && supabaseServer && userId) {
+    if (isSupabaseServerConfigured && supabaseServer && userId) {
       const { data: settings } = await supabaseServer
         .from('olive_user_settings')
         .select('shopping_mode, kroger_location_id, quantity_strategy')
@@ -304,7 +305,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Store memory (events + preferences) if configured — non-fatal so cart success is preserved
-    if (isSupabaseServerConfigured() && supabaseServer && userId) {
+    if (isSupabaseServerConfigured && supabaseServer && userId) {
       try {
         const now = new Date().toISOString()
         const events = results.map((result: any) => ({

@@ -4,7 +4,35 @@ Clawdbot is configured to use **Discord** (not Telegram). Add your bot token and
 
 ---
 
-## If you see “Private application cannot have a default authorization link”
+## If you see "HTTP 403: permission_error: OAuth authentication is currently not allowed for this organization"
+
+JARVIS (Discord or UI) can show this when the **gateway’s LLM provider** (e.g. Anthropic) returns it. The `request_id` (e.g. `req_...`) is from that provider. It means the **API key’s organization** (e.g. your Anthropic org) has **OAuth disabled**, so the provider rejects the chat request.
+
+**Fix:**
+
+1. **Use a personal API key:** Create and use an API key from a **personal** Anthropic (or other provider) account that is not under an org with OAuth disabled. Put it in `~/.clawdbot/.env` as `ANTHROPIC_API_KEY` (or the key your gateway uses) and restart the gateway.
+2. **Keys in Vault:** If your LLM keys are in Supabase Vault (e.g. you start the gateway with `node scripts/start-gateway-with-vault.js`), the same applies: the key in Vault is tied to an org with OAuth disabled. **Update the secret in Vault** to a personal API key (or switch provider and add that key to Vault). See docs/VAULT_MIGRATION.md and scripts that sync Vault (e.g. `vault-migrate-env.js`, `setup-jarvis-vault-and-access.js`).
+3. **Or ask your org admin:** If you must use the org’s key, have the org admin enable OAuth for the organization in the provider’s console (e.g. Anthropic).
+4. **Or switch provider:** Use a different LLM you already have keys for (e.g. OpenAI, Groq). In **`~/.clawdbot/clawdbot.json`** set the primary model, then restart the gateway (with Vault: `node scripts/start-gateway-with-vault.js`).
+
+   **OpenAI (keys in Vault):** Ensure `OPENAI_API_KEY` is in Supabase Vault. In `clawdbot.json`:
+
+   ```json
+   "agents": {
+     "defaults": {
+       "model": { "primary": "openai/gpt-4o" }
+     }
+   }
+   ```
+
+   **Groq:** `"primary": "groq/llama-3.1-8b-instant"` and `GROQ_API_KEY` in Vault or `.env`.  
+   See GETTING_STARTED_MODES.md and scripts/FREE_TIER_FALLBACKS.md for fallbacks and other providers.
+
+5. **Support:** When contacting the LLM provider (e.g. Anthropic), include the full error and the `request_id`.
+
+---
+
+## If you see "Private application cannot have a default authorization link"
 
 Discord shows this when the app is **private** but still has a **Default Authorization Link** set.
 

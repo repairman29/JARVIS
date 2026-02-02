@@ -34,12 +34,12 @@
 | 2.4 | Code blocks — syntax highlighting, monospace, optional copy button | ✅ | `Message.tsx`: rehype-highlight + PreWithCopy; copy button on code blocks |
 | 2.5 | Inline code (backticks → monospace) | ✅ | `.markdown-body code` in globals.css |
 | 2.6 | Tool/skill visibility ("Used: launcher" etc.) | 🟡 Ready | UI shows chips when gateway sends `meta.tools_used`; API pass-through + Message.tsx chips. Contract: [JARVIS_UI_GATEWAY_CONTRACT.md](./JARVIS_UI_GATEWAY_CONTRACT.md). |
-| 2.7 | Structured tool output (lists/tables/expandable) | ⬜ | Contract defined; UI rendering not yet implemented. |
+| 2.7 | Structured tool output (lists/tables/expandable) | ✅ Done | Message.tsx: `StructuredResultView` renders `meta.structured_result` (list, table, key_value, or expandable JSON). API + Chat pass-through; contract in [JARVIS_UI_GATEWAY_CONTRACT.md](./JARVIS_UI_GATEWAY_CONTRACT.md). |
 | 2.8 | Clear error states (Gateway unreachable, Session expired, Rate limited, Context too long) | ✅ | `Chat.tsx`: error banner, `errorMessage`, `gatewayHint`; timeout message. Generic copy + hint; no specific "Rate limited" / "Context too long" labels |
 | 2.9 | Retry / Send again for transient errors | ✅ | `Chat.tsx`: "Reconnect" / "Dismiss" on error banner; Recheck in header |
 | 2.10 | Reconnect gracefully ("Reconnecting…" then "Back") | ✅ | Status shows "Reconnecting…" when connecting; "Edge" / "Gateway: local" when ok |
 
-**Phase 2:** 2.1, 2.2, 2.3, 2.4, 2.5, 2.8, 2.9, 2.10 done. 2.6, 2.7 not done (gateway-dependent).
+**Phase 2:** All done. 2.6 ready when gateway sends meta.tools_used; 2.7 StructuredResultView when gateway sends meta.structured_result.
 
 ---
 
@@ -68,16 +68,16 @@
 | 4.5 | Export (copy thread as markdown / Save transcript) | ✅ | Header: "Copy thread" and "Save transcript" when messages exist |
 | 4.6 | Global shortcut (Cmd+J / Ctrl+J) | ✅ | `Composer.tsx`: Cmd+J / Ctrl+J focuses composer when tab has focus |
 | 4.7 | Multiple sessions (switcher, New session) | ✅ | Session dropdown in header; "New session", switch clears thread |
-| 4.8 | CLI parity ("run and copy result") | ⬜ | Contract in JARVIS_UI_GATEWAY_CONTRACT.md; UI control when gateway supports run_once or dedicated endpoint. |
+| 4.8 | CLI parity ("run and copy result") | ✅ Done | Header "Run and copy result" button; Composer ref getValue(); non-stream request, copy to clipboard. |
 
-**Phase 4:** 4.1–4.7 done. 4.8 not done (gateway-dependent).
+**Phase 4:** All done (4.8 Run and copy result implemented).
 
 ---
 
 ## Summary: What to Do Next
 
-1. **Phase 2:** Tool visibility (2.6) — UI ready; gateway/Edge send `meta.tools_used`. Structured output (2.7) — contract only; rendering TBD.
-2. **Phase 4:** CLI parity (4.8) — "Run and copy result" when gateway supports run_once or dedicated endpoint (contract in JARVIS_UI_GATEWAY_CONTRACT.md).
+1. **Phase 2:** Tool visibility (2.6) — UI ready; gateway/Edge send `meta.tools_used`. Structured output (2.7) — ✅ UI renders list/table/key_value/expandable JSON when gateway sends `meta.structured_result`.
+2. **Phase 4:** CLI parity (4.8) — Done: "Run and copy result" button uses non-stream request and copies response.
 
 ---
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseServer, isSupabaseServerConfigured } from '@/lib/supabaseServer'
+import { createClient, isSupabaseServerConfigured } from '@/lib/supabaseServer'
 
 export type ShoppingMode = 'budget' | 'splurge'
 
@@ -11,7 +11,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
   }
 
-  if (!isSupabaseServerConfigured() || !supabaseServer) {
+  const supabaseServer = await createClient()
+  if (!isSupabaseServerConfigured || !supabaseServer) {
     return NextResponse.json({ shopping_mode: 'splurge' })
   }
 
@@ -35,7 +36,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  if (!isSupabaseServerConfigured() || !supabaseServer) {
+  const supabaseServer = await createClient()
+  if (!isSupabaseServerConfigured || !supabaseServer) {
     return NextResponse.json(
       { error: 'Supabase not configured; settings cannot be saved' },
       { status: 503 }

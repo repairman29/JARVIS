@@ -250,7 +250,7 @@ function DashboardContent() {
   }, [searchParams, krogerStatus?.connected])
 
   const checkUser = async () => {
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!isSupabaseConfigured || !supabase) {
       setLoading(false)
       return
     }
@@ -1021,7 +1021,7 @@ function DashboardContent() {
     )
   }
 
-  if (!isSupabaseConfigured()) {
+  if (!isSupabaseConfigured) {
     return (
       <main className="min-h-screen bg-[var(--background)] flex items-center justify-center px-6">
         <div className="max-w-md w-full bg-[var(--card)] rounded-3xl p-8 border border-[var(--border)] shadow-sm text-center">

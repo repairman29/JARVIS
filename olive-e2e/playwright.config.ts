@@ -3,7 +3,8 @@ import { config as loadEnv } from 'dotenv'
 
 loadEnv({ path: '.env.test' })
 
-const baseURL = process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3001'
+const defaultPort = 3003
+const baseURL = process.env.PLAYWRIGHT_TEST_BASE_URL || `http://localhost:${defaultPort}`
 const isProd = baseURL.includes('shopolive.xyz') || baseURL.includes('vercel.app')
 
 export default defineConfig({
@@ -33,8 +34,8 @@ export default defineConfig({
   webServer: isProd
     ? undefined
     : {
-        command: 'npm run dev -- --port 3001',
-        url: 'http://localhost:3001',
+        command: `npm run dev -- --port ${defaultPort}`,
+        url: baseURL,
         reuseExistingServer: true,
         timeout: 60_000,
       },

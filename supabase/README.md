@@ -100,7 +100,7 @@ Set env for local: create `.env.local` in `supabase/functions/jarvis/` with `JAR
 
 - **Host:** Supabase (Edge Function).
 - **Call:** Any HTTP client → `POST https://YOUR_PROJECT_REF.supabase.co/functions/v1/jarvis` with `{ "message": "..." }`.
-- **Auth:** Optional `JARVIS_AUTH_TOKEN`; set in secrets and send as `Authorization: Bearer <token>`.
+- **Auth:** In cloud, Bearer auth is required when `JARVIS_AUTH_TOKEN` is set. Local serve (`supabase functions serve`) does not require auth. Sync UI token: `node scripts/sync-edge-auth-token.js`.
 - **Gateway:** Must be reachable from Supabase (deploy or tunnel). All skills (web search, clock, etc.) run on the gateway as today.
 
 See **docs/JARVIS_MCP_SUPABASE.md** for MCP (Cursor) and full spec.

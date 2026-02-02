@@ -71,6 +71,7 @@ Advanced AI-powered skills for professionals: Notion Advanced Pro, GitHub Copilo
 | [**docs/CURSOR_SESSION_ONBOARDING.md**](./docs/CURSOR_SESSION_ONBOARDING.md) | Teach another Cursor session: what to read, @ mentions, Edge/Supabase |
 | [**docs/DOCUMENTATION_MAP.md**](./docs/DOCUMENTATION_MAP.md) | How docs are organized; start here by topic (Edge, Olive, Vault, etc.) |
 | [**Hosted JARVIS (Edge/MCP)**](./docs/JARVIS_EDGE_WHAT_CHANGES.md) | Supabase Edge Function, MCP in Cursor, UI→Edge — [supabase/README](./supabase/README.md), [JARVIS_MCP_CURSOR](./docs/JARVIS_MCP_CURSOR.md) |
+| [**Gateway: send meta**](./docs/JARVIS_GATEWAY_META.md) | For gateway implementers: how to send tools_used / structured_result so the UI shows tool chips and structured output |
 | [DISCORD_SETUP.md](./DISCORD_SETUP.md) | Discord bot configuration |
 | [RUNBOOK.md](./RUNBOOK.md) | Day-to-day operations |
 

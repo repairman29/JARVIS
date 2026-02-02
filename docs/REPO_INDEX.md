@@ -28,6 +28,10 @@ Quick reference for where things live and what to use.
 | Doc | Use |
 |-----|-----|
 | **docs/JARVIS_PRODUCT_PLAN.md** | **JARVIS in one place:** vision, tracks (Windows/ROG, UI, modes, Edge/MCP, showcase), current state, next 6–12 months, references. Start here for “what’s the plan?” |
+| **docs/PREMIUM_CLARITY.md** | **Modes, premium skills, Yellow/Hot Rod:** Blue vs Yellow vs Hot Rod; how to get Yellow or Hot Rod; where premium skills live (showcase). |
+| **docs/JARVIS_GATEWAY_META.md** | **Gateway: how to send meta** — tools_used, structured_result (non-stream and streaming) for UI 2.6/2.7. |
+| **docs/COMMUNITY_AND_SKILLS.md** | **Community & skills:** skill marketplace, contributors, hero/premium skills; links to CONTRIBUTING, showcase. |
+| **docs/METRICS.md** | **Success metrics:** north star (active sessions), supporting KPIs (MCP, showcase, community); how to measure. |
 | **docs/JARVIS_DEVELOPER_SUPREMACY.md** | **Make JARVIS unbeatable:** Navy Seal Swiss Army Ninja MI6 developer — playbook, levers (deep work, repo-knowledge, ship, triad), gaps to close. |
 | **docs/JARVIS_AGENT_ORCHESTRATION.md** | **JARVIS uses autonomous systems to build products:** BEAST MODE, Code Roach, Echeo, workflow_dispatch, sessions_spawn — build flow and invocation table. |
 | **docs/LOCAL_INFERENCE_AGENTS.md** | **Echeo and other agents with local inference:** Run JARVIS + Echeo (bounty hunter) and other bots on Ollama; gateway config, exec vs subagent, per-tool LLM. |
@@ -42,6 +46,8 @@ Quick reference for where things live and what to use.
 | **docs/JARVIS_SCALE_AND_CONNECTIVITY.md** | **JARVIS talks to everything / scale:** One URL, one contract; add any client; scale Edge, DB, gateway. |
 | **docs/JARVIS_SCALE_WHEN_NEEDED.md** | **When to scale (runbook):** You’re set up to scale; do nothing until you need it. When you do: Railway replicas or multiple gateways + LB; set JARVIS_GATEWAY_URL. |
 | **docs/JARVIS_WHERE_AM_I_RUNNING.md** | **Where is JARVIS running?** Local vs Railway + Supabase; how to tell (UI env, Edge secrets, Railway dashboard). |
+| **docs/JARVIS_EDGE_AUTH.md** | **Edge auth:** Required in cloud when JARVIS_AUTH_TOKEN set; no auth locally. Sync UI token: `node scripts/sync-edge-auth-token.js`. |
+| **docs/HANDOFF.md** | **Handoff:** Current state, where to start, good first message for next session, likely next work. |
 | **docs/JARVIS_LIFT_TO_RAILWAY.md** | **Lift JARVIS to Railway (checklist):** Step-by-step to finish the lift — Railway vars, deploy, Edge secret, optional UI → Edge. |
 | **docs/JARVIS_RAILWAY.md** | **Running JARVIS on Railway:** What you get, high-level steps, caveats, troubleshooting. |
 | **docs/DOCUMENTATION_MAP.md** | **How docs are organized;** start here by topic (Edge/Supabase, Olive, Vault, agent). Links to REPO_INDEX, onboarding, key docs. |
@@ -55,6 +61,7 @@ Quick reference for where things live and what to use.
 | **docs/JARVIS_UI_ROADMAP.md** | Phased roadmap for the JARVIS UI (foundation → readability → context → polish). |
 | **docs/JARVIS_UI_AUDIT.md** | Roadmap vs code: what’s already built in apps/jarvis-ui (so we don’t redo work). |
 | **docs/JARVIS_UI_GATEWAY_CONTRACT.md** | Response shapes for tool visibility (2.6), structured output (2.7), run-and-copy (4.8); gateway/Edge can send when ready. |
+| **docs/JARVIS_UI_DEPLOY_RAILWAY_VERCEL.md** | Deploy the JARVIS chat UI (currently localhost:3001) to Railway or Vercel; env vars, root `apps/jarvis-ui`, Edge vs gateway. |
 | **docs/JARVIS_OLIVE_VIDEO_PROMO.md** | JARVIS Olive (shopolive.xyz) video promo: MP4, GIFs, pipeline; run `./scripts/olive-promo-video.sh`. |
 | **docs/JARVIS_MCP_SUPABASE.md** | JARVIS MCP: use Supabase (Edge Function + Vault) to expose JARVIS as MCP tools in Cursor. Spec and checklist. |
 | **supabase/README.md** | Host and call JARVIS on Supabase: deploy `jarvis` Edge Function, set secrets, call from anywhere (REST). |

@@ -79,8 +79,8 @@ Status: ✅ Done | 🚧 In progress | ⬜ Todo
 | **UI readability & trust** | Markdown/code, tool visibility, clear errors, reconnect | 2 — Phase 2 |
 | **UI context & polish** | Skills list, settings, keyboard/a11y/themes, optional export/shortcut | 3 — Phases 3–4 |
 | **UI → Edge** | Chat UI talks to hosted JARVIS (Supabase Edge) so “JARVIS in browser” without local gateway | ✅ Done — Edge URL + auth in UI |
-| **Premium clarity** | One place that lists premium skills, pricing/packaging (if any), and how to get Yellow/Hot Rod | 5 — doc + optional showcase updates |
-| **Community & skills** | Skill marketplace, docs for contributors, maybe 1–2 “hero” premium skills (e.g. Notion, Focus Pro) | 6 — ongoing |
+| **Premium clarity** | One place that lists premium skills, pricing/packaging (if any), and how to get Yellow/Hot Rod | ✅ Done — [docs/PREMIUM_CLARITY.md](./PREMIUM_CLARITY.md) |
+| **Community & skills** | Skill marketplace, docs for contributors, maybe 1–2 “hero” premium skills (e.g. Notion, Focus Pro) | [docs/COMMUNITY_AND_SKILLS.md](./COMMUNITY_AND_SKILLS.md) — ongoing |
 
 No fixed dates here; order is priority. Adjust when dependencies (e.g. gateway session API) are clear.
 
@@ -96,11 +96,11 @@ No fixed dates here; order is priority. Adjust when dependencies (e.g. gateway s
 
 | Priority | Item | Phase | Effort | Impact |
 |----------|------|--------|--------|--------|
-| 1 | **Tool/skill visibility** — Show when JARVIS used a skill (e.g. "Used: launcher") | 2.6 | Medium | Medium — needs gateway to expose tool calls. |
-| 2 | **Structured tool output** — Render lists/tables/expandable when gateway returns structured results | 2.7 | Medium | Medium — gateway-dependent. |
-| 3 | **CLI parity** — "Run and copy result" when gateway supports it | 4.8 | Medium | Nice-to-have — gateway-dependent. |
+| 1 | **Tool/skill visibility** — Show when JARVIS used a skill (e.g. "Used: launcher") | 2.6 | ✅ | Edge passes through `meta.tools_used` and extracts from `tool_calls`; UI shows chips. |
+| 2 | **Structured tool output** — Render lists/tables/expandable when gateway returns structured results | 2.7 | ✅ | UI renders list/table/key_value/expandable JSON; API + Edge pass-through. |
+| 3 | **CLI parity** — "Run and copy result" | 4.8 | ✅ | UI: "Run and copy result" button sends once, copies response to clipboard. |
 
-**Suggested next:** 2.6/2.7/4.8 when gateway supports tool-call metadata.
+**Suggested next:** Gateway/Edge send `meta.tools_used` and `meta.structured_result` when available; premium/community themes (skill marketplace, hero skills).
 
 ---
 

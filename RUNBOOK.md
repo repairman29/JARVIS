@@ -2,6 +2,12 @@
 
 Quick reference for operating your Clawdbot setup.
 
+## Tool keeper (last sharpened)
+
+**2026-02-01** — Sharpening pass: root `npm update` + `npm audit fix` (1 package changed); jarvis-ui and olive-e2e checked. **Deferred (breaking):** Root — 26 vulns in clawdbot transitive deps (fast-xml-parser, hono, tar); fix would require clawdbot@2026.1.15 (breaking). **Track:** Re-run `npm audit` after upgrading clawdbot; see "Root npm vulns" below. **Done:** Jarvis-ui upgraded to Next 16.1.6 + React 19.2.4; build uses `next build --webpack`; 0 vulns; Next config: `turbopack.root` + `outputFileTracingRoot` to silence lockfile warning. Olive-e2e: migrated to `@supabase/ssr`; added lib + stubs (ConfidenceBadge, NarrativeProgress, PredictiveChip, RecipeBottomSheet); build passes; E2E dev server uses port 3003 to avoid clash with 3001. **CLIs checked:** Vercel 44.6.3, Railway 4.12.0, Stripe 1.34.0, Supabase 2.67.1, Fly v0.4.6; Netlify/Wrangler not in PATH. Node v24.4.1, npm 11.5.1.
+
+**Root npm vulns (clawdbot transitive):** 26 advisories in clawdbot deps (fast-xml-parser, hono, tar, etc.). Safe fix blocked until clawdbot publishes a release that bumps those. When upgrading: `npm install clawdbot@latest`, then `npm audit`; reopen if still high/critical.
+
 ## Status & Health
 
 ```bash
@@ -43,6 +49,17 @@ launchctl start com.clawdbot.gateway
 # Check if running
 launchctl list | grep clawdbot
 ```
+
+## Supabase (Edge, DB, migrations)
+
+- **Apply migrations (session_messages, etc.):** `supabase db push` from repo root, or run migrations from Supabase Dashboard → SQL. See [docs/JARVIS_MEMORY_WIRING.md](docs/JARVIS_MEMORY_WIRING.md).
+- **Edge secrets:** Set `JARVIS_GATEWAY_URL`, `CLAWDBOT_GATEWAY_TOKEN`, optional `JARVIS_AUTH_TOKEN` in Dashboard → Edge Functions → jarvis → Secrets (or `supabase secrets set`).
+
+## JARVIS UI
+
+- **App:** `apps/jarvis-ui/` — Next.js chat UI; `npm run dev` → http://localhost:3001 (talks to gateway or Edge).
+- **Gateway contract:** [docs/JARVIS_UI_GATEWAY_CONTRACT.md](docs/JARVIS_UI_GATEWAY_CONTRACT.md) — response shapes for tool visibility (2.6), structured output (2.7), run-and-copy (4.8). When gateway/Edge send `meta.tools_used` or support run_once, the UI shows chips or "Run and copy result."
+- **Gateway implementers:** To enable tool visibility and structured output in the UI, have the gateway send `meta` (tools_used, structured_result) per [docs/JARVIS_GATEWAY_META.md](docs/JARVIS_GATEWAY_META.md). Edge already passes through meta and maps `tool_calls` → tools_used when present.
 
 ## Logs
 
@@ -209,6 +226,12 @@ node scripts/jarvis-safety-net.js
 
 # Vault healthcheck
 node scripts/vault-healthcheck.js
+
+# List all Vault vars (app_secrets names; no values)
+node scripts/list-vault-vars.js
+
+# Sync gateway token to Edge (fix 502 Unauthorized when Edge calls gateway)
+node scripts/sync-edge-gateway-token.js
 ```
 
 - **Ollama:** Indexer uses `nomic-embed-text` for embeddings. Run `ollama pull nomic-embed-text` once.

@@ -80,6 +80,29 @@ function extractContent(data: unknown): string {
   return "";
 }
 
+/** Extract meta (tools_used, structured_result, prompt_trimmed_to) from gateway response; optionally from tool_calls. */
+function extractMeta(data: unknown): Record<string, unknown> | null {
+  if (data == null || typeof data !== "object") return null;
+  const o = data as Record<string, unknown>;
+  const topMeta = o.meta as Record<string, unknown> | undefined;
+  const choice = Array.isArray(o.choices) ? o.choices[0] : undefined;
+  const msg = choice != null && typeof choice === "object" ? (choice as Record<string, unknown>).message : undefined;
+  const toolCalls = msg != null && typeof msg === "object" && Array.isArray((msg as Record<string, unknown>).tool_calls)
+    ? (msg as Record<string, unknown>).tool_calls as Array<{ function?: { name?: string } }>
+    : [];
+  const toolsUsedFromCalls = toolCalls.length > 0
+    ? toolCalls.map((t) => t.function?.name).filter((n): n is string => typeof n === "string")
+    : null;
+  const meta: Record<string, unknown> = {};
+  if (topMeta && typeof topMeta === "object") {
+    if (Array.isArray(topMeta.tools_used)) meta.tools_used = topMeta.tools_used;
+    if (topMeta.structured_result != null) meta.structured_result = topMeta.structured_result;
+    if (typeof topMeta.prompt_trimmed_to === "number") meta.prompt_trimmed_to = topMeta.prompt_trimmed_to;
+  }
+  if (toolsUsedFromCalls && toolsUsedFromCalls.length > 0 && !meta.tools_used) meta.tools_used = toolsUsedFromCalls;
+  return Object.keys(meta).length > 0 ? meta : null;
+}
+
 function jsonResponse(body: object, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -109,7 +132,7 @@ async function callGateway(
   messages: { role: string; content: string }[],
   sessionId: string,
   stream: boolean
-): Promise<{ content?: string; res?: Response; err?: string }> {
+): Promise<{ content?: string; meta?: Record<string, unknown>; res?: Response; err?: string }> {
   const chatUrl = `${gatewayUrl.replace(/\/$/, "")}/v1/chat/completions`;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -153,7 +176,8 @@ async function callGateway(
     data = null;
   }
   const content = extractContent(data);
-  return { content: content || "No response from gateway." };
+  const meta = extractMeta(data);
+  return { content: content || "No response from gateway.", meta: meta ?? undefined };
 }
 
 Deno.serve(async (req: Request) => {
@@ -169,10 +193,13 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "Method not allowed" }, 405);
   }
 
-  const authToken = Deno.env.get("JARVIS_AUTH_TOKEN");
-  if (authToken) {
-    const auth = req.headers.get("Authorization");
-    if (!auth || auth !== `Bearer ${authToken}`) {
+  // Require Bearer auth when running in Supabase cloud (production). Local serve has no auth.
+  const isCloud = Boolean(Deno.env.get("DENO_DEPLOYMENT_ID") ?? Deno.env.get("SB_REGION"));
+  const authToken = (Deno.env.get("JARVIS_AUTH_TOKEN") ?? "").trim();
+  if (isCloud && authToken) {
+    const auth = (req.headers.get("Authorization") ?? "").trim();
+    const want = `Bearer ${authToken}`;
+    if (!auth || auth !== want) {
       return jsonResponse({ error: "Unauthorized" }, 401);
     }
   }
@@ -368,5 +395,9 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  return jsonResponse({ content: result.content || "No response from gateway." });
+  const payload: { content: string; meta?: Record<string, unknown> } = {
+    content: result.content || "No response from gateway.",
+  };
+  if (result.meta && Object.keys(result.meta).length > 0) payload.meta = result.meta;
+  return jsonResponse(payload);
 });
