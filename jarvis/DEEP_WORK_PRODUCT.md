@@ -32,6 +32,7 @@ Deep work = **sustained focus** on one product across all three, with checkpoint
 
 ### 1. Planning phase
 
+- **Bootstrap product context:** Run **repo_summary(repo)** for this product (from products.json) and use the result as context. So planning is grounded in what the code actually does, not only the one-line description. See **docs/PRODUCT_CAPABILITIES.md**.
 - **Problem → user → outcome.** Who is it for, what problem, what success looks like.
 - **Artifacts:** PRD (or PRD outline), roadmap with phases/milestones, success metrics (north star + 2–3 KPIs), launch checklist per segment (e.g. dev, agent, human).
 - Use **Product Manager Mode** rules (see AGENTS.md). Prefer **impact vs effort**; state what is deferred.

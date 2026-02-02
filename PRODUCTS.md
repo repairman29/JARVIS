@@ -24,6 +24,8 @@ Edit `products.json` to:
 - **Remove** — delete the entry (or set `status: "archived"`).
 - **Update** — change name, repo, description, or status.
 
+**What products CAN do (vs. what we say):** The `description` field is what we **say** the product is. For **code-grounded** "what can this product do?", JARVIS uses **repo_summary(repo)** and **repo_search** on that product's repo (requires repo to be indexed). Optional: add a capabilities doc (e.g. CAPABILITIES.md) per repo or use Echeo to scan. See **docs/PRODUCT_CAPABILITIES.md**.
+
 ---
 
 ## How it’s used

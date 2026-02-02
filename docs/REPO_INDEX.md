@@ -27,6 +27,23 @@ Quick reference for where things live and what to use.
 
 | Doc | Use |
 |-----|-----|
+| **docs/JARVIS_PRODUCT_PLAN.md** | **JARVIS in one place:** vision, tracks (Windows/ROG, UI, modes, Edge/MCP, showcase), current state, next 6–12 months, references. Start here for “what’s the plan?” |
+| **docs/JARVIS_DEVELOPER_SUPREMACY.md** | **Make JARVIS unbeatable:** Navy Seal Swiss Army Ninja MI6 developer — playbook, levers (deep work, repo-knowledge, ship, triad), gaps to close. |
+| **docs/JARVIS_AGENT_ORCHESTRATION.md** | **JARVIS uses autonomous systems to build products:** BEAST MODE, Code Roach, Echeo, workflow_dispatch, sessions_spawn — build flow and invocation table. |
+| **docs/LOCAL_INFERENCE_AGENTS.md** | **Echeo and other agents with local inference:** Run JARVIS + Echeo (bounty hunter) and other bots on Ollama; gateway config, exec vs subagent, per-tool LLM. |
+| **docs/JARVIS_AUTO_START_AND_WATCHDOG.md** | **Auto-start and keep JARVIS running:** Cursor “on folder open” task, login (LaunchAgent / Task Scheduler), watchdog (check + restart gateway). |
+| **docs/PRODUCT_CAPABILITIES.md** | **What products CAN do vs. what we say:** Use repo_summary/repo_search for code-grounded capabilities; don't rely only on products.json description. |
+| **docs/JARVIS_SMARTER.md** | **How we make JARVIS even smarter:** Current smarts + next-level levers (bootstrap context, cite sources, when-to-invoke, decision memory, etc.). |
+| **docs/DECISIONS_MEMORY.md** | **Decision memory:** "Remember this decision" → append to DECISIONS.md; JARVIS reads it when planning or when user asks what we decided. |
+| **docs/JARVIS_MEMORY.md** | **Long life + short-term vs long-term memory:** Session persistence, summarization, DECISIONS + prefs; what to implement for long life. |
+| **docs/JARVIS_COFOUNDER.md** | **JARVIS as co-founder for life:** Operating system for the partnership — setup once, habits, memory, one-page map. Entry point for "work with JARVIS for the rest of your life." |
+| **docs/JARVIS_MEMORY_WIRING.md** | **Wire memory to Edge/gateway:** Apply migration, implement load/append for session_messages and optional prefs; checklist. |
+| **docs/JARVIS_MANY_SESSIONS.md** | **Many Cursor bots:** Stitch into one session; optional speaker so JARVIS knows which bot said what. |
+| **docs/JARVIS_SCALE_AND_CONNECTIVITY.md** | **JARVIS talks to everything / scale:** One URL, one contract; add any client; scale Edge, DB, gateway. |
+| **docs/JARVIS_SCALE_WHEN_NEEDED.md** | **When to scale (runbook):** You’re set up to scale; do nothing until you need it. When you do: Railway replicas or multiple gateways + LB; set JARVIS_GATEWAY_URL. |
+| **docs/JARVIS_WHERE_AM_I_RUNNING.md** | **Where is JARVIS running?** Local vs Railway + Supabase; how to tell (UI env, Edge secrets, Railway dashboard). |
+| **docs/JARVIS_LIFT_TO_RAILWAY.md** | **Lift JARVIS to Railway (checklist):** Step-by-step to finish the lift — Railway vars, deploy, Edge secret, optional UI → Edge. |
+| **docs/JARVIS_RAILWAY.md** | **Running JARVIS on Railway:** What you get, high-level steps, caveats, troubleshooting. |
 | **docs/DOCUMENTATION_MAP.md** | **How docs are organized;** start here by topic (Edge/Supabase, Olive, Vault, agent). Links to REPO_INDEX, onboarding, key docs. |
 | **docs/PUBLIC_REPO_CHECKLIST.md** | **Before public push:** strip internal refs, replace Supabase project refs with YOUR_PROJECT_REF, use repos.json.example / products.json.example; quick scan commands. |
 | **docs/CURSOR_SESSION_ONBOARDING.md** | **Teach another Cursor session:** what to read first (REPO_INDEX, TOOLS, AGENTS), rules, @ mentions, Edge/Supabase. |
@@ -36,6 +53,7 @@ Quick reference for where things live and what to use.
 | **docs/OLIVE_PROJECT_README.md** | Olive: try it, feedback, beta testers, expansion (friends & family). |
 | **docs/JARVIS_UI_DEVELOPER_SPEC.md** | What a developer wants from a JARVIS chat UI — product/UX spec for web or desktop. |
 | **docs/JARVIS_UI_ROADMAP.md** | Phased roadmap for the JARVIS UI (foundation → readability → context → polish). |
+| **docs/JARVIS_UI_AUDIT.md** | Roadmap vs code: what’s already built in apps/jarvis-ui (so we don’t redo work). |
 | **docs/JARVIS_OLIVE_VIDEO_PROMO.md** | JARVIS Olive (shopolive.xyz) video promo: MP4, GIFs, pipeline; run `./scripts/olive-promo-video.sh`. |
 | **docs/JARVIS_MCP_SUPABASE.md** | JARVIS MCP: use Supabase (Edge Function + Vault) to expose JARVIS as MCP tools in Cursor. Spec and checklist. |
 | **supabase/README.md** | Host and call JARVIS on Supabase: deploy `jarvis` Edge Function, set secrets, call from anywhere (REST). |

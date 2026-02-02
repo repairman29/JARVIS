@@ -8,6 +8,7 @@
 
 | Goal | Doc |
 |------|-----|
+| **JARVIS plan (vision, tracks, next steps)** | [docs/JARVIS_PRODUCT_PLAN.md](./JARVIS_PRODUCT_PLAN.md) |
 | **Repo map (where everything lives)** | [docs/REPO_INDEX.md](./REPO_INDEX.md) |
 | **Teach a Cursor session how to use this repo** | [docs/CURSOR_SESSION_ONBOARDING.md](./CURSOR_SESSION_ONBOARDING.md) |
 | **Project overview, quick start** | [README.md](../README.md) |
@@ -40,10 +41,11 @@ Code: **supabase/functions/jarvis/** (Edge Function), **apps/jarvis-ui/** (UI; `
 | [OLIVE_LIST_PARSING_SPEC.md](./OLIVE_LIST_PARSING_SPEC.md) | List/Smart Paste: parser, rate limits. |
 | [OLIVE_NOTES_FOR_TRANSFER.md](./OLIVE_NOTES_FOR_TRANSFER.md) | Notes to copy when opening Olive repo. |
 
-### JARVIS agent (tools, behavior, scripts)
+### JARVIS product & agent (plan, tools, behavior)
 
 | Doc | Use |
 |-----|-----|
+| [JARVIS_PRODUCT_PLAN.md](./JARVIS_PRODUCT_PLAN.md) | Vision, tracks (Windows/ROG, UI, modes, Edge/MCP, showcase), current state, next 6–12 months. |
 | [jarvis/TOOLS.md](../jarvis/TOOLS.md) | All tools/skills and when to use them; repo scripts; platform CLIs. |
 | [jarvis/AGENTS.md](../jarvis/AGENTS.md) | How JARVIS behaves by context (Discord, PM, deep work, etc.). |
 | [REPO_INDEX.md](./REPO_INDEX.md) | Full map: skills paths, key docs, apps, Olive, ignored. |
