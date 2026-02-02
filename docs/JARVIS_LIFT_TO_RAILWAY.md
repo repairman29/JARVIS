@@ -8,7 +8,7 @@ You started this earlier: Railway project **jarvis-gateway** and domain **https:
 
 - [x] **Railway:** Project + service **jarvis-gateway**, public domain `https://jarvis-gateway-production.up.railway.app`
 - [x] **Repo:** `railway.json` (start: `node scripts/start-gateway-with-vault.js`), `config/railway-openclaw.json`, start script with Vault + proxy
-- [x] **Supabase:** Edge function **jarvis** deployed (project ref `rbfzlqmkwhbvrrfdcain`)
+- [x] **Supabase:** Edge function **jarvis** deployed (project ref `YOUR_PROJECT_REF`)
 
 ---
 
@@ -17,15 +17,15 @@ You started this earlier: Railway project **jarvis-gateway** and domain **https:
 From repo root with Railway CLI linked to **jarvis-gateway**:
 
 ```bash
-railway variables --set "VAULT_SUPABASE_URL=https://rbfzlqmkwhbvrrfdcain.supabase.co" --set "VAULT_SUPABASE_SERVICE_ROLE_KEY=your_service_role_key" --set "PORT=3000"
+railway variables --set "VAULT_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co" --set "VAULT_SUPABASE_SERVICE_ROLE_KEY=your_service_role_key" --set "PORT=3000"
 ```
 
-Use the **service role key** from [Supabase Dashboard → Settings → API](https://supabase.com/dashboard/project/rbfzlqmkwhbvrrfdcain/settings/api). The start script uses these to pull all other secrets from Vault at startup.
+Use the **service role key** from [Supabase Dashboard → Settings → API](https://supabase.com/dashboard/project/YOUR_PROJECT_REF/settings/api). The start script uses these to pull all other secrets from Vault at startup.
 
 **Optional (compatibility):** Set **SUPABASE_URL** too so code paths that expect it have it:
 
 ```bash
-railway variables --set "SUPABASE_URL=https://rbfzlqmkwhbvrrfdcain.supabase.co"
+railway variables --set "SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co"
 ```
 
 **Alternative:** Railway Dashboard → **jarvis-gateway** → **Variables**, or use the API script with `RAILWAY_TOKEN`: `node scripts/railway-set-variables.js`.
@@ -64,7 +64,7 @@ To have the UI talk to **hosted** JARVIS (Edge → Railway) instead of the local
 In **`apps/jarvis-ui/.env`** or **`.env.local`**:
 
 ```bash
-NEXT_PUBLIC_JARVIS_EDGE_URL=https://rbfzlqmkwhbvrrfdcain.supabase.co/functions/v1/jarvis
+NEXT_PUBLIC_JARVIS_EDGE_URL=https://YOUR_PROJECT_REF.supabase.co/functions/v1/jarvis
 # If your Edge uses Bearer auth:
 # JARVIS_AUTH_TOKEN=<your_token>
 ```
@@ -76,11 +76,11 @@ Restart the UI (`npm run dev`). Health and chat will use the Edge function, whic
 ## 5. Verify
 
 - **Edge:**  
-  `curl -s "https://rbfzlqmkwhbvrrfdcain.supabase.co/functions/v1/jarvis"`  
+  `curl -s "https://YOUR_PROJECT_REF.supabase.co/functions/v1/jarvis"`  
   → should return `{"ok":true,"mode":"edge"}`.
 
 - **Edge → Railway:**  
-  `curl -s -X POST "https://rbfzlqmkwhbvrrfdcain.supabase.co/functions/v1/jarvis" -H "Content-Type: application/json" -d '{"message":"What time is it?"}'`  
+  `curl -s -X POST "https://YOUR_PROJECT_REF.supabase.co/functions/v1/jarvis" -H "Content-Type: application/json" -d '{"message":"What time is it?"}'`  
   → should return JSON with `content` (JARVIS reply). If 502, Railway gateway may still be starting or check Edge secret `JARVIS_GATEWAY_URL`.
 
 - **UI:** Open the JARVIS UI; send a message. If you set `NEXT_PUBLIC_JARVIS_EDGE_URL`, you’re on hosted JARVIS.

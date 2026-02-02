@@ -8,7 +8,7 @@
 
 | Check | Result |
 |-------|--------|
-| **GET** `https://rbfzlqmkwhbvrrfdcain.supabase.co/functions/v1/jarvis` | ✅ **200** — `{"ok":true,"mode":"edge"}`. Edge is up. |
+| **GET** `https://YOUR_PROJECT_REF.supabase.co/functions/v1/jarvis` | ✅ **200** — `{"ok":true,"mode":"edge"}`. Edge is up. |
 | **POST** (chat) without auth | **401 Unauthorized** — Edge has `JARVIS_AUTH_TOKEN` set, so POST requires `Authorization: Bearer <token>`. |
 
 **Conclusion:** Edge is running. For chat (and MCP), callers must send the Bearer token if you have `JARVIS_AUTH_TOKEN` set in Edge secrets.
@@ -25,7 +25,7 @@
 So we didn’t verify the full path Edge → Railway gateway. If you have the token, test with:
 
 ```bash
-curl -s -X POST "https://rbfzlqmkwhbvrrfdcain.supabase.co/functions/v1/jarvis" \
+curl -s -X POST "https://YOUR_PROJECT_REF.supabase.co/functions/v1/jarvis" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JARVIS_AUTH_TOKEN" \
   -d '{"message":"What time is it?"}'
@@ -39,7 +39,7 @@ If you get JSON with `content`, Edge → Railway is working.
 
 - **Variables:** `railway variables` shows **VAULT_SUPABASE_URL**, **VAULT_SUPABASE_SERVICE_ROLE_KEY**, **PORT=3000** already set.
 - **Redeploy:** Triggered via `railway redeploy -y`. Latest deployment was BUILDING/DEPLOYING; earlier ones CRASHED/FAILED — check logs for `ERR_MODULE_NOT_FOUND` (clawdbot) or "Proxy listening on 3000".
-- **Set vars via CLI:** `railway variables --set "SUPABASE_URL=https://rbfzlqmkwhbvrrfdcain.supabase.co"` (done). Optional: same via API script if you prefer (`RAILWAY_TOKEN=xxx node scripts/railway-set-variables.js`).
+- **Set vars via CLI:** `railway variables --set "SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co"` (done). Optional: same via API script if you prefer (`RAILWAY_TOKEN=xxx node scripts/railway-set-variables.js`).
 
 ## 3a. Railway gateway (direct) — URL check
 

@@ -25,7 +25,7 @@
 
 ### 2. Supabase Edge (jarvis function)
 
-- **Edge is deployed** when you’ve run `supabase functions deploy jarvis` (or deployed via dashboard). Your project ref (e.g. `rbfzlqmkwhbvrrfdcain`) gives URL:  
+- **Edge is deployed** when you’ve run `supabase functions deploy jarvis` (or deployed via dashboard). Your project ref (e.g. `YOUR_PROJECT_REF`) gives URL:  
   `https://<project-ref>.supabase.co/functions/v1/jarvis`
 
 - **Edge only works in production** if it can reach the gateway. In **Supabase Dashboard → Edge Functions → jarvis → Secrets** (or `supabase secrets set`):
