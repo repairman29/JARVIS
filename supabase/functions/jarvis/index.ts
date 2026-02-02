@@ -3,6 +3,43 @@
 // MCP: POST / with body JSON-RPC 2.0 (initialize, tools/list, tools/call) → JSON-RPC response
 // Convenience: body.action "web_search" | "current_time" with query/timezone
 // Secrets: JARVIS_GATEWAY_URL, CLAWDBOT_GATEWAY_TOKEN; optional JARVIS_AUTH_TOKEN
+// Memory: SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY → load/append session_messages (see JARVIS_MEMORY_WIRING.md)
+
+import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
+
+const SESSION_HISTORY_LIMIT = 50;
+
+function getSupabase(): SupabaseClient | null {
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) return null;
+  return createClient(url, key);
+}
+
+async function loadSessionHistory(
+  supabase: SupabaseClient,
+  sessionId: string
+): Promise<{ role: string; content: string }[]> {
+  const { data, error } = await supabase
+    .from("session_messages")
+    .select("role, content")
+    .eq("session_id", sessionId)
+    .order("created_at", { ascending: true })
+    .limit(SESSION_HISTORY_LIMIT);
+  if (error) return [];
+  return (data ?? []).map((r) => ({ role: r.role, content: r.content ?? "" }));
+}
+
+async function appendSessionMessages(
+  supabase: SupabaseClient,
+  sessionId: string,
+  rows: { role: string; content: string }[]
+): Promise<void> {
+  if (rows.length === 0) return;
+  await supabase.from("session_messages").insert(
+    rows.map((r) => ({ session_id: sessionId, role: r.role, content: r.content }))
+  );
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -53,11 +90,13 @@ function jsonResponse(body: object, status = 200) {
 const MCP_TOOLS = [
   {
     name: "jarvis_chat",
-    description: "Send a message to JARVIS and get a reply. Use for any question, web search, current time, or task.",
+    description: "Send a message to JARVIS and get a reply. By default all Cursor bots stitch into one session. Optional speaker/bot_id: so JARVIS knows which bot said what (e.g. workspace name). Optional session_id: use only if you want this bot in a separate thread.",
     inputSchema: {
       type: "object" as const,
       properties: {
         message: { type: "string" as const, description: "User message to JARVIS (e.g. 'What time is it in Denver?', 'Search for latest news')" },
+        speaker: { type: "string" as const, description: "Optional. Identity of this bot (e.g. workspace name, 'Cursor-olive'). Prepended as [Bot: speaker] so JARVIS is aware different bots are different." },
+        session_id: { type: "string" as const, description: "Optional. Omit to stitch into the shared MCP session. Set only if you want this bot in a separate thread." },
       },
       required: ["message"],
     },
@@ -175,7 +214,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (method === "tools/call") {
-      const params = (body.params || {}) as { name?: string; arguments?: { message?: string } };
+      const params = (body.params || {}) as { name?: string; arguments?: { message?: string; speaker?: string; session_id?: string } };
       if (params.name !== "jarvis_chat") {
         return jsonResponse({
           jsonrpc: "2.0",
@@ -183,21 +222,34 @@ Deno.serve(async (req: Request) => {
           error: { code: -32602, message: `Unknown tool: ${params.name}` },
         }, 400);
       }
-      const message = (params.arguments && params.arguments.message) != null
+      const rawMessage = (params.arguments && params.arguments.message) != null
         ? String(params.arguments.message)
         : "";
-      if (!message.trim()) {
+      if (!rawMessage.trim()) {
         return jsonResponse({
           jsonrpc: "2.0",
           id,
           error: { code: -32602, message: "Missing argument: message" },
         }, 400);
       }
+      const speaker = (params.arguments && typeof params.arguments.speaker === "string" && params.arguments.speaker.trim())
+        ? params.arguments.speaker.trim()
+        : "";
+      const userContent = speaker ? `[Bot: ${speaker}]\n${rawMessage}` : rawMessage;
+      const mcpSessionId = (params.arguments && typeof params.arguments.session_id === "string" && params.arguments.session_id.trim())
+        ? params.arguments.session_id.trim()
+        : "mcp";
+      let mcpMessages: { role: string; content: string }[] = [{ role: "user", content: userContent }];
+      const supabase = getSupabase();
+      if (supabase) {
+        const history = await loadSessionHistory(supabase, mcpSessionId);
+        mcpMessages = [...history, { role: "user", content: userContent }];
+      }
       const result = await callGateway(
         gatewayUrl,
         gatewayToken,
-        [{ role: "user", content: message }],
-        "mcp",
+        mcpMessages,
+        mcpSessionId,
         false
       );
       if (result.err) {
@@ -209,6 +261,12 @@ Deno.serve(async (req: Request) => {
             isError: true,
           },
         });
+      }
+      if (supabase && result.content) {
+        await appendSessionMessages(supabase, mcpSessionId, [
+          { role: "user", content: userContent },
+          { role: "assistant", content: result.content },
+        ]);
       }
       return jsonResponse({
         jsonrpc: "2.0",
@@ -254,14 +312,25 @@ Deno.serve(async (req: Request) => {
   // REST chat
   const sessionId = (body.session_id as string) ?? "jarvis-edge";
   let messages: { role: string; content: string }[];
+  const userMessagesThisTurn: { role: string; content: string }[] = [];
 
-  if (body.message != null) {
-    messages = [{ role: "user", content: String(body.message) }];
-  } else if (Array.isArray(body.messages) && body.messages.length > 0) {
+  if (Array.isArray(body.messages) && body.messages.length > 0) {
     messages = (body.messages as { role?: string; content?: string }[]).map((m) => ({
       role: (m.role ?? "user") as string,
       content: String(m.content ?? ""),
     }));
+    const lastUserIdx = messages.map((m) => m.role).lastIndexOf("user");
+    if (lastUserIdx >= 0) userMessagesThisTurn.push(messages[lastUserIdx]);
+  } else if (body.message != null) {
+    const userContent = String(body.message);
+    userMessagesThisTurn.push({ role: "user", content: userContent });
+    const supabase = getSupabase();
+    if (supabase) {
+      const history = await loadSessionHistory(supabase, sessionId);
+      messages = [...history, { role: "user", content: userContent }];
+    } else {
+      messages = [{ role: "user", content: userContent }];
+    }
   } else {
     return jsonResponse(
       { error: "Body must include 'message' (string), 'messages' (array), or MCP JSON-RPC." },
@@ -273,6 +342,18 @@ Deno.serve(async (req: Request) => {
 
   if (result.err) {
     return jsonResponse({ error: result.err }, 502);
+  }
+
+  const supabase = getSupabase();
+  if (supabase && userMessagesThisTurn.length > 0) {
+    if (wantStream && result.res) {
+      await appendSessionMessages(supabase, sessionId, userMessagesThisTurn);
+    } else if (!wantStream && result.content) {
+      await appendSessionMessages(supabase, sessionId, [
+        ...userMessagesThisTurn,
+        { role: "assistant", content: result.content },
+      ]);
+    }
   }
 
   if (result.res && result.res.body) {

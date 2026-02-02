@@ -21,6 +21,16 @@ clawdbot logs --follow
 ## Gateway Management
 
 ```bash
+# Setup and run (local inference: Ollama + minimal ~/.clawdbot config, then start gateway)
+node scripts/setup-and-run-local.js
+
+# Setup only (create/update config and .env; print run command)
+node scripts/setup-and-run-local.js --setup-only
+
+# Watchdog: check Ollama + gateway, restart gateway if down (once or --loop every 5 min)
+node scripts/watchdog-jarvis-local.js
+node scripts/watchdog-jarvis-local.js --loop
+
 # Restart gateway
 launchctl kickstart -k gui/$(id -u)/com.clawdbot.gateway
 

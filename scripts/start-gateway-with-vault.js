@@ -101,13 +101,21 @@ async function main() {
   const repoRoot = path.resolve(__dirname, '..');
   // On Railway (or any cloud with PORT), ensure OpenClaw config enables HTTP chat completions
   const isCloud = process.env.RAILWAY_PUBLIC_DOMAIN || (process.env.PORT && process.env.RAILWAY_PROJECT_ID);
-  if (isCloud) {
-    const configPath = path.join(repoRoot, 'config', 'railway-openclaw.json');
-    const openclawDir = path.join(home, '.openclaw');
-    if (!fs.existsSync(openclawDir)) fs.mkdirSync(openclawDir, { recursive: true });
-    if (fs.existsSync(configPath)) {
-      const destPath = path.join(openclawDir, 'openclaw.json');
-      fs.copyFileSync(configPath, destPath);
+  const configPath = path.join(repoRoot, 'config', 'railway-openclaw.json');
+  if (fs.existsSync(configPath)) {
+    const openclawDirs = [path.join(home, '.openclaw')];
+    const clawdbotDir = path.join(home, '.clawdbot');
+    if (isCloud) openclawDirs.push(path.join(repoRoot, '.openclaw'));
+    for (const openclawDir of openclawDirs) {
+      if (!fs.existsSync(openclawDir)) fs.mkdirSync(openclawDir, { recursive: true });
+      fs.copyFileSync(configPath, path.join(openclawDir, 'openclaw.json'));
+    }
+    if (!fs.existsSync(clawdbotDir)) fs.mkdirSync(clawdbotDir, { recursive: true });
+    fs.copyFileSync(configPath, path.join(clawdbotDir, 'clawdbot.json'));
+    if (isCloud) {
+      const repoClawdbot = path.join(repoRoot, '.clawdbot');
+      if (!fs.existsSync(repoClawdbot)) fs.mkdirSync(repoClawdbot, { recursive: true });
+      fs.copyFileSync(configPath, path.join(repoClawdbot, 'clawdbot.json'));
     }
   }
 
@@ -117,55 +125,68 @@ async function main() {
   args.push('--port', gatewayPort);
   if (process.env.RAILWAY_PUBLIC_DOMAIN || process.env.PORT) args.push('--bind', 'lan');
   args.push('--allow-unconfigured');
+  if (isCloud) args.push('--dev');
 
+  const childEnv = { ...process.env, PORT: gatewayPort };
+  if (isCloud) {
+    childEnv.OPENCLAW_HOME = repoRoot;
+    childEnv.OPENCLAW_STATE_DIR = path.join(repoRoot, '.openclaw');
+    childEnv.HOME = repoRoot;
+  }
   const child = spawn('npx', args, {
     cwd: repoRoot,
     stdio: 'inherit',
     shell: true,
-    env: { ...process.env, PORT: gatewayPort }
+    env: childEnv
   });
 
   if (isCloud && process.env.PORT && process.env.PORT !== gatewayPort) {
-    // Run proxy on Railway's PORT so we respond to the proxy immediately; forward to gateway
+    // Listen on Railway's PORT immediately so the platform gets a response; proxy to gateway when ready
     const http = require('http');
     const gatewayOrigin = `http://127.0.0.1:${gatewayPort}`;
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    let gatewayReady = false;
     const waitForGateway = async () => {
       for (let i = 0; i < 90; i++) {
         try {
           const res = await fetch(`${gatewayOrigin}/`, { method: 'GET', signal: AbortSignal.timeout(3000) });
-          if (res.status < 500) return true;
+          if (res.status < 500) {
+            gatewayReady = true;
+            console.log('Gateway ready on port', gatewayPort);
+            return;
+          }
         } catch (_) {}
         await wait(2000);
       }
-      return false;
+      console.error('Gateway did not become ready on port', gatewayPort);
     };
-    waitForGateway().then((ok) => {
-      if (!ok) {
-        console.error('Gateway did not become ready on port', gatewayPort);
+    waitForGateway(); // background, no .then for server
+
+    const server = http.createServer((req, res) => {
+      if (!gatewayReady) {
+        res.writeHead(503, { 'Content-Type': 'application/json', 'Retry-After': '10' });
+        res.end(JSON.stringify({ error: 'Gateway starting up', retry_after: 10 }));
         return;
       }
-      const server = http.createServer((req, res) => {
-        const opts = {
-          method: req.method,
-          headers: { ...req.headers, host: `127.0.0.1:${gatewayPort}` },
-          hostname: '127.0.0.1',
-          port: gatewayPort,
-          path: req.url || '/'
-        };
-        const proxyReq = http.request(opts, (proxyRes) => {
-          res.writeHead(proxyRes.statusCode, proxyRes.headers);
-          proxyRes.pipe(res);
-        });
-        proxyReq.on('error', (e) => {
-          res.writeHead(502, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: String(e.message) }));
-        });
-        req.pipe(proxyReq);
+      const opts = {
+        method: req.method,
+        headers: { ...req.headers, host: `127.0.0.1:${gatewayPort}` },
+        hostname: '127.0.0.1',
+        port: gatewayPort,
+        path: req.url || '/'
+      };
+      const proxyReq = http.request(opts, (proxyRes) => {
+        res.writeHead(proxyRes.statusCode, proxyRes.headers);
+        proxyRes.pipe(res);
       });
-      server.listen(process.env.PORT, '0.0.0.0', () => {
-        console.log('Proxy listening on', process.env.PORT, '->', gatewayPort);
+      proxyReq.on('error', (e) => {
+        res.writeHead(502, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: String(e.message) }));
       });
+      req.pipe(proxyReq);
+    });
+    server.listen(process.env.PORT, '0.0.0.0', () => {
+      console.log('Proxy listening on', process.env.PORT, '->', gatewayPort);
     });
   }
 

@@ -100,3 +100,8 @@ Open **http://localhost:3001**. The UI uses a stable session (stored in `localSt
 ## Port
 
 Runs on **3001** so it doesn’t clash with the gateway (18789) or other apps. Change with `npm run dev -- -p 3002` or edit `package.json`.
+
+## E2E tests
+
+- **API (curl):** `npm run e2e` — hits `/`, `/api/health`, `/api/config`, `/api/chat`. Expect all OK or accepted skip when gateway/Edge is down.
+- **Browser (Playwright):** `npm run test:e2e` — loads the UI, opens Settings/Skills, session dropdown, composer slash commands, export buttons. Start the dev server first (`npm run dev`); Playwright reuses it. After pulling changes, restart the dev server so tests see the latest code. Optional: `npm run test:e2e:ui` for the Playwright UI.

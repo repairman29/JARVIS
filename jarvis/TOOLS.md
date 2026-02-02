@@ -100,6 +100,8 @@ Tools and skills JARVIS can use. Call the appropriate tool when the user asks; t
 | `repo_file` | "show me file chunks from repo X path Y" |
 | `repo_map` | "repo map for JARVIS" |
 
+**Product capabilities (what products CAN do):** When answering "what can [product] do?" or "what does [product] support?", use **repo_summary(repo)** and **repo_search** in that product's repo (from products.json) to get **code-grounded** capabilities — not only products.json description. See **docs/PRODUCT_CAPABILITIES.md**.
+
 **Env:** `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (preferred) or `SUPABASE_ANON_KEY`. Resolved from `~/.clawdbot/.env` or **Supabase Vault** (app_secrets + `get_vault_secret_by_name`). Keep the index fresh with `node scripts/index-repos.js` (see Repo index & Vault below).
 
 ---
@@ -264,6 +266,23 @@ Tools and skills JARVIS can use. Call the appropriate tool when the user asks; t
 - For products with **`shipAccess: true`**, when the user says “ship [product],” “you have full access to [product],” or “run the operation for [product]” — JARVIS may commit, push, and run deploy/scripts for that repo (within guardrails: no destructive without explicit ask, never commit secrets). Ensure elevated exec is allowed for the channel and GITHUB_TOKEN (and deploy tokens) are available to the gateway.
 - For products with **`deepWorkAccess: true`**, when the user says "deep work on [product]," "full product cycle for [product]," or "plan, develop, and execute [product]" — JARVIS does **deep work**: planning (PRD, roadmap, metrics), development (issues, PRs, implementation, tests), and execution (ship, run operation). See **jarvis/DEEP_WORK_PRODUCT.md**. Ship access is still required for JARVIS to push/deploy; deepWorkAccess grants sustained full-cycle focus.
 - Edit the file to reorder, add, remove products, or grant/revoke shipAccess / deepWorkAccess.
+
+---
+
+## Agent systems JARVIS can use to build products
+
+When building out products (deep work, full product cycle), JARVIS should **orchestrate** these systems instead of doing everything alone:
+
+| System | How JARVIS invokes it | When |
+|--------|------------------------|------|
+| **BEAST MODE** | Exec: `beast-mode quality score`, `beast-mode janitor enable`, `beast-mode vibe restore`, `beast-mode architecture check`. Or `github_workflow_dispatch` on BEAST-MODE repo. | Quality after implement, before ship. |
+| **Code Roach** | Exec: `code-roach analyze pr`, `code-roach health`, `code-roach crawl`. Or workflow_dispatch if repo has it. | PR review, codebase health. |
+| **Echeo** | Exec: `echeo --path ...`, `echeo --scrape-github ...`, `echeo --match-needs ...`. | "What should I work on?", bounty matching. |
+| **workflow_dispatch** | GitHub skill: `github_workflow_dispatch(owner, repo, workflow_id, ref)`. | Ship (deploy/build); quality (trigger BEAST/Code Roach workflows). |
+| **sessions_spawn** | Spawn subagent with task + deliverables + ETA. | Long implementation runs. |
+| **JARVIS autonomous build** | `node scripts/jarvis-autonomous-build.js`. | After push to JARVIS repo; or scheduled. |
+
+Full build flow and table: **docs/JARVIS_AGENT_ORCHESTRATION.md**. AGENTS.md → "Agent orchestration" instructs JARVIS to use these when doing deep work or building out a product.
 
 ---
 

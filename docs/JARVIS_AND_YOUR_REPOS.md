@@ -4,6 +4,18 @@ Single reference for how JARVIS uses **repos.json**, **products.json**, the **re
 
 ---
 
+## Goodies: repairman29’s repos first
+
+**Repairman29’s GitHub repos have the goodies JARVIS might want.** Skills, configs, scripts, UI patterns, and existing implementations live across those repos (JARVIS, olive, echeo, BEAST-MODE, and others in repos.json). Before building something from scratch, JARVIS (and any Cursor session helping on this stack) should:
+
+1. **Check repos.json** — See which repos exist and their names.
+2. **Use repo-knowledge** — `repo_search`, `repo_summary`, `repo_file`, `repo_map` for semantic search and summaries (requires index; run `node scripts/index-repos.js` if the index is stale).
+3. **Browse or clone** — When repo-knowledge isn’t enough, clone or open the repo and look at the code.
+
+That way we reuse what’s already there instead of redoing work. See **jarvis/TOOLS.md** → Repo Knowledge and **jarvis/AGENTS.md** (default behavior).
+
+---
+
 ## 1. Repo list: repos.json
 
 - **What:** The list of repairman29 GitHub repos JARVIS knows about.
@@ -29,6 +41,7 @@ Single reference for how JARVIS uses **repos.json**, **products.json**, the **re
 - **Where:** `products.json` in the JARVIS repo root. See **PRODUCTS.md**.
 - **Used by:** JARVIS and heartbeat for “work top down,” “what should I work on?,” “next product.” Focus repo for heartbeat = first active product (or BEAST-MODE by default), then work down the list.
 - **JARVIS does:** Read products.json to suggest next product or focus; it does not auto-edit it. You reorder/add/remove products there.
+- **What products CAN do:** The `description` is what we **say**; for what the product **actually can do** (code-grounded), JARVIS uses **repo_summary(repo)** and **repo_search** on that product’s repo. See **docs/PRODUCT_CAPABILITIES.md**.
 
 ---
 

@@ -1,7 +1,10 @@
 'use client';
 
+import { useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
+import 'highlight.js/styles/github-dark.css';
 
 export type MessageRole = 'user' | 'assistant';
 
@@ -9,6 +12,31 @@ export interface MessageProps {
   role: MessageRole;
   content: string;
   isStreaming?: boolean;
+}
+
+function PreWithCopy({ children }: { children: React.ReactNode }) {
+  const preRef = useRef<HTMLPreElement>(null);
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    const text = preRef.current?.textContent ?? '';
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+  return (
+    <div className="code-block-wrapper">
+      <button
+        type="button"
+        onClick={copy}
+        className="code-block-copy"
+        aria-label={copied ? 'Copied' : 'Copy code'}
+      >
+        {copied ? 'Copied' : 'Copy'}
+      </button>
+      <pre ref={preRef}>{children}</pre>
+    </div>
+  );
 }
 
 export function Message({ role, content, isStreaming }: MessageProps) {
@@ -37,7 +65,13 @@ export function Message({ role, content, isStreaming }: MessageProps) {
           <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{content}</div>
         ) : (
           <div className="markdown-body" style={{ fontSize: '0.95em' }}>
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeHighlight]}
+              components={{
+                pre: ({ children }) => <PreWithCopy>{children}</PreWithCopy>,
+              }}
+            >
               {content}
             </ReactMarkdown>
             {isStreaming && (

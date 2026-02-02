@@ -92,12 +92,13 @@ export async function POST(req: NextRequest) {
           },
         });
       }
-      const data = (await res.json()) as { content?: string };
+      const data = (await res.json()) as { content?: string; meta?: { prompt_trimmed_to?: number } };
       const edgeContent = typeof data?.content === 'string' ? data.content : 'No response from JARVIS.';
-      return NextResponse.json(
-        { content: edgeContent },
-        { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
-      );
+      const body: { content: string; meta?: { prompt_trimmed_to: number } } = { content: edgeContent };
+      if (data?.meta?.prompt_trimmed_to != null) body.meta = { prompt_trimmed_to: data.meta.prompt_trimmed_to };
+      return NextResponse.json(body, {
+        headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
+      });
     }
 
     const headers: Record<string, string> = {
@@ -152,10 +153,16 @@ export async function POST(req: NextRequest) {
         content === ''
           ? 'Gateway returned no text. Check gateway logs (clawdbot gateway logs) and that chat completions are enabled.'
           : content;
-      return NextResponse.json(
-        { content: fallback },
-        { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
-      );
+      // 2.2: pass through "prompt trimmed" when gateway sends it (meta.prompt_trimmed_to or usage.prompt_trimmed_to)
+      const obj = data as Record<string, unknown>;
+      const meta = (obj?.meta as Record<string, unknown>) ?? (obj?.usage as Record<string, unknown>);
+      const promptTrimmedTo =
+        typeof meta?.prompt_trimmed_to === 'number' ? meta.prompt_trimmed_to : undefined;
+      const body: { content: string; meta?: { prompt_trimmed_to: number } } = { content: fallback };
+      if (promptTrimmedTo != null) body.meta = { prompt_trimmed_to: promptTrimmedTo };
+      return NextResponse.json(body, {
+        headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
+      });
     }
 
     return new Response(res.body, {
@@ -168,9 +175,19 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
+    const isUnreachable =
+      /fetch failed|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|network/i.test(message) ||
+      (err instanceof TypeError && message.includes('fetch'));
     return NextResponse.json(
-      { error: { message, type: 'internal_error' } },
-      { status: 500 }
+      {
+        error: {
+          message: isUnreachable
+            ? `Backend unreachable: ${EDGE_URL ? 'Edge' : 'Gateway'}. Is it running?`
+            : message,
+          type: isUnreachable ? 'api_error' : 'internal_error',
+        },
+      },
+      { status: isUnreachable ? 502 : 500 }
     );
   }
 }

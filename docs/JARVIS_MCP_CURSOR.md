@@ -2,13 +2,37 @@
 
 Use the JARVIS Edge Function as an MCP server so Cursor can call **Ask JARVIS** (tool: `jarvis_chat`).
 
+---
+
+## How to talk to JARVIS via Cursor
+
+1. **Open Agent (the AI chat panel)** — MCP tools like JARVIS are available in **Agent**, not in inline edit. You may see it labeled **Agent**, **Ask AI**, or **Chat** in the UI.
+   - **Shortcut:** **Cmd+I** (Mac) or **Ctrl+I** (Windows) — opens the Agent side panel.
+   - **Or:** **Cmd+Shift+P** (Command Palette) → type *“Agent”* or *“Ask AI”* or *“Chat”* → choose the command to open the AI chat panel.
+   - **Or:** Click the **chat / AI** icon in the left sidebar or top bar (exact location can vary by Cursor version).
+
+2. **Ask in natural language** — In the Agent prompt, ask the AI to talk to JARVIS. Examples:
+   - *"Ask JARVIS what time it is in Denver."*
+   - *"Use JARVIS to search the web for the latest news on [topic]."*
+   - *"Call the jarvis_chat tool and ask: what’s on my Kroger list?"*
+
+3. **What happens** — The agent will use the `jarvis_chat` tool (if it’s available from your MCP config). Cursor may show a tool-call step for approval; approve it. JARVIS’s reply will appear in the thread.
+
+4. **If you don’t see an “Agent” or “Composer” option** — Cursor may call it **Ask AI** or **Chat**. Use **Cmd+I** / **Ctrl+I** to open the panel where you type messages to the AI; that’s where MCP tools (including JARVIS) are available.
+
+5. **If JARVIS doesn’t show up** — Confirm JARVIS is in **Cursor Settings → Features → MCP** (or in `~/.cursor/mcp.json`) with the Edge URL and Bearer token. Reload the window or restart Cursor so it picks up the config.
+
+**TL;DR:** Press **Cmd+I** (Mac) or **Ctrl+I** (Windows) to open the AI chat panel (Agent / Ask AI), then ask things like *"Ask JARVIS …"* or *"Use jarvis_chat to …"*; the agent will call JARVIS and show the reply.
+
+---
+
 ## Edge Function MCP support
 
 The JARVIS Edge Function accepts **JSON-RPC 2.0** over POST (MCP-compatible):
 
 - **initialize** — returns server capabilities and `tools`.
-- **tools/list** — returns one tool: `jarvis_chat` (argument: `message`).
-- **tools/call** — for `jarvis_chat`, forwards `arguments.message` to the gateway and returns the reply as text content.
+- **tools/list** — returns one tool: `jarvis_chat` (arguments: `message`, optional `session_id`).
+- **tools/call** — for `jarvis_chat`, forwards `arguments.message` (and optional `arguments.session_id`) to the gateway; returns the reply as text content. By default all Cursor bots **stitch into one session** (`"mcp"`): history is loaded and each turn is appended so JARVIS sees one continuous conversation. Pass `session_id` only if you want that bot in a separate thread. See [JARVIS_MANY_SESSIONS.md](./JARVIS_MANY_SESSIONS.md).
 
 So the same URL works for REST chat and for MCP tool calls.
 

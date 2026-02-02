@@ -66,6 +66,7 @@ Advanced AI-powered skills for professionals: Notion Advanced Pro, GitHub Copilo
 | [**JARVIS_WINDOWS_EPIC.md**](./JARVIS_WINDOWS_EPIC.md) | Make JARVIS epic on Windows (Raycast-style, quick access, marketplace) |
 | [**ROG_ALLY_SETUP.md**](./ROG_ALLY_SETUP.md) / [JARVIS_ROG_ED.md](./JARVIS_ROG_ED.md) | Run JARVIS on ASUS ROG Ally (handheld) |
 | [**DEVELOPER_GUIDE.md**](./DEVELOPER_GUIDE.md) | Complete setup and development guide |
+| [**docs/JARVIS_PRODUCT_PLAN.md**](./docs/JARVIS_PRODUCT_PLAN.md) | JARVIS in one plan: vision, tracks, current state, next 6–12 months |
 | [**docs/REPO_INDEX.md**](./docs/REPO_INDEX.md) | Repo map: apps, services, skills, key docs |
 | [**docs/CURSOR_SESSION_ONBOARDING.md**](./docs/CURSOR_SESSION_ONBOARDING.md) | Teach another Cursor session: what to read, @ mentions, Edge/Supabase |
 | [**docs/DOCUMENTATION_MAP.md**](./docs/DOCUMENTATION_MAP.md) | How docs are organized; start here by topic (Edge, Olive, Vault, etc.) |
