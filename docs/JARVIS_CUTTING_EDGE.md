@@ -157,4 +157,4 @@ Prioritized list of improvements to make JARVIS best-in-class. Each item has **p
 
 ---
 
-**Next step:** Pick one P0 and one P1; implement and ship. Suggested first: **§3 Bootstrap** (docs only) and **§4 When-to-invoke** (docs only) for immediate behavior gain; then **§1 Memory wiring** in Edge for session persistence.
+**Next wave:** See [JARVIS_NEXT_WAVE.md](./JARVIS_NEXT_WAVE.md) for the next innovation stack (UI session hydrate from Edge, set_pref from UI, richer heartbeat, streaming+meta, etc.). First item (session hydrate) is done.

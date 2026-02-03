@@ -100,6 +100,7 @@ export function Chat() {
   const composerRef = useRef<ComposerHandle>(null);
   const mountedRef = useRef(true);
   const statusRef = useRef(status);
+  const hydratedForSessionRef = useRef<string | null>(null);
   statusRef.current = status;
 
   useEffect(() => {
@@ -131,6 +132,36 @@ export function Chat() {
       mountedRef.current = false;
     };
   }, []);
+
+  // Hydrate session history from Edge when using Edge backend (session survives refresh)
+  useEffect(() => {
+    if (!sessionId || !hasMounted || hydratedForSessionRef.current === sessionId) return;
+    let cancelled = false;
+    fetch(`/api/session?sessionId=${encodeURIComponent(sessionId)}`, { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((data: { messages?: { role?: string; content?: string }[] }) => {
+        if (cancelled || !mountedRef.current) return;
+        const list = Array.isArray(data.messages) ? data.messages : [];
+        if (list.length === 0) {
+          hydratedForSessionRef.current = sessionId;
+          return;
+        }
+        const chatMessages: ChatMessage[] = list.map((m, i) => ({
+          id: `${m.role ?? 'msg'}-${i}-${Date.now()}`,
+          role: (m.role === 'assistant' ? 'assistant' : 'user') as MessageRole,
+          content: typeof m.content === 'string' ? m.content : '',
+          meta: undefined,
+        }));
+        setMessages(chatMessages);
+        hydratedForSessionRef.current = sessionId;
+      })
+      .catch(() => {
+        if (!cancelled && mountedRef.current) hydratedForSessionRef.current = sessionId;
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId, hasMounted]);
 
   useEffect(() => {
     if (!themeDropdownOpen) return;
@@ -340,6 +371,7 @@ export function Chat() {
 
   const switchSession = useCallback((id: string) => {
     setSessionIdStorage(id);
+    hydratedForSessionRef.current = null; // allow hydrate effect to load this session's history
     setSessionId(id);
     setMessages([]);
     setSessionDropdownOpen(false);
