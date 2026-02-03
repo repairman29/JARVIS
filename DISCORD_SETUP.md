@@ -4,6 +4,30 @@ Clawdbot is configured to use **Discord** (not Telegram). Add your bot token and
 
 ---
 
+## Using the JARVIS bot (not JARVIS ROG Ed.)
+
+The repo and Vault are already set up: there is one key, **`env/clawdbot/DISCORD_BOT_TOKEN`** (or `DISCORD_BOT_TOKEN` in `~/.clawdbot/.env`). The gateway and all scripts use that single token. **If `DISCORD_BOT_TOKEN` is set in `~/.clawdbot/.env`, it overrides Vault** so you can switch bots without changing Vault. Messages in Discord come from **whichever bot's token value** is in effect. If you have both a "JARVIS" app and a "JARVIS ROG Ed." app in the [Discord Developer Portal](https://discord.com/developers/applications), each has its own Bot Token — only one can be in that slot at a time.
+
+**Check which bot is active**
+
+- Run **`node scripts/check-discord-bot.js`**. It prints the bot's **Username** (and ID). If it says **"JARVIS ROG Ed."**, the token currently in use is the ROG Ed. bot's.
+- Gateway logs on startup show e.g. `[discord] [default] starting provider (@JARVIS ROG Ed.)` — that name is the bot you're using.
+
+**Switch to the JARVIS (repo) bot**
+
+1. In the Discord Developer Portal, open the **JARVIS** application (the one for repo JARVIS, not "JARVIS ROG Ed.").
+2. Go to **Bot** → copy the **Token** (or reset and copy).
+3. Put that token where the gateway and scripts load it. **Recommended (always wins over Vault):** set it in **`~/.clawdbot/.env`**:
+   - **Option A:** Run from repo root: **`node scripts/set-discord-token-env.js "<paste_JARVIS_bot_token>"`** (replaces `DISCORD_BOT_TOKEN` in `.env`).
+   - **Option B:** Edit **`~/.clawdbot/.env`** and set **`DISCORD_BOT_TOKEN=<JARVIS bot token>`** (replace the existing value).
+   - When `DISCORD_BOT_TOKEN` is set in `.env`, it is used instead of Vault, so you don’t need to change Vault.
+4. Run **`node scripts/check-discord-bot.js`** — it should show the JARVIS bot’s username (not "JARVIS ROG Ed.").
+5. Restart the gateway: **`node scripts/start-gateway-with-vault.js`** (or your usual start command).
+
+After that, replies and `send-discord-message.js` will come from the JARVIS bot, not ROG Ed.
+
+---
+
 ## If you see "HTTP 403: permission_error: OAuth authentication is currently not allowed for this organization"
 
 JARVIS (Discord or UI) can show this when the **gateway’s LLM provider** (e.g. Anthropic) returns it. The `request_id` (e.g. `req_...`) is from that provider. It means the **API key’s organization** (e.g. your Anthropic org) has **OAuth disabled**, so the provider rejects the chat request.
@@ -56,6 +80,20 @@ The gateway log shows: `[discord] [default] channel exited: Failed to resolve Di
 2. Ensure **`DISCORD_BOT_TOKEN=`** is set to your real **Bot Token** from [Discord Developer Portal](https://discord.com/developers/applications) → your app → **Bot** → Token (Copy/Reset). Remove any placeholder like `your_discord_bot_token`.
 3. From the JARVIS repo: **`node scripts/check-discord-bot.js`** — if this fails, the token is wrong or revoked; reset the token in the portal and update `.env`.
 4. Restart the gateway (e.g. close the Clawdbot window and run **`clawdbot gateway run`** or your start script again).
+
+---
+
+## If the Discord bot seems offline (no reply in Discord)
+
+The bot token is valid (REST API works) but the **Gateway WebSocket** to Discord may be stuck. Logs show: `discord gateway: WebSocket connection closed with code 1005` and `Attempting resume with backoff`.
+
+**Fix:**
+
+1. **Restart the gateway** so Discord gets a fresh WebSocket connection. From repo root: stop the process that runs the gateway (e.g. close its terminal or `pkill -f start-gateway-with-vault`), then run **`node scripts/start-gateway-with-vault.js`** again. You should see `[discord] logged in to discord as …` and no immediate 1005.
+2. **Why you get "no response" in Discord:** When the WebSocket is in a 1005 loop, the gateway may still *receive* a message and run the agent (you’ll see `embedded run start` / `run done` in logs), but the **reply cannot be sent** because the connection to Discord is down. Restart helps only until the next 1005.
+3. If 1005 or "no HELLO received" keeps happening after restart, check **network**: VPN, firewall, or corporate proxy often close or block Discord’s gateway. Try from another network or **disable VPN temporarily** and restart the gateway.
+4. **Verify token:** `node scripts/check-discord-bot.js` — must show your bot and guilds. If that fails, reset the token in the Developer Portal and update Vault or `~/.clawdbot/.env`.
+5. **Confirm the gateway works:** Use the JARVIS UI at http://localhost:3001 (or `curl` the gateway’s `/v1/chat/completions` with your token). If the UI gets replies but Discord doesn’t, the issue is Discord connectivity only.
 
 ---
 
@@ -248,3 +286,5 @@ If you only set `DISCORD_BOT_TOKEN` and don’t add `guilds`, the default is ope
 ```
 
 Replace `YOUR_DISCORD_USER_ID` with your numeric ID (e.g. `123456789012345678`). Add more IDs to the array if others should be allowed. Save, then restart the gateway. After that, when you ask in Discord (e.g. "Deploy this to Vercel"), JARVIS can run the CLI and report back.
+
+**If JARVIS says "restriction on restarting the gateway":** The restart command requires **elevated** access and your Discord user ID in the allowlist. Run **`node scripts/enable-gateway-restart.js YOUR_DISCORD_USER_ID`** from the repo root (get your ID: Discord → Developer Mode → right-click your name → Copy User ID). That script sets `gateway.commands.restart = true` and adds your ID to `tools.elevated.allowFrom.discord`. Then restart the gateway once manually so it picks up the config; after that, JARVIS can restart it when you ask from Discord.

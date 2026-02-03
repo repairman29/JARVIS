@@ -10,6 +10,7 @@
     "start": "next start",
     "lint": "next lint",
     "e2e": "bash scripts/e2e.sh http://localhost:3001",
+    "test:edge": "bash scripts/test-edge.sh http://localhost:3001",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:chat": "node scripts/test-chat.js http://localhost:3001",

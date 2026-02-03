@@ -1,6 +1,7 @@
 {
   "gateway": {
     "mode": "local",
+    "commands": { "restart": true },
     "http": {
       "endpoints": {
         "chatCompletions": { "enabled": true }

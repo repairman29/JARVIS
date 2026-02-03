@@ -24,7 +24,9 @@ async function pingGateway(url: string): Promise<boolean> {
   }
 }
 
-async function pingEdge(url: string): Promise<boolean> {
+async function pingEdge(
+  url: string
+): Promise<{ ok: boolean; status?: number; error?: string }> {
   try {
     const base = url.replace(/\/$/, '');
     const headers: Record<string, string> = {};
@@ -34,11 +36,17 @@ async function pingEdge(url: string): Promise<boolean> {
       headers,
       signal: AbortSignal.timeout(4000),
     });
-    if (!res.ok) return false;
-    const data = (await res.json()) as { ok?: boolean };
-    return data.ok === true;
-  } catch {
-    return false;
+    const data = (await res.json().catch(() => ({}))) as { ok?: boolean };
+    const ok = res.ok && data.ok === true;
+    return {
+      ok,
+      status: res.status,
+      error: ok ? undefined : res.ok ? 'Response missing ok: true' : `Edge returned ${res.status}`,
+    };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Request failed';
+    const error = message.includes('abort') || message.includes('timeout') ? 'Health check timed out (4s)' : message;
+    return { ok: false, error };
   }
 }
 
@@ -48,9 +56,21 @@ export async function GET() {
     : 'Start the gateway: clawdbot gateway run (or from repo root: node scripts/start-gateway-with-vault.js). Default: http://127.0.0.1:18789';
   try {
     if (EDGE_URL) {
-      const ok = await pingEdge(EDGE_URL);
+      const result = await pingEdge(EDGE_URL);
       return NextResponse.json(
-        { ok, status: ok ? 200 : 503, gateway: EDGE_URL, mode: 'edge' },
+        {
+          ok: result.ok,
+          status: result.ok ? 200 : 503,
+          gateway: EDGE_URL,
+          mode: 'edge',
+          ...(result.error && {
+            error:
+              result.status === 405
+                ? 'Edge returned 405 (GET not allowed). Redeploy: supabase functions deploy jarvis'
+                : result.error,
+            statusCode: result.status,
+          }),
+        },
         { headers: CACHE_HEADERS }
       );
     }

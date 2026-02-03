@@ -134,6 +134,10 @@ Main config: `~/.clawdbot/clawdbot.json`
 Secrets: `~/.clawdbot/.env`
 Workspace: `~/jarvis`
 
+**Enable gateway restart:** In `~/.clawdbot/clawdbot.json`, under `gateway`, add `"commands": { "restart": true }`. Run **`node scripts/enable-gateway-restart.js`** to set this (and optionally pass your Discord user ID so JARVIS can restart from Discord). Repo template: `config/railway-openclaw.json` includes this for cloud.
+
+**If JARVIS says "restriction on restarting":** The restart command requires **elevated** access. Add your Discord user ID to the elevated allowlist: **`node scripts/enable-gateway-restart.js YOUR_DISCORD_USER_ID`** (get your ID: Discord → Developer Mode → right-click your name in the DM → Copy User ID). Or run **`node scripts/setup-jarvis-vault-and-access.js`** with `JARVIS_DISCORD_USER_ID` in Vault/.env so it merges into `tools.elevated.allowFrom.discord`. Then restart the gateway once manually.
+
 ```bash
 # Validate config
 clawdbot doctor
@@ -215,6 +219,8 @@ Clawdbot is set up as a product owner and development partner.
 Cross-repo search uses Supabase (repo_sources, repo_chunks, repo_summaries). Secrets come from `~/.clawdbot/.env` or Supabase Vault (app_secrets + `get_vault_secret_by_name`).
 
 ```bash
+**GitHub integration:** `GITHUB_TOKEN` (PAT with repo scope) in Vault or `~/.clawdbot/.env` lets JARVIS list repos, manage issues/PRs, and trigger workflow_dispatch. Verify: `node scripts/check-github.js`. Full test (token + chat): `node scripts/test-github-integration.js` (gateway and UI must be running).
+
 # Index one repo (needs GITHUB_TOKEN in .env or Vault for HTTPS clone)
 node scripts/index-repos.js --repo JARVIS --limit 1
 

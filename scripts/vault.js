@@ -132,21 +132,27 @@ async function listAppSecretNames(supabaseUrl, serviceKey, namePrefix) {
   return rows.map((r) => r.name).filter(Boolean);
 }
 
+/** Keys where .env wins over Vault when set (so you can switch e.g. Discord bot without fixing Vault). */
+const ENV_WINS_KEYS = new Set(['DISCORD_BOT_TOKEN']);
+
 /**
  * Resolve env key: try Vault name env/clawdbot/<KEY>, then process.env / fallback env.
+ * For ENV_WINS_KEYS, if .env (or process.env) has a value, use it and skip Vault.
  * @param {string} key - e.g. SUPABASE_SERVICE_ROLE_KEY
  * @param {object} fallbackEnv - optional env map (e.g. from loadEnvFile())
  * @returns {Promise<string|undefined>}
  */
 async function resolveEnv(key, fallbackEnv) {
+  const local = sanitizeEnvValue(process.env[key] || (fallbackEnv && fallbackEnv[key]));
+  if (ENV_WINS_KEYS.has(key) && local) return local;
+
   const config = getVaultConfig(fallbackEnv);
-  if (!config.url || !config.key) {
-    return sanitizeEnvValue(process.env[key] || (fallbackEnv && fallbackEnv[key]));
+  if (config.url && config.key) {
+    const vaultName = `env/clawdbot/${key}`;
+    const vaultValue = await getSecretByName(config.url, config.key, vaultName);
+    if (vaultValue != null && vaultValue !== '') return vaultValue;
   }
-  const vaultName = `env/clawdbot/${key}`;
-  const vaultValue = await getSecretByName(config.url, config.key, vaultName);
-  if (vaultValue != null && vaultValue !== '') return vaultValue;
-  return sanitizeEnvValue(process.env[key] || (fallbackEnv && fallbackEnv[key]));
+  return local;
 }
 
 /**
