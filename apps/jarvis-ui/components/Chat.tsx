@@ -75,6 +75,8 @@ export function Chat() {
   const sessionDropdownRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<ComposerHandle>(null);
   const mountedRef = useRef(true);
+  const statusRef = useRef(status);
+  statusRef.current = status;
 
   useEffect(() => {
     if (!sessionDropdownOpen) return;
@@ -125,9 +127,13 @@ export function Chat() {
 
   const checkHealth = useCallback(async () => {
     if (!mountedRef.current) return;
-    setStatus('connecting');
-    setErrorMessage(null);
-    setGatewayHint(null);
+    // Only show "Reconnecting…" on first load (idle) or when user clicks Recheck (they set connecting first).
+    // Periodic polls do not set connecting, so we don't flash "Reconnecting…" every 5s when Edge/gateway is down.
+    if (statusRef.current === 'idle') {
+      setStatus('connecting');
+      setErrorMessage(null);
+      setGatewayHint(null);
+    }
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), HEALTH_CHECK_TIMEOUT_MS);
     try {
@@ -173,18 +179,20 @@ export function Chat() {
     return () => window.clearTimeout(safety);
   }, []);
 
+  // When disconnected, poll less often (30s) to avoid hammering and constant UI churn
+  const healthPollMs = status === 'error' ? 30000 : 5000;
   useEffect(() => {
     const safeCheck = () => void checkHealth().catch(() => {});
     safeCheck();
     const t1 = window.setTimeout(safeCheck, 500);
     const t2 = window.setTimeout(safeCheck, 1500);
-    const t = setInterval(safeCheck, 5000);
+    const t = setInterval(safeCheck, healthPollMs);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
       clearInterval(t);
     };
-  }, [checkHealth]);
+  }, [checkHealth, healthPollMs]);
 
   // Fetch public config when Settings opens (no secrets)
   useEffect(() => {
@@ -696,7 +704,10 @@ export function Chat() {
           {status !== 'ok' && (
             <button
               type="button"
-              onClick={() => void checkHealth().catch(() => {})}
+              onClick={() => {
+                setStatus('connecting');
+                void checkHealth().catch(() => {});
+              }}
               style={{
                 marginLeft: '0.5rem',
                 padding: '0.2rem 0.5rem',
@@ -733,7 +744,10 @@ export function Chat() {
             type="button"
             onClick={() => {
               setErrorMessage(null);
-              if (status === 'error') void checkHealth().catch(() => {});
+              if (status === 'error') {
+                setStatus('connecting');
+                void checkHealth().catch(() => {});
+              }
             }}
             style={{
               padding: '0.35rem 0.75rem',
