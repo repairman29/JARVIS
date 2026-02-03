@@ -5,8 +5,25 @@ import { Message as MessageComponent } from './Message';
 import { Composer, type ComposerHandle } from './Composer';
 import { SettingsModal } from './SettingsModal';
 import { SkillsPanel } from './SkillsPanel';
+import { speak as speakTTS, stopSpeaking, isTTSSupported } from '@/lib/voice';
 import type { MessageRole } from './Message';
 import type { ConfigInfo } from './SettingsModal';
+
+const VOICE_SPEAK_REPLIES_KEY = 'jarvis-ui-speak-replies';
+const VOICE_CONVERSATION_MODE_KEY = 'jarvis-ui-conversation-mode';
+const THEME_KEY = 'jarvis-ui-theme';
+
+export type ThemeValue = 'dark' | 'light' | 'system';
+
+function applyTheme(value: ThemeValue): void {
+  if (typeof document === 'undefined') return;
+  const root = document.documentElement;
+  if (value === 'system') {
+    root.removeAttribute('data-theme');
+  } else {
+    root.setAttribute('data-theme', value);
+  }
+}
 
 export interface ChatMessage {
   id: string;
@@ -71,6 +88,12 @@ export function Chat() {
   const [config, setConfig] = useState<ConfigInfo | null>(null);
   const [promptTrimmedTo, setPromptTrimmedTo] = useState<number | null>(null);
   const [runAndCopyFeedback, setRunAndCopyFeedback] = useState<string | null>(null);
+  const [speakReplies, setSpeakRepliesState] = useState(false);
+  const [conversationMode, setConversationModeState] = useState(false);
+  const [ttsSupported, setTtsSupported] = useState(false);
+  const [theme, setThemeState] = useState<ThemeValue>('dark');
+  const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
+  const themeDropdownRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sessionDropdownRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<ComposerHandle>(null);
@@ -95,10 +118,66 @@ export function Chat() {
     setSessionId(id);
     addToSessionList(id);
     setSessionList(getSessionList());
+    setTtsSupported(isTTSSupported());
+    setSpeakRepliesState(localStorage.getItem(VOICE_SPEAK_REPLIES_KEY) !== 'false');
+    setConversationModeState(localStorage.getItem(VOICE_CONVERSATION_MODE_KEY) !== 'false');
+    const savedTheme = localStorage.getItem(THEME_KEY) as ThemeValue | null;
+    const themeVal = savedTheme === 'dark' || savedTheme === 'light' || savedTheme === 'system' ? savedTheme : 'dark';
+    setThemeState(themeVal);
+    applyTheme(themeVal);
     return () => {
       mountedRef.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!themeDropdownOpen) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (themeDropdownRef.current && !themeDropdownRef.current.contains(e.target as Node)) {
+        setThemeDropdownOpen(false);
+      }
+    };
+    document.addEventListener('click', onDocClick);
+    return () => document.removeEventListener('click', onDocClick);
+  }, [themeDropdownOpen]);
+
+  const setTheme = useCallback((value: ThemeValue) => {
+    setThemeState(value);
+    localStorage.setItem(THEME_KEY, value);
+    applyTheme(value);
+    setThemeDropdownOpen(false);
+  }, []);
+
+  const setSpeakReplies = useCallback((value: boolean) => {
+    setSpeakRepliesState(value);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(VOICE_SPEAK_REPLIES_KEY, value ? 'true' : 'false');
+    }
+  }, []);
+  const setConversationMode = useCallback((value: boolean) => {
+    setConversationModeState(value);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(VOICE_CONVERSATION_MODE_KEY, value ? 'true' : 'false');
+    }
+  }, []);
+
+  const toggleVoiceMode = useCallback(() => {
+    const next = !speakReplies;
+    setSpeakReplies(next);
+    setConversationMode(next);
+  }, [speakReplies, setSpeakReplies, setConversationMode]);
+
+  const speakReplyAndMaybeListen = useCallback(
+    (text: string) => {
+      stopSpeaking();
+      speakTTS(text, {
+        onEnd: () => {
+          if (conversationMode && mountedRef.current) composerRef.current?.startVoiceInput?.();
+        },
+      });
+    },
+    [conversationMode]
+  );
 
   const scrollToBottom = useCallback(() => {
     if (!mountedRef.current) return;
@@ -316,6 +395,7 @@ export function Chat() {
 
   const sendMessage = useCallback(
     async (text: string) => {
+      stopSpeaking(); // cancel any in-progress TTS when user sends (interrupt)
       const userMsg: ChatMessage = {
         id: `u-${Date.now()}`,
         role: 'user',
@@ -428,6 +508,8 @@ export function Chat() {
               },
             ]);
             setStreamingContent('');
+            const contentToSpeak = (replyContent && replyContent !== 'No response.') ? replyContent : '';
+            if (speakReplies && contentToSpeak) speakReplyAndMaybeListen(contentToSpeak);
           }
         } else {
           const data = await res.json().catch(() => null);
@@ -464,6 +546,11 @@ export function Chat() {
                   : {}),
               },
             ]);
+            const contentToSpeak =
+              (safeContent && safeContent !== 'No response.' && !safeContent.startsWith('Error ('))
+                ? safeContent
+                : '';
+            if (speakReplies && contentToSpeak) speakReplyAndMaybeListen(contentToSpeak);
           }
         }
       } catch (err) {
@@ -480,7 +567,7 @@ export function Chat() {
         if (mountedRef.current) setIsLoading(false);
       }
     },
-    [messages, sessionId]
+    [messages, sessionId, speakReplies, speakReplyAndMaybeListen]
   );
 
   return (
@@ -669,6 +756,89 @@ export function Chat() {
           >
             Skills
           </button>
+          <div ref={themeDropdownRef} style={{ position: 'relative' }}>
+            <button
+              type="button"
+              className="btn-surface"
+              onClick={() => setThemeDropdownOpen((o) => !o)}
+              title="Theme: Dark / Light / System"
+              aria-expanded={themeDropdownOpen}
+              aria-haspopup="listbox"
+              style={{
+                padding: '0.2rem 0.5rem',
+                fontSize: '12px',
+                background: 'transparent',
+                color: 'var(--text-muted)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-sm)',
+                cursor: 'pointer',
+              }}
+            >
+              {theme === 'dark' ? '🌙' : theme === 'light' ? '☀️' : '💻'} Theme ▼
+            </button>
+            {themeDropdownOpen && (
+              <div
+                role="listbox"
+                aria-label="Theme"
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: '2px',
+                  minWidth: '120px',
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-md)',
+                  boxShadow: 'var(--shadow-md)',
+                  zIndex: 100,
+                  overflow: 'hidden',
+                }}
+              >
+                {(['dark', 'light', 'system'] as const).map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    role="option"
+                    aria-selected={theme === opt}
+                    onClick={() => setTheme(opt)}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      padding: '0.4rem 0.75rem',
+                      fontSize: '12px',
+                      textAlign: 'left',
+                      background: theme === opt ? 'var(--border)' : 'transparent',
+                      color: 'var(--text)',
+                      border: 'none',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {opt === 'dark' ? '🌙 Dark' : opt === 'light' ? '☀️ Light' : '💻 System'}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {ttsSupported && (
+            <button
+              type="button"
+              className="btn-surface"
+              onClick={toggleVoiceMode}
+              title={speakReplies ? 'Voice conversation on (JARVIS speaks and listens)' : 'Turn on voice conversation'}
+              aria-pressed={speakReplies}
+              style={{
+                padding: '0.2rem 0.5rem',
+                fontSize: '12px',
+                background: speakReplies ? 'var(--accent)' : 'transparent',
+                color: speakReplies ? 'var(--bg)' : 'var(--text-muted)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-sm)',
+                cursor: 'pointer',
+              }}
+            >
+              🔊 {speakReplies ? 'Voice on' : 'Voice'}
+            </button>
+          )}
           <button
             type="button"
             className="btn-surface"
@@ -806,6 +976,7 @@ export function Chat() {
             content={m.content}
             toolsUsed={m.meta?.tools_used}
             structuredResult={m.meta?.structured_result}
+            onSpeak={m.role === 'assistant' ? speakReplyAndMaybeListen : undefined}
           />
         ))}
         {streamingContent && (
@@ -850,6 +1021,11 @@ export function Chat() {
         sessionId={sessionId}
         config={config}
         onCopySessionId={copySessionId}
+        voiceSupported={ttsSupported}
+        speakReplies={speakReplies}
+        onSpeakRepliesChange={setSpeakReplies}
+        conversationMode={conversationMode}
+        onConversationModeChange={setConversationMode}
       />
       <SkillsPanel open={skillsOpen} onClose={() => setSkillsOpen(false)} />
     </div>

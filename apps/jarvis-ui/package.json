@@ -4,7 +4,7 @@
   "private": true,
   "description": "Developer-grade JARVIS chat UI — talks to Clawdbot gateway",
   "scripts": {
-    "dev": "next dev -p 3001",
+    "dev": "next dev --webpack -p 3001",
     "dev:fresh": "rm -rf .next && next dev -p 3001",
     "build": "next build --webpack",
     "start": "next start",
@@ -21,7 +21,7 @@
     "next": "^16.1.6",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "react-markdown": "^9.0.1",
+    "react-markdown": "^10.1.0",
     "rehype-highlight": "^7.0.0",
     "remark-gfm": "^4.0.0"
   },

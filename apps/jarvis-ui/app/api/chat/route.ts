@@ -59,14 +59,18 @@ export async function POST(req: NextRequest) {
       if (EDGE_TOKEN) edgeHeaders['Authorization'] = `Bearer ${EDGE_TOKEN}`;
       if (stream) edgeHeaders['X-Stream'] = 'true';
       const lastMessage = messages[messages.length - 1];
+      const messageBody = lastMessage?.content ?? '';
+      const edgeBody: Record<string, unknown> = {
+        message: messageBody,
+        messages,
+        session_id: sessionId,
+      };
+      // Some backends expect "task" instead of or in addition to "message"
+      if (messageBody) edgeBody.task = messageBody;
       const res = await fetch(EDGE_URL.replace(/\/$/, ''), {
         method: 'POST',
         headers: edgeHeaders,
-        body: JSON.stringify({
-          message: lastMessage?.content ?? '',
-          messages,
-          session_id: sessionId,
-        }),
+        body: JSON.stringify(edgeBody),
         signal: AbortSignal.timeout(120000),
       });
     if (!res.ok) {
@@ -82,11 +86,11 @@ export async function POST(req: NextRequest) {
       if (res.status === 403 && /OAuth|organization/i.test(errMessage)) {
         errMessage += ' — Your LLM provider’s org may have OAuth disabled; use a personal API key or switch provider (e.g. Groq). See GETTING_STARTED_MODES.md or DISCORD_SETUP.md.';
       }
-        return NextResponse.json(
-          { error: { message: errMessage, type: 'api_error' } },
-          { status: res.status }
-        );
-      }
+      return NextResponse.json(
+        { error: { message: errMessage, type: 'api_error' } },
+        { status: res.status }
+      );
+    }
       const edgeContentType = res.headers.get('content-type') || '';
       const isEventStream = edgeContentType.includes('text/event-stream');
       if (stream && res.body && isEventStream) {

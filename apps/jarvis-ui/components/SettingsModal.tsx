@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { speak as speakTTS } from '@/lib/voice';
 
 export interface ConfigInfo {
   mode: 'edge' | 'local';
@@ -13,6 +14,14 @@ export interface SettingsModalProps {
   sessionId: string;
   config: ConfigInfo | null;
   onCopySessionId: () => void;
+  /** Voice: JARVIS speaks replies (TTS). */
+  speakReplies?: boolean;
+  onSpeakRepliesChange?: (value: boolean) => void;
+  /** Voice: after JARVIS speaks, start listening for your reply (conversation mode). */
+  conversationMode?: boolean;
+  onConversationModeChange?: (value: boolean) => void;
+  /** Whether TTS is supported (browser). */
+  voiceSupported?: boolean;
 }
 
 const FOCUSABLE = 'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
@@ -23,6 +32,11 @@ export function SettingsModal({
   sessionId,
   config,
   onCopySessionId,
+  speakReplies = false,
+  onSpeakRepliesChange,
+  conversationMode = false,
+  onConversationModeChange,
+  voiceSupported = false,
 }: SettingsModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -162,6 +176,55 @@ export function SettingsModal({
               )}
             </div>
           </div>
+          {voiceSupported && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="checkbox"
+                  id="speak-replies"
+                  checked={speakReplies}
+                  onChange={(e) => onSpeakRepliesChange?.(e.target.checked)}
+                  aria-describedby="speak-replies-desc"
+                />
+                <label htmlFor="speak-replies" style={{ cursor: 'pointer' }}>
+                  Speak replies (JARVIS reads aloud)
+                </label>
+              </div>
+              <p id="speak-replies-desc" style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>
+                When on, JARVIS speaks each reply using your browser&apos;s voice.
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="checkbox"
+                  id="conversation-mode"
+                  checked={conversationMode}
+                  onChange={(e) => onConversationModeChange?.(e.target.checked)}
+                  aria-describedby="conversation-mode-desc"
+                />
+                <label htmlFor="conversation-mode" style={{ cursor: 'pointer' }}>
+                  Conversation mode (listen after JARVIS speaks)
+                </label>
+              </div>
+              <p id="conversation-mode-desc" style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>
+                After JARVIS finishes speaking, the mic turns on so you can reply by voice—like talking to JARVIS in Iron Man.
+              </p>
+              <button
+                type="button"
+                onClick={() => speakTTS('JARVIS here. Voice is working.')}
+                style={{
+                  padding: '0.35rem 0.6rem',
+                  fontSize: '12px',
+                  background: 'var(--bg)',
+                  color: 'var(--text)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-sm)',
+                  cursor: 'pointer',
+                }}
+              >
+                🔊 Test voice
+              </button>
+            </>
+          )}
         </div>
         <div style={{ marginTop: '1.25rem', display: 'flex', justifyContent: 'flex-end' }}>
           <button

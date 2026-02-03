@@ -70,6 +70,7 @@ Code: **supabase/functions/jarvis/** (Edge Function), **apps/jarvis-ui/** (UI; `
 |-----|-----|
 | [JARVIS_UI_DEVELOPER_SPEC.md](./JARVIS_UI_DEVELOPER_SPEC.md) | Product/UX spec for JARVIS chat UI. |
 | [JARVIS_UI_ROADMAP.md](./JARVIS_UI_ROADMAP.md) | Phased UI roadmap. |
+| [JARVIS_UI_VOICE_UAT.md](./JARVIS_UI_VOICE_UAT.md) | Voice, theme & conversation UAT; local setup; checklist. |
 | [JARVIS_RAILWAY.md](./JARVIS_RAILWAY.md) | Run gateway on Railway; Edge proxies to it. |
 | [JARVIS_GATEWAY_META.md](./JARVIS_GATEWAY_META.md) | Gateway: how to send meta (tools_used, structured_result) for UI 2.6/2.7. |
 | [COMMUNITY_AND_SKILLS.md](./COMMUNITY_AND_SKILLS.md) | Skill marketplace, contributors, hero/premium skills. |

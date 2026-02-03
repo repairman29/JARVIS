@@ -23,6 +23,8 @@ export interface MessageProps {
   toolsUsed?: string[];
   /** When gateway/edge sends meta.structured_result (roadmap 2.7). */
   structuredResult?: unknown;
+  /** Assistant only: called when user clicks "Speak" to hear this message (TTS). */
+  onSpeak?: (text: string) => void;
 }
 
 function PreWithCopy({ children }: { children: React.ReactNode }) {
@@ -176,11 +178,12 @@ function StructuredResultView({ data }: { data: unknown }) {
   );
 }
 
-export function Message({ role, content, isStreaming, toolsUsed, structuredResult }: MessageProps) {
+export function Message({ role, content, isStreaming, toolsUsed, structuredResult, onSpeak }: MessageProps) {
   const safeContent = typeof content === 'string' ? content : '';
   const isUser = role === 'user';
   const showToolsUsed = !isUser && Array.isArray(toolsUsed) && toolsUsed.length > 0;
   const showStructured = !isUser && structuredResult != null && typeof structuredResult === 'object';
+  const showSpeak = !isUser && typeof onSpeak === 'function' && safeContent.length > 0 && !isStreaming;
 
   return (
     <div
@@ -201,6 +204,30 @@ export function Message({ role, content, isStreaming, toolsUsed, structuredResul
           border: '1px solid var(--border)',
         }}
       >
+        {showSpeak && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.35rem' }}>
+            <button
+              type="button"
+              onClick={() => onSpeak?.(safeContent)}
+              aria-label="Speak this message"
+              title="Speak (JARVIS reads aloud)"
+              style={{
+                padding: '0.2rem 0.5rem',
+                fontSize: '12px',
+                background: 'var(--bg-elevated)',
+                color: 'var(--text-muted)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-sm)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+              }}
+            >
+              <span aria-hidden>🔊</span> Speak
+            </button>
+          </div>
+        )}
         {showToolsUsed && (
           <div
             style={{

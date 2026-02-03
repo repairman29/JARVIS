@@ -14,6 +14,10 @@ echo ""
 echo "=== 2. Supabase Edge secrets (linked project) ==="
 (supabase secrets list 2>/dev/null) || echo "Run from repo with supabase linked: supabase secrets list"
 
+echo ""
+echo "=== 2b. Supabase Vault (app_secrets) ==="
+(node scripts/list-vault-vars.js 2>/dev/null) || echo "Vault: set VAULT_SUPABASE_URL + VAULT_SUPABASE_SERVICE_ROLE_KEY in ~/.clawdbot/.env and run: node scripts/list-vault-vars.js"
+
 EDGE_URL="${EDGE_URL:-https://rbfzlqmkwhbvrrfdcain.supabase.co/functions/v1/jarvis}"
 echo ""
 echo "=== 3. Edge GET (health) ==="

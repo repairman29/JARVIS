@@ -2,6 +2,8 @@
 
 Use this when verifying the UI after changes. Dev server: `npm run dev` (http://localhost:3001).
 
+**Voice, theme & conversation UAT:** see [JARVIS_UI_VOICE_UAT.md](../../docs/JARVIS_UI_VOICE_UAT.md) in repo `docs/`.
+
 ## Smoke (no gateway required)
 
 - [ ] **Load** — Page loads; header shows "JARVIS", "Session: …", status dot (Checking… / Disconnected).

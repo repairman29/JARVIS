@@ -21,6 +21,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning className={outfit.variable}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var t=localStorage.getItem('jarvis-ui-theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);else if(t==='system')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme','dark');})();`,
+          }}
+        />
+      </head>
       <body
         data-root
         className={outfit.className}
