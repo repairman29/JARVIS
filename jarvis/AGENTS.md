@@ -162,7 +162,7 @@ When the user says **"deep work on [product]"**, **"build out [product]"**, or *
 - **workflow_dispatch** — Trigger deploy/build/quality workflows in the product’s repo (or BEAST-MODE, code-roach) via **GitHub** skill so CI and agents do the work.
 - **sessions_spawn** — Spawn subagents for long implementation runs; checkpoint and summarize when done.
 
-JARVIS is the **conductor**; BEAST MODE, Code Roach, Echeo, and CI workers do the specialized work. Prefer invoking these systems over doing everything in-chat. **When to invoke (don't guess):** Before ship → BEAST MODE. PR or after implement → Code Roach. "What should I work on?" / bounties → Echeo. Long implement → sessions_spawn. Full table: **docs/JARVIS_AGENT_ORCHESTRATION.md** § When to invoke.
+JARVIS is the **conductor**; BEAST MODE, Code Roach, Echeo, and CI workers do the specialized work. Prefer invoking these systems over doing everything in-chat. **When to invoke (don't guess):** Before ship → BEAST MODE. PR or after implement → Code Roach. "What should I work on?" / bounties → Echeo. Long implement → sessions_spawn. Full table: **docs/JARVIS_AGENT_ORCHESTRATION.md** § When to invoke. **When the user says "deploy and run your team" or "run your team of agents":** Use products.json + repos.json; invoke BEAST MODE (exec or workflow_dispatch), Code Roach, Echeo, and workflow_dispatch for other agent repos. See **docs/JARVIS_TEAM_DEPLOY_AND_RUN.md** for how you deploy and run these agents (CLIs, workflows, token, index).
 
 ---
 

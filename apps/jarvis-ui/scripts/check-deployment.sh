@@ -54,11 +54,11 @@ if [ -n "$SUPABASE_ACCESS_TOKEN" ]; then
     echo "$LOGS_BODY" | head -c 1200
     echo ""
   else
-    echo "API HTTP $LOGS_HTTP (PAT may need scope). Dashboard: https://supabase.com/dashboard/project/${SUPABASE_REF}/functions/jarvis/logs"
+    echo "API HTTP $LOGS_HTTP (PAT may need scope). Dashboard: https://supabase.com/dashboard/project/${SUPABASE_REF}/logs/edge-logs"
   fi
 else
   echo "Set SUPABASE_ACCESS_TOKEN (Supabase PAT from https://supabase.com/dashboard/account/tokens) to fetch logs via API."
-  echo "Dashboard: https://supabase.com/dashboard/project/${SUPABASE_REF}/functions/jarvis/logs"
+  echo "Dashboard: https://supabase.com/dashboard/project/${SUPABASE_REF}/logs/edge-logs"
 fi
 echo ""
 

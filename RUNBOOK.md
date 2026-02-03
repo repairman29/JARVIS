@@ -245,6 +245,29 @@ node scripts/sync-edge-gateway-token.js
 - **Token rotation:** If `GITHUB_TOKEN` was ever used in a command or pasted in chat, rotate it in [GitHub → Settings → Developer settings → Personal access tokens](https://github.com/settings/tokens): revoke the old one, create a new token (repo scope), then update `GITHUB_TOKEN` in `~/.clawdbot/.env` (and in Vault if you migrated that key).
 - **Discord notifications:** The scheduled task runs `scripts/run-repo-index.bat`, which notifies when the job **starts** and **finishes** (or **fails**). Set `JARVIS_ALERT_WEBHOOK_URL` (or `DISCORD_WEBHOOK_URL`) in `~/.clawdbot/.env` to a [Discord channel webhook](https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks) to receive JARVIS job alerts there. Same webhook is used for safety-net alerts.
 
+## When user reports: gateway restart restricted, timeouts, deployment failures, log links 404
+
+**Gateway restart "restriction":** JARVIS can only restart the gateway if (1) config allows it and (2) the user's Discord ID is elevated. One-time fix (run from repo root):
+
+```bash
+node scripts/enable-gateway-restart.js YOUR_DISCORD_USER_ID
+```
+
+Get Discord user ID: Discord → User Settings → Advanced → Developer Mode ON → right-click your username in the DM → Copy User ID. Then restart the gateway once manually so it picks up the new config; after that JARVIS can restart it when asked from Discord.
+
+**Log / dashboard links (use these; old links may 404):**
+
+| Where | URL |
+|-------|-----|
+| **Supabase Edge (jarvis) logs** | https://supabase.com/dashboard/project/rbfzlqmkwhbvrrfdcain/logs/edge-logs — open project, then Logs → Edge Logs; filter by function `jarvis` if needed. |
+| **Supabase project** | https://supabase.com/dashboard/project/rbfzlqmkwhbvrrfdcain |
+| **Vercel (jarvis-ui)** | https://vercel.com — log in → Team (e.g. jeff-adkins-projects) → project **jarvis-ui** → Deployments → click latest deployment → **Logs** or **Building** tab. |
+| **GitHub Actions (JARVIS)** | https://github.com/repairman29/JARVIS/actions — click a workflow run to see logs. |
+
+If a link 404s: Supabase may have moved Edge logs under **Logs → Edge Logs** in the left sidebar; Vercel logs are per-deployment (open the deployment first); GitHub Actions logs require repo access.
+
+**Deployment failures / permission issues:** User must be logged into Vercel (same team as project) and have repo access for GitHub Actions. For Supabase Edge logs via API, set `SUPABASE_ACCESS_TOKEN` (PAT from https://supabase.com/dashboard/account/tokens) and run `bash apps/jarvis-ui/scripts/check-deployment.sh`.
+
 ## Key Paths
 
 | What | Path |

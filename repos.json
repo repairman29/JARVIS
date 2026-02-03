@@ -1,6 +1,7 @@
 [
-  { "name": "JARVIS", "sshUrl": "git@github.com:repairman29/JARVIS.git", "visibility": "PUBLIC" },
-  { "name": "olive", "sshUrl": "git@github.com:repairman29/olive.git", "visibility": "PUBLIC" },
-  { "name": "echeo", "sshUrl": "git@github.com:repairman29/echeo.git", "visibility": "PUBLIC" },
-  { "name": "MythSeeker", "sshUrl": "git@github.com:repairman29/MythSeeker.git", "visibility": "PUBLIC" }
+  {"name":"BEAST-MODE","sshUrl":"git@github.com:repairman29/BEAST-MODE.git","visibility":"PRIVATE"},
+  {"name":"JARVIS","sshUrl":"git@github.com:repairman29/JARVIS.git","visibility":"PUBLIC"},
+  {"name":"olive","sshUrl":"git@github.com:repairman29/olive.git","visibility":"PUBLIC"},
+  {"name":"echeo","sshUrl":"git@github.com:repairman29/echeo.git","visibility":"PUBLIC"},
+  {"name":"MythSeeker","sshUrl":"git@github.com:repairman29/MythSeeker.git","visibility":"PUBLIC"}
 ]
