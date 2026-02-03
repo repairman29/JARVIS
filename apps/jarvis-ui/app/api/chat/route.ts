@@ -44,7 +44,16 @@ export interface ChatRequestBody {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = (await req.json()) as ChatRequestBody;
+    let body: ChatRequestBody;
+    try {
+      const raw = await req.text();
+      body = raw ? (JSON.parse(raw) as ChatRequestBody) : ({} as ChatRequestBody);
+    } catch {
+      return NextResponse.json(
+        { error: { message: 'Invalid JSON body', type: 'invalid_request_error' } },
+        { status: 400 }
+      );
+    }
     const { messages, sessionId = 'jarvis-ui', stream = false } = body;
 
     if (!Array.isArray(messages) || messages.length === 0) {

@@ -91,6 +91,7 @@ export function Chat() {
   const [speakReplies, setSpeakRepliesState] = useState(false);
   const [conversationMode, setConversationModeState] = useState(false);
   const [ttsSupported, setTtsSupported] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
   const [theme, setThemeState] = useState<ThemeValue>('dark');
   const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
   const themeDropdownRef = useRef<HTMLDivElement>(null);
@@ -114,6 +115,7 @@ export function Chat() {
 
   useEffect(() => {
     mountedRef.current = true;
+    setHasMounted(true);
     const id = getSessionId();
     setSessionId(id);
     addToSessionList(id);
@@ -430,8 +432,14 @@ export function Chat() {
         window.clearTimeout(timeoutId);
 
         if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          const msg = err?.error?.message || res.statusText;
+          const errText = await res.text();
+          let msg = res.statusText;
+          try {
+            const err = errText ? (JSON.parse(errText) as { error?: { message?: string } }) : null;
+            if (err?.error?.message) msg = err.error.message;
+          } catch {
+            if (errText && errText.length < 300) msg = errText;
+          }
           if (mountedRef.current) {
             setErrorMessage(msg);
             setMessages((prev) => [
@@ -512,7 +520,13 @@ export function Chat() {
             if (speakReplies && contentToSpeak) speakReplyAndMaybeListen(contentToSpeak);
           }
         } else {
-          const data = await res.json().catch(() => null);
+          const raw = await res.text();
+          let data: unknown = null;
+          try {
+            data = raw ? JSON.parse(raw) : null;
+          } catch {
+            data = null;
+          }
           const obj = data != null && typeof data === 'object' ? (data as Record<string, unknown>) : null;
           const content =
             typeof obj?.content === 'string'
@@ -819,7 +833,7 @@ export function Chat() {
               </div>
             )}
           </div>
-          {ttsSupported && (
+          {hasMounted && ttsSupported && (
             <button
               type="button"
               className="btn-surface"
