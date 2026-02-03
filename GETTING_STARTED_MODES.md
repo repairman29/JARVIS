@@ -55,3 +55,15 @@ Use for complex reasoning, multi-file edits, or when you want the best model fir
 **First repo pull:** Start with **Blue**. Add OpenRouter + Together keys and fallbacks ([FREE_TIER_FALLBACKS.md](scripts/FREE_TIER_FALLBACKS.md)), then start the gateway. Add Yellow or Hot Rod when you add the keys and config.
 
 **Secrets:** Prefer Supabase Vault for keys; use `node scripts/start-gateway-with-vault.js` so the gateway reads from Vault. See [docs/VAULT_MIGRATION.md](docs/VAULT_MIGRATION.md).
+
+---
+
+## Model routing (cost + quality)
+
+Use a **fast/cheap** model for simple queries and a **strong** model for complex reasoning or deep work:
+
+- **Primary** = strong model (e.g. `openai/gpt-4o`, `anthropic/claude-sonnet-4`) in `clawdbot.json` → `agents.defaults.model.primary`.
+- **Fallbacks** = fast/cheap models (e.g. Groq 8B, OpenRouter free tier) so the gateway waterfalls when primary is rate-limited or for lighter turns.
+- **Optional:** A future session or message hint (e.g. "use fast" / "use best") could let the UI or user force a tier; for now, set primary and fallbacks in gateway config.
+
+See [jarvis/HEARTBEAT.md](jarvis/HEARTBEAT.md) for proactive briefs; [docs/JARVIS_CUTTING_EDGE.md](docs/JARVIS_CUTTING_EDGE.md) for the full improvement list.

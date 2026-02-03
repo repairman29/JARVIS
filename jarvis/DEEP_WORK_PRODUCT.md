@@ -30,6 +30,8 @@ Deep work = **sustained focus** on one product across all three, with checkpoint
 
 ## How to run it
 
+When the user names a product, run **repo_summary(product.repo)** first; use the result as context for the PRD, roadmap, and all phases. Enforce in default behavior: when the user names a product, run repo_summary first when available.
+
 ### 1. Planning phase
 
 - **Bootstrap product context:** Run **repo_summary(repo)** for this product (from products.json) and use the result as context. So planning is grounded in what the code actually does, not only the one-line description. See **docs/PRODUCT_CAPABILITIES.md**.

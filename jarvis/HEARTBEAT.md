@@ -3,6 +3,8 @@
 Short checklist for periodic heartbeat runs. Keep this file tiny to avoid token burn.
 Heartbeat should **drive production**: check queues, launch subagents, and advance shipping.
 
+**Automated brief:** Run `node scripts/heartbeat-brief.js` (or schedule via cron). Runs safety net, builds a short brief, and posts to `JARVIS_ALERT_WEBHOOK_URL` or `DISCORD_WEBHOOK_URL`. Use `--no-webhook` to run checks only; `--json` for JSON output.
+
 ## Today (Production Mode — Beast-Mode focus)
 - [ ] Check if user needs anything (if no action items, continue checklist)
 - [ ] **Product order:** Use **products.json** (master list, top-down). Focus repo = first active product unless user says otherwise; then work down the list.

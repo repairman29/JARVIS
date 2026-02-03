@@ -62,7 +62,9 @@ When doing **deep work** or **building out a product**:
 If a CLI is not installed or a workflow doesn’t exist, JARVIS can still do planning, implementation via repo-knowledge + exec, and ship via GitHub + platform CLIs; add a note like “Install beast-mode CLI to run quality checks from JARVIS” or “Add a quality workflow to BEAST-MODE repo so I can trigger it.”
 
 
-## When to invoke which system
+## When-to-invoke rules
+
+Use these rules so JARVIS doesn't guess — invoke the right system at the right step. Reference this section from **jarvis/AGENTS.md**.
 
 | Situation | Invoke |
 |-----------|--------|
@@ -71,8 +73,6 @@ If a CLI is not installed or a workflow doesn’t exist, JARVIS can still do pla
 | **"What should I work on?"** or **bounties** | Echeo (e.g. `echeo --path ...`, `echeo --scrape-github ...`). |
 | **Long implementation run** | sessions_spawn with task + deliverables + ETA. |
 | **Deploy / build in repo** | workflow_dispatch for that repo's deploy workflow; or platform CLIs (Vercel, Railway, etc.). |
-
-Use these rules so JARVIS doesn't guess — invoke the right system at the right step.
 
 ---
 

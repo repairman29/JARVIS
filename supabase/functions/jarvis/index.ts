@@ -8,6 +8,51 @@
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 
 const SESSION_HISTORY_LIMIT = 50;
+const LONG_CONTEXT_THRESHOLD = 20; // above this, use summary + recent N
+const RECENT_N = 15;
+const SUMMARY_UPDATE_INTERVAL = 10; // update session_summaries every K turns when over threshold
+const PREFS_SCOPE = "default";
+
+/** Load user preferences from jarvis_prefs for context injection. */
+async function loadPrefs(supabase: SupabaseClient, scope: string): Promise<string> {
+  const { data, error } = await supabase
+    .from("jarvis_prefs")
+    .select("key, value")
+    .in("scope", [PREFS_SCOPE, scope]);
+  if (error || !data?.length) return "";
+  const lines = (data as { key: string; value: string }[]).map((r) => `${r.key}: ${r.value}`);
+  return lines.length ? `User preferences:\n${lines.join("\n")}` : "";
+}
+
+/** Load session context: either full history (if short) or summary + last RECENT_N to avoid overflow. */
+async function loadSessionContext(
+  supabase: SupabaseClient,
+  sessionId: string
+): Promise<{ role: string; content: string }[]> {
+  const { data: history, error: histErr } = await supabase
+    .from("session_messages")
+    .select("role, content")
+    .eq("session_id", sessionId)
+    .order("created_at", { ascending: true })
+    .limit(SESSION_HISTORY_LIMIT);
+  if (histErr || !history?.length) return [];
+  const rows = (history as { role: string; content: string }[]).map((r) => ({ role: r.role, content: r.content ?? "" }));
+  if (rows.length <= LONG_CONTEXT_THRESHOLD) return rows;
+  const { data: sumRow } = await supabase
+    .from("session_summaries")
+    .select("summary_text")
+    .eq("session_id", sessionId)
+    .maybeSingle();
+  const summary = (sumRow as { summary_text?: string } | null)?.summary_text?.trim();
+  const recent = rows.slice(-RECENT_N);
+  if (summary) {
+    return [
+      { role: "system", content: `Previous conversation summary:\n${summary}\n\nBelow are the most recent messages.` },
+      ...recent,
+    ];
+  }
+  return recent;
+}
 
 /** System prompt for JARVIS when used from the web UI (REST chat). Injects identity and channel context so JARVIS doesn't claim it "can't access" repos—it clarifies where it *does* have access (Cursor). */
 const WEB_UI_SYSTEM_PROMPT = `You are JARVIS (Just A Rather Very Intelligent System), repairman29's AI. Voice: modern, concise by default; never say "I cannot" without offering an alternative. Proactive, resourceful, loyal to the user's success.
@@ -37,6 +82,19 @@ async function loadSessionHistory(
   return (data ?? []).map((r) => ({ role: r.role, content: r.content ?? "" }));
 }
 
+/** Upsert a preference (e.g. "always use X"). */
+async function upsertPref(
+  supabase: SupabaseClient,
+  key: string,
+  value: string,
+  scope: string = PREFS_SCOPE
+): Promise<void> {
+  await supabase.from("jarvis_prefs").upsert(
+    { key, value, scope, updated_at: new Date().toISOString() },
+    { onConflict: "key,scope" }
+  );
+}
+
 async function appendSessionMessages(
   supabase: SupabaseClient,
   sessionId: string,
@@ -46,6 +104,50 @@ async function appendSessionMessages(
   await supabase.from("session_messages").insert(
     rows.map((r) => ({ session_id: sessionId, role: r.role, content: r.content }))
   );
+}
+
+/** When thread is long, optionally refresh session_summaries so loadSessionContext can send summary + recent N. Fire-and-forget. */
+async function maybeUpdateSessionSummary(
+  supabase: SupabaseClient,
+  gatewayUrl: string,
+  gatewayToken: string,
+  sessionId: string
+): Promise<void> {
+  const { count, error: countErr } = await supabase
+    .from("session_messages")
+    .select("id", { count: "exact", head: true })
+    .eq("session_id", sessionId);
+  if (countErr || (count ?? 0) <= LONG_CONTEXT_THRESHOLD) return;
+  const total = count ?? 0;
+  const { data: sumRow } = await supabase
+    .from("session_summaries")
+    .select("summary_text")
+    .eq("session_id", sessionId)
+    .maybeSingle();
+  const hasSummary = Boolean((sumRow as { summary_text?: string } | null)?.summary_text?.trim());
+  if (hasSummary && total % SUMMARY_UPDATE_INTERVAL !== 0) return;
+  const { data: history } = await supabase
+    .from("session_messages")
+    .select("role, content")
+    .eq("session_id", sessionId)
+    .order("created_at", { ascending: true })
+    .limit(SESSION_HISTORY_LIMIT);
+  const rows = (history ?? []) as { role: string; content: string }[];
+  if (rows.length <= RECENT_N) return;
+  const toSummarize = rows.slice(0, -RECENT_N);
+  const blob = toSummarize.map((r) => `${r.role}: ${r.content}`).join("\n");
+  const summarizerMessages = [
+    { role: "system" as const, content: "Summarize the following conversation in 2-3 sentences. Output only the summary, no preamble." },
+    { role: "user" as const, content: blob },
+  ];
+  const result = await callGateway(gatewayUrl, gatewayToken, summarizerMessages, `${sessionId}-summary`, false);
+  const summary = result.content?.trim();
+  if (summary) {
+    await supabase.from("session_summaries").upsert(
+      { session_id: sessionId, summary_text: summary, updated_at: new Date().toISOString() },
+      { onConflict: "session_id" }
+    );
+  }
 }
 
 const corsHeaders = {
@@ -193,6 +295,15 @@ Deno.serve(async (req: Request) => {
   }
 
   if (req.method === "GET") {
+    const url = new URL(req.url);
+    const sessionId = url.searchParams.get("session_id")?.trim();
+    if (sessionId) {
+      const supabase = getSupabase();
+      if (supabase) {
+        const messages = await loadSessionHistory(supabase, sessionId);
+        return jsonResponse({ ok: true, mode: "edge", messages });
+      }
+    }
     return jsonResponse({ ok: true, mode: "edge" });
   }
 
@@ -276,8 +387,8 @@ Deno.serve(async (req: Request) => {
       let mcpMessages: { role: string; content: string }[] = [{ role: "user", content: userContent }];
       const supabase = getSupabase();
       if (supabase) {
-        const history = await loadSessionHistory(supabase, mcpSessionId);
-        mcpMessages = [...history, { role: "user", content: userContent }];
+        const context = await loadSessionContext(supabase, mcpSessionId);
+        mcpMessages = context.length ? [...context, { role: "user", content: userContent }] : [{ role: "user", content: userContent }];
       }
       const result = await callGateway(
         gatewayUrl,
@@ -301,6 +412,7 @@ Deno.serve(async (req: Request) => {
           { role: "user", content: userContent },
           { role: "assistant", content: result.content },
         ]);
+        void maybeUpdateSessionSummary(supabase, gatewayUrl, gatewayToken, mcpSessionId);
       }
       return jsonResponse({
         jsonrpc: "2.0",
@@ -327,6 +439,17 @@ Deno.serve(async (req: Request) => {
     if (result.err) return jsonResponse({ error: result.err }, 502);
     return jsonResponse({ content: result.content, results: [] });
   }
+  if (action === "set_pref" && typeof body.key === "string" && body.value !== undefined) {
+    const supabase = getSupabase();
+    if (!supabase) return jsonResponse({ error: "Prefs not available" }, 503);
+    const key = String(body.key).trim();
+    const value = typeof body.value === "string" ? body.value : JSON.stringify(body.value);
+    const scope = (typeof body.scope === "string" ? body.scope.trim() : null) || PREFS_SCOPE;
+    if (!key) return jsonResponse({ error: "key required" }, 400);
+    await upsertPref(supabase, key, value, scope);
+    return jsonResponse({ ok: true, key, scope });
+  }
+
   if (action === "current_time") {
     const tz = typeof body.timezone === "string" ? body.timezone.trim() : "";
     const content = tz
@@ -360,8 +483,8 @@ Deno.serve(async (req: Request) => {
     userMessagesThisTurn.push({ role: "user", content: userContent });
     const supabase = getSupabase();
     if (supabase) {
-      const history = await loadSessionHistory(supabase, sessionId);
-      messages = [...history, { role: "user", content: userContent }];
+      const context = await loadSessionContext(supabase, sessionId);
+      messages = context.length ? [...context, { role: "user", content: userContent }] : [{ role: "user", content: userContent }];
     } else {
       messages = [{ role: "user", content: userContent }];
     }
@@ -372,11 +495,17 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  // Prepend web-UI system prompt so JARVIS has identity and accurate channel context (no repo access here).
+  // Prepend web-UI system prompt so JARVIS has identity and accurate channel context (no repo access here). Inject prefs if available.
   const hasSystem = messages.length > 0 && messages[0].role === "system";
+  let systemContent = WEB_UI_SYSTEM_PROMPT;
+  const supabaseForPrefs = getSupabase();
+  if (supabaseForPrefs) {
+    const prefs = await loadPrefs(supabaseForPrefs, sessionId);
+    if (prefs) systemContent += "\n\n" + prefs;
+  }
   const messagesWithSystem = hasSystem
     ? messages
-    : [{ role: "system" as const, content: WEB_UI_SYSTEM_PROMPT }, ...messages];
+    : [{ role: "system" as const, content: systemContent }, ...messages];
 
   const result = await callGateway(gatewayUrl, gatewayToken, messagesWithSystem, sessionId, wantStream);
 
@@ -388,11 +517,13 @@ Deno.serve(async (req: Request) => {
   if (supabase && userMessagesThisTurn.length > 0) {
     if (wantStream && result.res) {
       await appendSessionMessages(supabase, sessionId, userMessagesThisTurn);
+      void maybeUpdateSessionSummary(supabase, gatewayUrl, gatewayToken, sessionId);
     } else if (!wantStream && result.content) {
       await appendSessionMessages(supabase, sessionId, [
         ...userMessagesThisTurn,
         { role: "assistant", content: result.content },
       ]);
+      void maybeUpdateSessionSummary(supabase, gatewayUrl, gatewayToken, sessionId);
     }
   }
 
