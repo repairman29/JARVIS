@@ -11,6 +11,7 @@
 - **Token sync:** UI and Edge must use the same `JARVIS_AUTH_TOKEN` when calling cloud Edge. Run `node scripts/sync-edge-auth-token.js` from repo root, then `supabase functions deploy jarvis` if you change the token in `apps/jarvis-ui/.env.local`.
 - **Message flow / crashes:** API route only forwards as stream when backend returns `text/event-stream`; otherwise returns JSON so the UI can show the reply. Message/chat components guard against non-string content to avoid crashes.
 - **Memory:** Supabase tables `session_messages`, `session_summaries`, `jarvis_prefs`; Edge loads/appends session history. See **docs/JARVIS_MEMORY.md**, **docs/JARVIS_MEMORY_WIRING.md**.
+- **JARVIS identity in web UI:** Edge injects a system prompt for REST chat so JARVIS knows its identity and that in the **web chat** it has no live repo access—so it directs users to Cursor or pasted code for repo work instead of saying "I can't access GitHub." In **Cursor** (MCP jarvis_chat or in-IDE agent), JARVIS has workspace/repo access per jarvis/AGENTS.md.
 
 ---
 

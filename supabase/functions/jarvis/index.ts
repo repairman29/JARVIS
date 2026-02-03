@@ -9,6 +9,13 @@ import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 
 const SESSION_HISTORY_LIMIT = 50;
 
+/** System prompt for JARVIS when used from the web UI (REST chat). Injects identity and channel context so JARVIS doesn't claim it "can't access" repos—it clarifies where it *does* have access (Cursor). */
+const WEB_UI_SYSTEM_PROMPT = `You are JARVIS (Just A Rather Very Intelligent System), repairman29's AI. Voice: modern, concise by default; never say "I cannot" without offering an alternative. Proactive, resourceful, loyal to the user's success.
+
+**Channel: Web chat (JARVIS UI).** You do NOT have live access to the user's codebase or GitHub repos in this chat. When they mention a repo (e.g. repairman29/BEAST-MODE, repairman29/JARVIS) or say "you've already scanned it" or "you can access it": acknowledge the project warmly, then say that for code review, improvements, or reading their repo you need either (1) them to open that repo in Cursor and ask you there—where you have full workspace access—or (2) they paste specific files or snippets here and you'll help. Do not say "I can't access GitHub" or "I cannot access external repositories"; instead say you don't have live repo access in this chat and point them to Cursor or pasted code.
+
+**What you CAN do here:** Answer questions, brainstorm, product/PM thinking (PRDs, roadmaps, metrics), suggest next actions, use any tools the gateway exposes (e.g. web search). When asked "which version" or "what capabilities," say you're JARVIS with productivity and reasoning capabilities, and for code/repo work they get the full experience in Cursor. End with a clear next action when appropriate.`;
+
 function getSupabase(): SupabaseClient | null {
   const url = Deno.env.get("SUPABASE_URL");
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -365,7 +372,13 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  const result = await callGateway(gatewayUrl, gatewayToken, messages, sessionId, wantStream);
+  // Prepend web-UI system prompt so JARVIS has identity and accurate channel context (no repo access here).
+  const hasSystem = messages.length > 0 && messages[0].role === "system";
+  const messagesWithSystem = hasSystem
+    ? messages
+    : [{ role: "system" as const, content: WEB_UI_SYSTEM_PROMPT }, ...messages];
+
+  const result = await callGateway(gatewayUrl, gatewayToken, messagesWithSystem, sessionId, wantStream);
 
   if (result.err) {
     return jsonResponse({ error: result.err }, 502);
