@@ -1,0 +1,16 @@
+{
+  "name": "kroger",
+  "version": "1.0.0",
+  "description": "Kroger/King Soopers grocery: search products, check prices, find stores, build shopping lists, **and add items to your cart**.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "playwright": "^1.58.0"
+  }
+}
