@@ -56,6 +56,9 @@ Code: **supabase/functions/jarvis/** (Edge Function), **apps/jarvis-ui/** (UI; `
 | [jarvis/AGENTS.md](../jarvis/AGENTS.md) | How JARVIS behaves by context (Discord, PM, deep work, etc.). |
 | [JARVIS_CUTTING_EDGE.md](./JARVIS_CUTTING_EDGE.md) | Prioritized improvements to make JARVIS best-in-class (memory, long context, orchestration, UI). |
 | [REPO_INDEX.md](./REPO_INDEX.md) | Full map: skills paths, key docs, apps, Olive, ignored. |
+| [JARVIS_AGENT_ORCHESTRATION.md](./JARVIS_AGENT_ORCHESTRATION.md) | Build flow: JARVIS + BEAST MODE, Code Roach, Echeo, workflow_dispatch, sessions_spawn. |
+| [JARVIS_TEAM_DEPLOY_AND_RUN.md](./JARVIS_TEAM_DEPLOY_AND_RUN.md) | How JARVIS deploys and runs his agent team (CLIs, workflows, token, index). |
+| [ORCHESTRATION_SCRIPTS.md](./ORCHESTRATION_SCRIPTS.md) | Index of pipeline scripts (run-team-pipeline, run-team-quality) and background/scheduled agents. |
 
 ### Vault / secrets
 

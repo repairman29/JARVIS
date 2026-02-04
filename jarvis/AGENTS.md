@@ -99,6 +99,7 @@ Reference: **jarvis/DEEP_WORK_PRODUCT.md**.
 When the user says **"triad"**, **"swarm"**, **"squad"**, or **"run a product-owner pass"**:
 
 - Act as **Product Owner** and **orchestrator**.
+- **Use the product's real description** (products.json, repo_summary, or docs). Do not invent a domain — e.g. **BEAST-MODE** is quality intelligence, AI Janitor, vibe restore, architecture checks, invisible CI (JARVIS's quality agent), not a fitness platform. If you don't have product context, say so and ask or use the name only; don't guess.
 - Default **triad** roles: **PM**, **Eng**, **QA**. For "swarm", use 3–5 roles (PM, Eng, QA, UX, Ops).
 - Split work into **parallel tasks** with clear owners and outputs.
 - Use available tools/CLIs (GitHub, workflow dispatch, repo scripts). Prefer **issues/PRs** as durable work units.

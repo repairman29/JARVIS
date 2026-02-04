@@ -138,6 +138,12 @@ Workspace: `~/jarvis`
 
 **If JARVIS says "restriction on restarting":** The restart command requires **elevated** access. Add your Discord user ID to the elevated allowlist: **`node scripts/enable-gateway-restart.js YOUR_DISCORD_USER_ID`** (get your ID: Discord → Developer Mode → right-click your name in the DM → Copy User ID). Or run **`node scripts/setup-jarvis-vault-and-access.js`** with `JARVIS_DISCORD_USER_ID` in Vault/.env so it merges into `tools.elevated.allowFrom.discord`. Then restart the gateway once manually.
 
+**Exec from web UI (beast-mode, code-roach, etc.):** The gateway allows exec per **channel**. Web requests use the **webchat** channel. If `tools.elevated.allowFrom.webchat` is missing or empty, exec is blocked from the web. Run **`node scripts/enable-web-exec.js`** to set `allowFrom.webchat = ["*"]`; restart the gateway. See **docs/JARVIS_WEB_EXEC.md** for why and for local vs cloud gateway.
+
+**403 OAuth / "not allowed for this organization":** Switch the gateway's primary model to a key-based provider: **`node scripts/set-primary-groq.js`** (need `GROQ_API_KEY` in `~/.clawdbot/.env`), then restart the gateway. Or **`node scripts/set-primary-openai.js`** if you use OpenAI. See DISCORD_SETUP.md § 403 OAuth.
+
+**CLI "Unrecognized key: commands" / config invalid:** Run **`node scripts/fix-clawdbot-config.js`** to remove `gateway.commands` so the clawdbot CLI accepts the config. Re-add `gateway.commands.restart` manually only if your clawdbot version supports it.
+
 ```bash
 # Validate config
 clawdbot doctor
@@ -175,6 +181,10 @@ clawdbot status | grep -A10 Sessions
 # Clear a stuck session (if needed)
 # Sessions are in ~/.clawdbot/agents/main/sessions/
 ```
+
+## Orchestration scripts and background agents
+
+**Pipeline:** `node scripts/run-team-pipeline.js` — safety net → BEAST MODE quality → Code Roach health → Echeo. Use `--quality-only` or `--no-safety-net`; `--webhook` posts summary to Discord. **Quality only:** `node scripts/run-team-quality.js` [repo]. **Index:** **docs/ORCHESTRATION_SCRIPTS.md** — pipeline scripts, scheduled agents (watchdog, heartbeat, autonomous build, repo index), and scheduling.
 
 ## Product Owner Mode
 

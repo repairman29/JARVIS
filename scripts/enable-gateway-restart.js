@@ -31,12 +31,10 @@ try {
   process.exit(1);
 }
 
-// Enable gateway restart (SIGUSR1 / restart command)
-config.gateway = config.gateway || {};
-config.gateway.commands = config.gateway.commands || {};
-config.gateway.commands.restart = true;
-
-// Elevated must be enabled and your Discord ID allowed so JARVIS can run restart from Discord
+// Elevated must be enabled and your Discord ID allowed so JARVIS can run restart from Discord.
+// We do not set gateway.commands.restart here because some clawdbot versions reject unknown
+// config keys and the CLI (clawdbot agent) would fail. If your gateway supports it, add
+// "commands": { "restart": true } under "gateway" in clawdbot.json manually. See RUNBOOK.
 config.tools = config.tools || {};
 config.tools.elevated = config.tools.elevated || { enabled: false, allowFrom: {} };
 config.tools.elevated.enabled = true;
@@ -54,5 +52,6 @@ if (discordUserId && /^\d{17,20}$/.test(discordUserId)) {
 }
 
 fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
-console.log('Set gateway.commands.restart = true in', configPath);
+console.log('Set tools.elevated.enabled = true and Discord allowlist in', configPath);
 console.log('Restart the gateway once manually for the change to take effect.');
+console.log('To allow JARVIS to restart the gateway from Discord, add "commands": { "restart": true } under "gateway" in clawdbot.json if your clawdbot version supports it (see RUNBOOK).');
