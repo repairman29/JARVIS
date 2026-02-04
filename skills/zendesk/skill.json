@@ -1,0 +1,406 @@
+{
+  "name": "zendesk",
+  "version": "1.0.0",
+  "description": "Zendesk Support: tickets (search, get, update, comments), users and groups (list, create, update, roles, membership), business hours. Use for support tickets, agents, roles, groups, or customer requests. Aligns with CXO Sidekick blueprint.",
+  "env": ["ZENDESK_SUBDOMAIN", "ZENDESK_EMAIL", "ZENDESK_API_TOKEN"],
+  "tools": [
+    {
+      "name": "zendesk_status",
+      "description": "Check if Zendesk integration is working. Returns whether credentials are set and the API is reachable.",
+      "parameters": { "type": "object", "properties": {} }
+    },
+    {
+      "name": "zendesk_account_settings",
+      "description": "Get account configuration so the Sidekick comprehends the environment: timezone, active features (chat, voice, agent_workspace, business_hours, etc.), localization. Use when the user asks what Zendesk is configured for or before SLA/time-sensitive logic.",
+      "parameters": { "type": "object", "properties": {} }
+    },
+    {
+      "name": "zendesk_search_tickets",
+      "description": "Search Zendesk tickets by query. Use for: open/recent tickets, tickets for an org (organization:ID), bad/good CSAT (satisfaction_rating:bad, satisfaction_rating:good), trending (recent + subjects/tags), who's pissed off (satisfaction_rating:bad), or keyword/tag search. Results include satisfaction_rating and tags when present.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search query. Zendesk syntax: 'type:ticket status:open', 'type:ticket organization:123', 'created>2025-01-01', or free text. Use organization:ID to filter by organization."
+          },
+          "sort_by": {
+            "type": "string",
+            "description": "Sort field",
+            "enum": ["updated_at", "created_at", "priority", "status"],
+            "default": "updated_at"
+          },
+          "sort_order": {
+            "type": "string",
+            "description": "Sort direction",
+            "enum": ["asc", "desc"],
+            "default": "desc"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Max results to return (default 20, max 100)",
+            "default": 20
+          }
+        },
+        "required": ["query"]
+      }
+    },
+    {
+      "name": "zendesk_get_ticket",
+      "description": "Get a single ticket by ID. Returns subject, description, status, priority, tags, custom_fields (id/value), ticket_form_id, and satisfaction_rating (CSAT) when present. Use for ticket details, form/field values, or CSAT.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "ticket_id": {
+            "type": "number",
+            "description": "Zendesk ticket ID (numeric)."
+          }
+        },
+        "required": ["ticket_id"]
+      }
+    },
+    {
+      "name": "zendesk_add_comment",
+      "description": "Add a comment (reply or internal note) to a ticket. Use when the user wants to reply to a ticket or add an internal note.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "ticket_id": {
+            "type": "number",
+            "description": "Zendesk ticket ID."
+          },
+          "body": {
+            "type": "string",
+            "description": "Comment text (supports Markdown in Zendesk)."
+          },
+          "public": {
+            "type": "boolean",
+            "description": "If true, reply is visible to the requester; if false, internal note only.",
+            "default": true
+          }
+        },
+        "required": ["ticket_id", "body"]
+      }
+    },
+    {
+      "name": "zendesk_list_ticket_comments",
+      "description": "List all comments on a ticket (conversation thread). Use when the user wants to see the full thread or history of a ticket.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "ticket_id": { "type": "number", "description": "Zendesk ticket ID." }
+        },
+        "required": ["ticket_id"]
+      }
+    },
+    {
+      "name": "zendesk_update_ticket",
+      "description": "Update ticket fields: status, priority, assignee, group, subject, or type. Use when the user wants to assign, change status, set priority, or move a ticket.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "ticket_id": { "type": "number", "description": "Zendesk ticket ID." },
+          "status": { "type": "string", "description": "New status: new, open, pending, hold, solved, closed." },
+          "priority": { "type": "string", "description": "Priority: low, normal, high, urgent." },
+          "assignee_id": { "type": "number", "description": "User ID of the assignee (agent)." },
+          "group_id": { "type": "number", "description": "Group ID to assign the ticket to." },
+          "subject": { "type": "string", "description": "New subject line." },
+          "type": { "type": "string", "description": "Ticket type: problem, incident, question, task." }
+        },
+        "required": ["ticket_id"]
+      }
+    },
+    {
+      "name": "zendesk_list_groups",
+      "description": "List support groups (id, name). Use when the user asks which groups exist or to map group IDs for assignment.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "limit": { "type": "number", "description": "Max groups to return (default 100).", "default": 100 }
+        }
+      }
+    },
+    {
+      "name": "zendesk_list_users",
+      "description": "List users (agents/admins). Use when the user asks who agents are or to find a user ID for assignment.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "role": { "type": "string", "description": "Filter by role: agent or admin (optional).", "enum": ["", "agent", "admin"] },
+          "limit": { "type": "number", "description": "Max users to return (default 50).", "default": 50 }
+        }
+      }
+    },
+    {
+      "name": "zendesk_get_user",
+      "description": "Get a single user by ID. Use when the user asks for details about an agent or requester.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": { "type": "number", "description": "Zendesk user ID." }
+        },
+        "required": ["user_id"]
+      }
+    },
+    {
+      "name": "zendesk_list_schedules",
+      "description": "List business hours schedules (time zone, intervals). Use when the user asks about support hours or SLA timing.",
+      "parameters": { "type": "object", "properties": {} }
+    },
+    {
+      "name": "zendesk_create_user",
+      "description": "Create a new Zendesk user (end-user, agent, or admin). Use when the user wants to add a team member or customer.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "description": "Full name (required)." },
+          "email": { "type": "string", "description": "Email address (required)." },
+          "role": { "type": "string", "description": "Role: end-user, agent, or admin.", "enum": ["end-user", "agent", "admin"], "default": "end-user" },
+          "default_group_id": { "type": "number", "description": "Default support group for agents." },
+          "organization_id": { "type": "number", "description": "Organization ID for the user." },
+          "notes": { "type": "string", "description": "Internal notes about the user." },
+          "suspended": { "type": "boolean", "description": "If true, user is suspended." }
+        },
+        "required": ["name", "email"]
+      }
+    },
+    {
+      "name": "zendesk_update_user",
+      "description": "Update a user's role, default group, suspended status, name, notes, or ticket_restriction. Use when promoting/demoting or changing agent settings.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": { "type": "number", "description": "Zendesk user ID." },
+          "role": { "type": "string", "description": "New role: end-user, agent, or admin.", "enum": ["end-user", "agent", "admin"] },
+          "default_group_id": { "type": "number", "description": "Default support group for agents." },
+          "suspended": { "type": "boolean", "description": "Suspend or unsuspend the user." },
+          "name": { "type": "string", "description": "New display name." },
+          "notes": { "type": "string", "description": "Internal notes." },
+          "ticket_restriction": { "type": "string", "description": "For agents: organization, groups, assigned, or requested.", "enum": ["organization", "groups", "assigned", "requested"] }
+        },
+        "required": ["user_id"]
+      }
+    },
+    {
+      "name": "zendesk_create_group",
+      "description": "Create a new support group. Use when the user wants to add a team or queue.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "description": "Group name (required)." },
+          "description": { "type": "string", "description": "Optional description." }
+        },
+        "required": ["name"]
+      }
+    },
+    {
+      "name": "zendesk_update_group",
+      "description": "Update a group's name or description.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "group_id": { "type": "number", "description": "Zendesk group ID." },
+          "name": { "type": "string", "description": "New name." },
+          "description": { "type": "string", "description": "New description." }
+        },
+        "required": ["group_id"]
+      }
+    },
+    {
+      "name": "zendesk_get_group",
+      "description": "Get a single group by ID. Use when the user asks for details of a specific group.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "group_id": { "type": "number", "description": "Zendesk group ID." }
+        },
+        "required": ["group_id"]
+      }
+    },
+    {
+      "name": "zendesk_list_group_memberships",
+      "description": "List agents in a group (group members). Use when the user asks who is in a group.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "group_id": { "type": "number", "description": "Zendesk group ID." },
+          "limit": { "type": "number", "description": "Max members to return (default 100).", "default": 100 }
+        },
+        "required": ["group_id"]
+      }
+    },
+    {
+      "name": "zendesk_list_user_group_memberships",
+      "description": "List groups a user belongs to. Use when the user asks which groups an agent is in.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": { "type": "number", "description": "Zendesk user ID." }
+        },
+        "required": ["user_id"]
+      }
+    },
+    {
+      "name": "zendesk_add_user_to_group",
+      "description": "Add an agent to a group. Use when the user wants to assign someone to a team/queue.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": { "type": "number", "description": "Zendesk user ID (agent)." },
+          "group_id": { "type": "number", "description": "Zendesk group ID." },
+          "default": { "type": "boolean", "description": "If true, set as user's default group.", "default": false }
+        },
+        "required": ["user_id", "group_id"]
+      }
+    },
+    {
+      "name": "zendesk_remove_user_from_group",
+      "description": "Remove an agent from a group. Use when the user wants to unassign someone from a team.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "user_id": { "type": "number", "description": "Zendesk user ID." },
+          "group_id": { "type": "number", "description": "Zendesk group ID." }
+        },
+        "required": ["user_id", "group_id"]
+      }
+    },
+    {
+      "name": "zendesk_get_ticket_metrics",
+      "description": "Get SLA and performance metrics for a ticket: reply time, first/full resolution time, requester wait time, reopens, replies. Use when the user asks about ticket performance or SLA.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "ticket_id": { "type": "number", "description": "Zendesk ticket ID." }
+        },
+        "required": ["ticket_id"]
+      }
+    },
+    {
+      "name": "zendesk_list_organizations",
+      "description": "List organizations (customers/companies). Use when the user asks about companies or to find organization IDs for VIP/org-based logic.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "limit": { "type": "number", "description": "Max organizations to return (default 100).", "default": 100 }
+        }
+      }
+    },
+    {
+      "name": "zendesk_get_organization",
+      "description": "Get a single organization by ID. Use when the user asks for details of a company/customer.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "organization_id": { "type": "number", "description": "Zendesk organization ID." }
+        },
+        "required": ["organization_id"]
+      }
+    },
+    {
+      "name": "zendesk_list_organization_users",
+      "description": "List users in an organization. Use when the user asks who are the contacts or users for a company.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "organization_id": { "type": "number", "description": "Zendesk organization ID." },
+          "limit": { "type": "number", "description": "Max users to return (default 50).", "default": 50 }
+        },
+        "required": ["organization_id"]
+      }
+    },
+    {
+      "name": "zendesk_list_custom_statuses",
+      "description": "List custom ticket statuses (agent_label, category). Use when the user asks what statuses exist or before updating a ticket's custom status.",
+      "parameters": { "type": "object", "properties": {} }
+    },
+    {
+      "name": "zendesk_list_ticket_fields",
+      "description": "List all ticket fields (system and custom): id, title, type, description, options for dropdowns. Use to interpret custom_fields on tickets and to analyze trends/issues by form field (e.g. which dropdown value appears most).",
+      "parameters": { "type": "object", "properties": {} }
+    },
+    {
+      "name": "zendesk_list_ticket_forms",
+      "description": "List ticket forms: id, name, display_name, ticket_field_ids. Use with list_ticket_fields to know which fields each form uses; tickets have ticket_form_id and custom_fields (field id + value).",
+      "parameters": { "type": "object", "properties": {} }
+    },
+    {
+      "name": "zendesk_search_users",
+      "description": "Search users by name, email, or keyword. Use when the user wants to find a user without knowing their ID.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": { "type": "string", "description": "Search query (name, email, or keyword)." },
+          "limit": { "type": "number", "description": "Max results (default 25).", "default": 25 }
+        },
+        "required": ["query"]
+      }
+    },
+    {
+      "name": "zendesk_list_triggers",
+      "description": "List ticket triggers (business rules that run on ticket create/update when conditions match). Use when the user asks about triggers, automation rules, or what runs when tickets change.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "active_only": { "type": "boolean", "description": "If true, return only active triggers.", "default": false },
+          "limit": { "type": "number", "description": "Max triggers to return (default 100).", "default": 100 }
+        }
+      }
+    },
+    {
+      "name": "zendesk_get_trigger",
+      "description": "Get a single trigger by ID (conditions and actions). Use to inspect what a specific trigger does.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "trigger_id": { "type": "number", "description": "Zendesk trigger ID." }
+        },
+        "required": ["trigger_id"]
+      }
+    },
+    {
+      "name": "zendesk_list_automations",
+      "description": "List automations (time-based business rules; conditions checked periodically, e.g. hourly). Use when the user asks about automations or time-based procedures.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "active_only": { "type": "boolean", "description": "If true, return only active automations.", "default": false },
+          "limit": { "type": "number", "description": "Max automations to return (default 100).", "default": 100 }
+        }
+      }
+    },
+    {
+      "name": "zendesk_get_automation",
+      "description": "Get a single automation by ID (conditions and actions). Use to inspect what a specific automation does.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "automation_id": { "type": "number", "description": "Zendesk automation ID." }
+        },
+        "required": ["automation_id"]
+      }
+    },
+    {
+      "name": "zendesk_list_macros",
+      "description": "List macros (saved procedures agents apply manually to tickets). Use when the user asks about macros or agent procedures.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "active_only": { "type": "boolean", "description": "If true, return only active macros.", "default": false },
+          "limit": { "type": "number", "description": "Max macros to return (default 100).", "default": 100 }
+        }
+      }
+    },
+    {
+      "name": "zendesk_get_macro",
+      "description": "Get a single macro by ID (actions it applies). Use to inspect what a specific macro does.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "macro_id": { "type": "number", "description": "Zendesk macro ID." }
+        },
+        "required": ["macro_id"]
+      }
+    }
+  ]
+}

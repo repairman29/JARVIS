@@ -28,6 +28,106 @@ Tools and skills JARVIS can use. **Super AI stance:** Call the appropriate tool 
 
 ---
 
+## Wikipedia (search & summaries)
+
+**Skill:** `wikipedia` (installed). Use for definitions, "what is X", and factual overviews. No API key.
+
+| Tool | When to use |
+|------|-------------|
+| `wikipedia_summary` | "What is X?", "Define Y", "Wikipedia summary for Z". Use `title` for exact article name or `search` to use first matching article. |
+| `wikipedia_search` | "Search Wikipedia for X", "Find Wikipedia articles about Y". Returns titles, snippets, page IDs. |
+
+**Env:** None. Always available.
+
+---
+
+## Weather (current conditions)
+
+**Skill:** `weather` (installed). Current weather for any city/place. No API key (Open-Meteo).
+
+| Tool | When to use |
+|------|-------------|
+| `weather_current` | "What's the weather in Denver?", "Temperature in London", "Weather in Tokyo". Use `location` (city/place); optional `units` (celsius \| fahrenheit). |
+
+**Env:** None. Always available.
+
+---
+
+## News (headlines)
+
+**Skill:** `news` (installed). Latest headlines from BBC, NPR, Reuters RSS. No API key.
+
+| Tool | When to use |
+|------|-------------|
+| `news_headlines` | "Latest news", "Headlines", "What's in the news", "News today". Optional `limit` (default 10), `source` (all \| bbc \| npr \| reuters). |
+
+**Env:** None. Always available.
+
+---
+
+## Zendesk (support tickets, entities, products, everything)
+
+**Skill:** `zendesk` (installed). Tickets, users, groups, roles, membership, business hours, **ticket forms/fields**, **CSAT**, **entities/products**. Zendesk is used for support, bugs, feedback, billing, onboarding, internal—use the right search and tools for the ask.
+
+| Tool | When to use |
+|------|-------------|
+| `zendesk_status` | "Are we connected to Zendesk?" — check credentials and API. |
+| `zendesk_account_settings` | "What's our Zendesk timezone/features?" — account config for SLA/timing. |
+| `zendesk_search_tickets` | "Show open tickets", "Search for refund", "Tickets about [product]", "satisfaction_rating:bad", "tags:bug", "organization:123". `query` (required), optional `sort_by`, `sort_order`, `limit`. Returns tags, satisfaction_rating, custom_fields when present. |
+| `zendesk_get_ticket` | "Get ticket 12345". Returns subject, description, tags, custom_fields, ticket_form_id, satisfaction_rating. Pass `ticket_id`. |
+| `zendesk_add_comment` | "Reply to ticket 12345 with...", "Add internal note". `ticket_id`, `body`, `public`. |
+| `zendesk_list_ticket_comments` | "Show the thread for ticket 5". Pass `ticket_id`. |
+| `zendesk_update_ticket` | "Assign ticket 5 to Jane", "Set ticket 5 to pending". `ticket_id` + `status`, `priority`, `assignee_id`, `group_id`, `subject`, `type`. |
+| `zendesk_list_groups` | "What groups do we have?" Optional `limit`. |
+| `zendesk_list_users` | "Who are our agents?" Optional `role` (agent/admin), `limit`. |
+| `zendesk_get_user` | "Get user 12345". Pass `user_id`. |
+| `zendesk_list_schedules` | "What are our business hours?" |
+| **Users (manage)** | |
+| `zendesk_create_user` | "Create agent Jane, jane@co.com". `name`, `email` (required), `role` (end-user/agent/admin), optional `default_group_id`, `organization_id`, `notes`, `suspended`. |
+| `zendesk_update_user` | "Make user 5 admin", "Suspend user 3", "Set default group for user 10". `user_id` + `role`, `default_group_id`, `suspended`, `name`, `notes`, `ticket_restriction`. |
+| **Groups (manage)** | |
+| `zendesk_create_group` | "Create group Billing". `name` (required), optional `description`. |
+| `zendesk_update_group` | "Rename group 3 to Support Tier 2". `group_id` + `name`, `description`. |
+| `zendesk_get_group` | "Details for group 5". Pass `group_id`. |
+| **Group membership** | |
+| `zendesk_list_group_memberships` | "Who is in group 5?" Pass `group_id`, optional `limit`. |
+| `zendesk_list_user_group_memberships` | "Which groups is user 10 in?" Pass `user_id`. |
+| `zendesk_add_user_to_group` | "Add user 10 to group 5". `user_id`, `group_id`, optional `default`. |
+| `zendesk_remove_user_from_group` | "Remove user 10 from group 5". `user_id`, `group_id`. |
+| **Metrics & orgs** | |
+| `zendesk_get_ticket_metrics` | "SLA for ticket 5?", "Reply time for ticket 3". Pass `ticket_id`. |
+| `zendesk_list_organizations` | "List organizations", "What companies?". Optional `limit`. |
+| `zendesk_get_organization` | "Details for organization 5". Pass `organization_id`. |
+| `zendesk_list_organization_users` | "Who's in organization 3?". `organization_id`, optional `limit`. |
+| `zendesk_list_custom_statuses` | "What custom statuses exist?". |
+| `zendesk_list_ticket_fields` | "What ticket fields/forms do we have?", "Interpret custom_fields". Use to map field id → title/options for trends and "tickets about product X". |
+| `zendesk_list_ticket_forms` | "What forms do we have?", "Which fields are on form Y?". Use with list_ticket_fields; tickets have ticket_form_id and custom_fields. |
+| `zendesk_search_users` | "Find user Jane", "Search by email". `query` (required), optional `limit`. |
+| `zendesk_list_triggers` | "What triggers do we have?", "What runs when we update a ticket?". Optional `active_only`, `limit`. |
+| `zendesk_get_trigger` | Inspect one trigger by ID (conditions and actions). `trigger_id` (required). |
+| `zendesk_list_automations` | "What automations are set up?", time-based rules. Optional `active_only`, `limit`. |
+| `zendesk_get_automation` | Inspect one automation by ID. `automation_id` (required). |
+| `zendesk_list_macros` | "What macros do agents have?", procedures. Optional `active_only`, `limit`. |
+| `zendesk_get_macro` | Inspect one macro by ID. `macro_id` (required). **Bots/workflows:** **docs/ZENDESK_BOTS_AND_WORKFLOWS.md**. |
+
+**Entities & products:** "All tickets about [product/entity]" → `zendesk_search_tickets` with keyword or `tags:product_x`; if you use a custom field for product, use `zendesk_list_ticket_fields` to get field id, then search and filter results by custom_fields. "What are people saying about X?" → search tickets, then `zendesk_get_ticket` + `zendesk_list_ticket_comments` on a sample and summarize. **Zendesk for everything:** Same tools for bugs (tags:bug), feedback, billing, onboarding, internal—search by tag, keyword, or org. **Playbook:** **docs/ZENDESK_SIDEKICK_PLAYBOOK.md**. **User stories:** **docs/ZENDESK_SIDEKICK_USER_STORIES.md**. **Scripts:** `node scripts/zendesk-tickets-by-entity.js [keyword|tag:xyz]`, `node scripts/zendesk-trends-by-field.js` (aggregate by custom field).
+
+**Env:** `ZENDESK_SUBDOMAIN` (e.g. company), `ZENDESK_EMAIL`, `ZENDESK_API_TOKEN` in `~/.clawdbot/.env`. Token from Admin Center → APIs → Zendesk API. See **skills/zendesk/README.md**. Strategic context: **docs/ZENDESK_CXO_SIDEKICK_BLUEPRINT.md**.
+
+---
+
+## Notion (search workspace)
+
+**Skill:** `notion` (installed). Search the user's Notion workspace by page/database title.
+
+| Tool | When to use |
+|------|-------------|
+| `notion_search` | "Search Notion for X", "find my meeting notes in Notion", "look up the roadmap in Notion". Returns titles and links. |
+
+**Setup:** User must create an integration at notion.so (no separate developer account) and share pages with it. **Guided setup:** have the user run **`node scripts/setup-notion-integration.js`** — it opens My Integrations, then they paste the token and the script writes `NOTION_API_KEY` to `~/.clawdbot/.env`. See **skills/notion/README.md**. JARVIS cannot create the Notion account or integration for the user; they must do the browser steps.
+
+---
+
 ## Kroger / King Soopers (grocery)
 
 **Skill:** `kroger` (installed). Use for any Kroger/King Soopers product search, prices, shopping lists, or store lookup.
