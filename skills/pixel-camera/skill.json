@@ -1,0 +1,19 @@
+{
+  "name": "pixel-camera",
+  "version": "1.0.0",
+  "description": "Take a photo on the Pixel using the device camera via Termux. Use when the user says 'take a picture', 'what am I holding?', 'photo', or 'capture'. Requires Termux + termux-api. Image can be passed to a vision model for description.",
+  "env": [],
+  "tools": [
+    {
+      "name": "take_photo",
+      "description": "Take a photo with the device camera. Use for 'take a picture', 'what do I see', or to capture an image for later description. Prefer back camera (0) for objects; front (1) for selfie.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "camera_id": { "type": "number", "description": "0 = back camera, 1 = front. Default 0.", "default": 0 },
+          "path": { "type": "string", "description": "Optional absolute path for the JPEG file on device. Default: ~/camera_capture.jpg" }
+        }
+      }
+    }
+  ]
+}

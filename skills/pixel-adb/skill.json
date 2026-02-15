@@ -1,0 +1,78 @@
+{
+  "name": "pixel-adb",
+  "version": "1.0.0",
+  "description": "Control the Android device via ADB: tap, swipe, type, screencap, dump UI, launch apps. Use when the user wants to control the phone, open an app, tap something, or see the screen. Requires ADB connected (e.g. Wireless debugging) and adb in PATH.",
+  "env": [],
+  "tools": [
+    {
+      "name": "adb_tap",
+      "description": "Tap the screen at (x, y). Use when the user says tap, click, or press at a position. Coordinates are in pixels.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "x": { "type": "number", "description": "X coordinate in pixels" },
+          "y": { "type": "number", "description": "Y coordinate in pixels" }
+        },
+        "required": ["x", "y"]
+      }
+    },
+    {
+      "name": "adb_swipe",
+      "description": "Swipe from (x1,y1) to (x2,y2). Use for scrolling, unlocking, or gestures. Duration in ms (default 300).",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "x1": { "type": "number" },
+          "y1": { "type": "number" },
+          "x2": { "type": "number" },
+          "y2": { "type": "number" },
+          "duration_ms": { "type": "number", "description": "Swipe duration in milliseconds", "default": 300 }
+        },
+        "required": ["x1", "y1", "x2", "y2"]
+      }
+    },
+    {
+      "name": "adb_text",
+      "description": "Type text into the focused field. Use when the user wants to enter text, search, or type something. Spaces and special chars may need escaping.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string", "description": "Text to type" }
+        },
+        "required": ["text"]
+      }
+    },
+    {
+      "name": "adb_screencap",
+      "description": "Take a screenshot. Returns path to the PNG file (on device). Use before describing the screen or finding tap coordinates.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": { "type": "string", "description": "Optional path on device (default /sdcard/Download/screencap.png)" }
+        }
+      }
+    },
+    {
+      "name": "adb_ui_dump",
+      "description": "Dump the current window hierarchy to XML. Use to find bounds of buttons or text for tap coordinates.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": { "type": "string", "description": "Optional path on device (default /sdcard/Download/ui_dump.xml)" }
+        }
+      }
+    },
+    {
+      "name": "adb_launch_app",
+      "description": "Launch an app by package name (and optional activity). Use when the user says open X app. Example package: com.android.chrome",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "package": { "type": "string", "description": "App package name, e.g. com.android.chrome" },
+          "activity": { "type": "string", "description": "Optional. Full activity class, e.g. .MainActivity. Omit to use default launch activity." }
+        },
+        "required": ["package"]
+      }
+    }
+  ]
+}

@@ -65,6 +65,39 @@ Tools and skills JARVIS can use. **Super AI stance:** Call the appropriate tool 
 
 ---
 
+## Pixel / Android (Termux)
+
+When JARVIS runs on a Pixel (or Android) in Termux, these skills provide device sensors, camera, and UI control. On desktop they return `on_device: false` or fail gracefully.
+
+**Skill:** `pixel-sensors` (installed). Battery, WiFi, location.
+
+| Tool | When to use |
+|------|-------------|
+| `get_pixel_device_status` | "What's my battery?", "Am I charging?", "Device status". Returns percentage, charging, temp, health. |
+| `get_pixel_wifi` | "What WiFi am I on?", "Connected network", "WiFi status". |
+| `get_pixel_location` | "Where am I?", "My location", "GPS". Requires location permission. |
+
+**Skill:** `pixel-camera` (installed). Take a photo on the device.
+
+| Tool | When to use |
+|------|-------------|
+| `take_photo` | "Take a picture", "What am I holding?", "Capture". Optional `camera_id` (0 back, 1 front), `path`. Returns path on device; pass to vision for description. |
+
+**Skill:** `pixel-adb` (installed). Control the device UI via ADB (enable Wireless debugging, then `adb connect 127.0.0.1:5555`).
+
+| Tool | When to use |
+|------|-------------|
+| `adb_tap` | Tap at (x, y). |
+| `adb_swipe` | Swipe from (x1,y1) to (x2,y2). |
+| `adb_text` | Type text into focused field. |
+| `adb_screencap` | Screenshot; returns path on device. |
+| `adb_ui_dump` | Dump window hierarchy (bounds for tap). |
+| `adb_launch_app` | Launch app by package (e.g. com.android.chrome). |
+
+**Env:** For pixel-adb: `ADB_SERIAL=127.0.0.1:5555` (or your wireless debugging port). Termux: `pkg install termux-api` (sensors, camera), `pkg install android-tools` (adb). See **docs/PIXEL_PERFECTION_ROADMAP.md**, **docs/SOVEREIGN_MOBILE_NEXUS.md**.
+
+---
+
 ## Zendesk (support tickets, entities, products, everything)
 
 **Skill:** `zendesk` (installed). Tickets, users, groups, roles, membership, business hours, **ticket forms/fields**, **CSAT**, **entities/products**. Zendesk is used for support, bugs, feedback, billing, onboarding, internal—use the right search and tools for the ask.
@@ -369,18 +402,34 @@ Tools and skills JARVIS can use. **Super AI stance:** Call the appropriate tool 
 
 ---
 
+## Build, test, deploy — default flow (perfection)
+
+**Default for build and test:** Use the **build server** (must be running: `node scripts/build-server.js`). Do not use raw exec for `npm run build` or `npm test` when the build server is available.
+
+| Step | Tool / action | When |
+|------|----------------|------|
+| **Build + test** | **build_server_pipeline(repo)** — runs install → build → test in order; stops on first failure. | "Build and test [repo]", "run CI for [repo]", "ship [repo]" (before deploy). |
+| **Build only** | **build_server_build(repo, command: "build")**. Test only: command `"test"`. | When user asks only for build or only for test. |
+| **Deploy** | **github_workflow_dispatch**(owner, repo, workflow_id) if repo has a deploy workflow; else **exec** (vercel deploy, railway up, etc.). | After build+test pass or when user asks to deploy. |
+
+**Flow:** 1) build_server_pipeline(repo) → 2) if success, deploy via workflow_dispatch or exec. If build_server_health() fails, tell user: start build server with `node scripts/build-server.js`. Config: **build-server-repos.json**. See **docs/JARVIS_BUILD_SERVER.md**.
+
+---
+
 ## Agent systems JARVIS can use to build products
 
 When building out products (deep work, full product cycle), JARVIS should **orchestrate** these systems instead of doing everything alone:
 
 | System | How JARVIS invokes it | When |
 |--------|------------------------|------|
+| **Build server** | **build_server_pipeline(repo)**, **build_server_build(repo, command)**. Default for build/test. | Build, test, "ship" (build+test before deploy). |
 | **BEAST MODE** | Exec: `beast-mode quality score`, `beast-mode janitor enable`, `beast-mode vibe restore`, `beast-mode architecture check`. Or `github_workflow_dispatch` on BEAST-MODE repo. | Quality after implement, before ship. |
 | **Code Roach** | Exec: `code-roach analyze pr`, `code-roach health`, `code-roach crawl`. Or workflow_dispatch if repo has it. | PR review, codebase health. |
 | **Echeo** | Exec: `echeo --path ...`, `echeo --scrape-github ...`, `echeo --match-needs ...`. | "What should I work on?", bounty matching. |
-| **workflow_dispatch** | GitHub skill: `github_workflow_dispatch(owner, repo, workflow_id, ref)`. | Ship (deploy/build); quality (trigger BEAST/Code Roach workflows). |
+| **workflow_dispatch** | GitHub skill: `github_workflow_dispatch(owner, repo, workflow_id, ref)`. | Deploy (trigger deploy workflow); quality (trigger BEAST/Code Roach workflows). |
 | **sessions_spawn** | Spawn subagent with task + deliverables + ETA. | Long implementation runs. |
 | **JARVIS autonomous build** | `node scripts/jarvis-autonomous-build.js`. | After push to JARVIS repo; or scheduled. |
+| **Team status** | **get_team_status** (team-status skill). Reads `~/.jarvis/team-status.json` (refresh with `node scripts/team-status.js`). | "Who's on the team?", "Is BEAST MODE available?", "team status". |
 
 Full build flow and table: **docs/JARVIS_AGENT_ORCHESTRATION.md**. AGENTS.md → "Agent orchestration" instructs JARVIS to use these when doing deep work or building out a product.
 

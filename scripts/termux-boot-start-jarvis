@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Run at device boot via Termux:Boot. Copy to ~/.termux/boot/ and enable Wake lock.
+# Starts crond (for plan-execute 8/14/20, heartbeat every 6h) and the JARVIS stack.
+
+export HOME=/data/data/com.termux/files/home
+# Prevent device from sleeping during and after boot script
+termux-wake-lock
+
+# Give system a moment to be ready
+sleep 5
+
+# Start cron (plan-execute + heartbeat schedule)
+crond -b 2>/dev/null || true
+
+# Start adapter, proxy, gateway, webhook
+bash "$HOME/JARVIS/scripts/start-jarvis-pixel.sh" >> "$HOME/jarvis-boot.log" 2>&1

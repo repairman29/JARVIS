@@ -69,8 +69,34 @@ Code: **supabase/functions/jarvis/** (Edge Function), **apps/jarvis-ui/** (UI; `
 | [JARVIS_VISION_BACKLOG.md](./JARVIS_VISION_BACKLOG.md) | Vision/screen backlog: use cases, options (paste image, MCP, local VLM), when to implement. |
 | [REPO_INDEX.md](./REPO_INDEX.md) | Full map: skills paths, key docs, apps, Olive, ignored. |
 | [JARVIS_AGENT_ORCHESTRATION.md](./JARVIS_AGENT_ORCHESTRATION.md) | Build flow: JARVIS + BEAST MODE, Code Roach, Echeo, workflow_dispatch, sessions_spawn. |
+| [JARVIS_OWNS_SHIPPING.md](./JARVIS_OWNS_SHIPPING.md) | JARVIS owns the full ship flow (build → quality → deploy); no handoff to user. shipAccess, guardrails. |
+| [JARVIS_NEURAL_FARM_CURSOR_CHOICES.md](./JARVIS_NEURAL_FARM_CURSOR_CHOICES.md) | Canonical choices JARVIS gives for Cursor + Neural Farm (Base URL, key, model, start command). |
 | [JARVIS_TEAM_DEPLOY_AND_RUN.md](./JARVIS_TEAM_DEPLOY_AND_RUN.md) | How JARVIS deploys and runs his agent team (CLIs, workflows, token, index). |
+| [JARVIS_OPTIMAL_TEAM_SETUP.md](./JARVIS_OPTIMAL_TEAM_SETUP.md) | Optimal setup: team roster (config/team-agents.json), team-status.js, ensure-team-ready.js, one-time checklist. |
+| [AUTONOMOUS_RELEASES.md](./AUTONOMOUS_RELEASES.md) | How close we are to autonomous releases; run-autonomous-release.js (build → quality → deploy). |
+| [LONG_RUNNING_AGENTS_AND_MANAGING_A_SLEW.md](./LONG_RUNNING_AGENTS_AND_MANAGING_A_SLEW.md) | Long-running agents: what exists (autonomous JARVIS, sessions_spawn, pipeline); gap (“manage a slew”); options (registry, queue, status). |
 | [ORCHESTRATION_SCRIPTS.md](./ORCHESTRATION_SCRIPTS.md) | Index of pipeline scripts (run-team-pipeline, run-team-quality) and background/scheduled agents. |
+
+### Pixel / Android (edge node, voice)
+
+| Doc | Use |
+|-----|-----|
+| [PIXEL_MAKE_IT_WORK.md](./PIXEL_MAKE_IT_WORK.md) | **One path to working JARVIS on Pixel:** Termux+Termux:API (F-Droid), sshd, one Mac command (pixel-sync-and-start.sh). Start here. |
+| [PIXEL_TROUBLESHOOTING.md](./PIXEL_TROUBLESHOOTING.md) | SSH unreachable, WiFi/location fail, gateway /tmp, permission denied, "no such file" — fixes and inline diagnostics. |
+| [TERMUX_INSTALL_OFFICIAL.md](./TERMUX_INSTALL_OFFICIAL.md) | Termux + Termux:API from same source (F-Droid direct APK or GitHub); per official termux-app README. |
+| [SOVEREIGN_MOBILE_NEXUS.md](./SOVEREIGN_MOBILE_NEXUS.md) | **Sovereign Mobile Nexus:** architecture reference for high-fidelity autonomous agent on Pixel (ADB bypass, hybrid model, senses/hands/soul, ADB/skill tables). |
+| [PIXEL_TEST_CHECKLIST.md](./PIXEL_TEST_CHECKLIST.md) | Verify Pixel setup: ADB, stack, voice node, /voice, /speak, pixel-sensors skill. Run after setup or changes. |
+| [PIXEL_PERFECTION_ROADMAP.md](./PIXEL_PERFECTION_ROADMAP.md) | **Pixel roadmap:** phases (foundation, polish, perfection, Sovereign Nexus, stretch), status, next steps. Single place for "what's next for JARVIS on Pixel." |
+| [PIXEL_8_PRO_BADASS.md](./PIXEL_8_PRO_BADASS.md) | One-page max JARVIS on Pixel 8 Pro: one-time hardening, daily startup, voice, optional tweaks. |
+| [PIXEL_GOD_MODE.md](./PIXEL_GOD_MODE.md) | **GOD MODE checklist:** persistent server (ADB, swap, fake standby), RPC/Vulkan, voice DevOps, Cursor/BEAST/Echeo integration. |
+| [PIXEL_VOICE_RUNBOOK.md](./PIXEL_VOICE_RUNBOOK.md) | Exact commands: ADB, PulseAudio, FIFO TTS, Whisper install, voice node, Termux:API/F-Droid, Tailscale/Proot/latency. |
+| [PIXEL_VOICE_DEMO.md](./PIXEL_VOICE_DEMO.md) | How to demo and use: browser chat/voice, gateway+TTS demo, full voice node. |
+| [WAKEWORD_TRAINING.md](./WAKEWORD_TRAINING.md) | Custom wake word (e.g. "Hey JARVIS"): openWakeWord, Colab, .onnx for when onnxruntime is available on Termux. |
+| [EDGE_NATIVE_VOICE_NODE.md](./EDGE_NATIVE_VOICE_NODE.md) | Architecture: Tensor G3, voice pipeline, mapping to JARVIS scripts. |
+| [JARVIS_ON_ANDROID_COMMUNICATE.md](./JARVIS_ON_ANDROID_COMMUNICATE.md) | Chat and voice from the Pixel (18888, /voice, shortcuts). |
+| [JARVIS_AUTONOMOUS_ON_PIXEL.md](./JARVIS_AUTONOMOUS_ON_PIXEL.md) | Wake lock, Termux:Boot, cron (plan-execute, heartbeat). |
+| [SOUL_AND_PERSONA.md](./SOUL_AND_PERSONA.md) | Where SOUL/persona lives (workspace, ~/.jarvis/SOUL.md), voice system_prompt_file. |
+| [SOUL_TEMPLATE.md](./SOUL_TEMPLATE.md) | Copy to ~/.jarvis/SOUL.md for JARVIS identity and constraints. |
 
 ### Vault / secrets
 
@@ -87,6 +113,8 @@ Code: **supabase/functions/jarvis/** (Edge Function), **apps/jarvis-ui/** (UI; `
 | [JARVIS_UI_DEVELOPER_SPEC.md](./JARVIS_UI_DEVELOPER_SPEC.md) | Product/UX spec for JARVIS chat UI. |
 | [JARVIS_UI_ROADMAP.md](./JARVIS_UI_ROADMAP.md) | Phased UI roadmap. |
 | [JARVIS_VOICE.md](./JARVIS_VOICE.md) | Voice in/out (Web UI, voice-control skill); voice polish backlog checklist. |
+| [JARVIS_INSTEAD_OF_SIRI_MACOS.md](./JARVIS_INSTEAD_OF_SIRI_MACOS.md) | **Talk to JARVIS instead of Siri** on macOS Tahoe 26+: disable Siri, run at login, Web UI voice, keyboard shortcut. |
+| [JARVIS_WAKE_WORD_ROADMAP.md](./JARVIS_WAKE_WORD_ROADMAP.md) | **"Hey JARVIS" wake-by-speech:** approach comparison (browser / native macOS / Electron), phased roadmap (POC → MVP → production → multi-platform), decisions log. |
 | [JARVIS_UI_VOICE_UAT.md](./JARVIS_UI_VOICE_UAT.md) | Voice, theme & conversation UAT; local setup; checklist. |
 | [JARVIS_RAILWAY.md](./JARVIS_RAILWAY.md) | Run gateway on Railway; Edge proxies to it. |
 | [JARVIS_GATEWAY_META.md](./JARVIS_GATEWAY_META.md) | Gateway: how to send meta (tools_used, structured_result) for UI 2.6/2.7. |

@@ -1,0 +1,23 @@
+{
+  "name": "pixel-sensors",
+  "version": "1.0.0",
+  "description": "Device sensors on Pixel (Termux). Battery, WiFi, location when running on Android. Use when the user asks battery level, charging status, WiFi network, or location on the Pixel.",
+  "env": [],
+  "tools": [
+    {
+      "name": "get_pixel_device_status",
+      "description": "Get this device's status when running on a Pixel in Termux: battery level, charging state, temperature. Use when the user asks 'what's my battery', 'am I charging', 'device status', or 'how much battery left'. Returns a short summary for voice or chat.",
+      "parameters": { "type": "object", "properties": {} }
+    },
+    {
+      "name": "get_pixel_wifi",
+      "description": "Get current WiFi connection info on the Pixel (SSID, BSSID, link speed). Use when the user asks 'what WiFi am I on', 'connected network', or 'WiFi status'.",
+      "parameters": { "type": "object", "properties": {} }
+    },
+    {
+      "name": "get_pixel_location",
+      "description": "Get device location (GPS) on the Pixel. Use when the user asks 'where am I', 'my location', or 'GPS'. Requires location permission.",
+      "parameters": { "type": "object", "properties": {} }
+    }
+  ]
+}
