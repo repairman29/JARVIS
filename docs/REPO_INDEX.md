@@ -20,13 +20,17 @@ Quick reference for where things live and what to use.
 | **skills/pr/** | Public Relations / comms: key messages, press outline, social templates, media pitch, comms brief. |
 | **skills/pull-request/** | GitHub pull requests: list, create, get, merge, comment, review, request reviewers. Uses GITHUB_TOKEN. |
 | **skills/video-creation/** | Demo videos: Playwright recording, ffmpeg (MP4, GIF), voiceover. Used for Olive promo. |
+| **skills/focus-pro/** | Focus sessions and timers; macOS `say` when session ends. Hero skill (was stub, now has real timer). |
+| **skills/notion/** | Notion: search, create pages, query databases, append blocks. Hero skill. Requires NOTION_API_KEY. |
+| **skills/zendesk/** | Zendesk Support: tickets (search, get, update, comments), users/groups/orgs, CSAT, SLA, triggers/automations/macros. CXO Sidekick blueprint. Env: ZENDESK_SUBDOMAIN, ZENDESK_EMAIL, ZENDESK_API_TOKEN. |
 | **jarvis/** | JARVIS agent config, tools, skills (calculator, launcher, etc.). |
-| **skills/** | All skills (kroger, launcher, github, pr, pull-request, video-creation, etc.). |
+| **skills/** | All skills (kroger, launcher, github, pr, pull-request, video-creation, focus-pro, notion, zendesk, etc.). |
 
 ## Key docs
 
 | Doc | Use |
 |-----|-----|
+| **docs/ONE_PAGE_MAP.md** | **Project got big?** One page: nodes (Neural Farm, JARVIS, Pixel, Olive), folder cheat sheet, "I want to…" table, docs/scripts by theme. Start here if lost. |
 | **docs/JARVIS_PRODUCT_PLAN.md** | **JARVIS in one place:** vision, tracks (Windows/ROG, UI, modes, Edge/MCP, showcase), current state, next 6–12 months, references. Start here for “what’s the plan?” |
 | **docs/PREMIUM_CLARITY.md** | **Modes, premium skills, Yellow/Hot Rod:** Blue vs Yellow vs Hot Rod; how to get Yellow or Hot Rod; where premium skills live (showcase). |
 | **docs/JARVIS_GATEWAY_META.md** | **Gateway: how to send meta** — tools_used, structured_result (non-stream and streaming) for UI 2.6/2.7. |
@@ -75,6 +79,7 @@ Quick reference for where things live and what to use.
 | App | Use |
 |-----|-----|
 | **apps/jarvis-ui/** | JARVIS chat UI — Next.js app; talks to Clawdbot gateway (streaming, markdown, session). `cd apps/jarvis-ui && npm run dev` → http://localhost:3001 |
+| **apps/jarvis-wake-mac/** | "Hey JARVIS" native macOS menu bar app — Speech + AVFoundation, wake phrase, POST to gateway/Edge, TTS reply. See [README](apps/jarvis-wake-mac/README.md) and [JARVIS_WAKE_WORD_ROADMAP.md](docs/JARVIS_WAKE_WORD_ROADMAP.md). |
 
 ## Olive feedback & expansion (docs/)
 

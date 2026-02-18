@@ -17,10 +17,11 @@
 
 ## Where to start (in order)
 
-1. **docs/REPO_INDEX.md** — Map of repo (paths, key docs, apps).
-2. **docs/CURSOR_SESSION_ONBOARDING.md** — What to read first, @ mentions, Edge/Supabase, rules.
-3. **jarvis/TOOLS.md** — Scripts, skills, when to use what.
-4. **docs/JARVIS_EDGE_AUTH.md** — Edge auth (cloud vs local), sync script, troubleshooting.
+1. **docs/ONE_PAGE_MAP.md** — **Project got big?** Nodes (Farm, JARVIS, Pixel, Olive), folder cheat sheet, “I want to…” table, docs/scripts by theme. Start here if you’re lost.
+2. **docs/REPO_INDEX.md** — Map of repo (paths, key docs, apps).
+3. **docs/CURSOR_SESSION_ONBOARDING.md** — What to read first, @ mentions, Edge/Supabase, rules.
+4. **jarvis/TOOLS.md** — Scripts, skills, when to use what.
+5. **docs/JARVIS_EDGE_AUTH.md** — Edge auth (cloud vs local), sync script, troubleshooting.
 
 ---
 
@@ -34,9 +35,11 @@ Paste or adapt:
 
 ## Likely next work (from product plan / roadmap)
 
-- **JARVIS_PRODUCT_PLAN.md** §5b — Code blocks + copy, export transcript, settings modal, reconnect copy, a11y, skills list, slash commands.
-- **JARVIS_UI_ROADMAP.md** — Phased UI roadmap; **JARVIS_UI_AUDIT.md** for what’s already built.
-- **Gateway meta** — Gateway can send `meta.tools_used` and `meta.structured_result` for UI 2.6/2.7; see **docs/JARVIS_GATEWAY_META.md**.
+- **Done recently:** Session hydrate, set_pref from UI, richer heartbeat, streaming+meta, /fast and /best hint, audit log (migration + Edge + scripts/audit-log.js), DECISIONS append (scripts/append-decision.js), E2E session hydrate, gateway meta doc + checklist, hero skill stub **skills/focus-pro/** and CONTRIBUTING § Hero skill checklist. **Latest:** **Vision backend** — Edge forwards image_data_url to gateway as imageDataUrl; gateway implementers handle per GATEWAY_IMPLEMENTER. **Hero skills complete this wave:** Focus Pro (timer + macOS/Linux/Windows notify), Notion (search, create page, query database, append blocks). See **docs/HERO_SKILLS_NEXT.md**. Maintenance: prune cron in ORCHESTRATION_SCRIPTS; ecosystem doc refresh rule in DOCUMENTATION_MAP.
+- **JARVIS_UI_ROADMAP.md** — Phased UI roadmap; **JARVIS_UI_AUDIT.md** for what’s built. Phase 2–4 items are done; UI ready for `meta.tools_used` when gateway sends it.
+- **Gateway meta** — Gateway can send `meta.tools_used` and `meta.structured_result` for UI 2.6/2.7; see **docs/JARVIS_GATEWAY_META.md** (implementation checklist §6). UI and Edge are ready.
+- **Next:** Vision: Edge merges pasted image into last user message (multimodal); use a vision-capable model in the gateway. Notion MCP alignment when ready. Voice polish if usage justifies (JARVIS_VOICE). Autonomous: add plan-execute to cron (`node scripts/add-plan-execute-cron.js --add`); optional multi-day goal via `node scripts/set-autonomous-goal.js`.
+- **Ecosystem doc sync:** When adding a product or pattern, update clawd **PRODUCTS.md** and consider citing or refreshing **docs/AGENTIC_AUTONOMY_2026_ECOSYSTEM.md**. See **docs/JARVIS_MASTER_ROADMAP.md** §3 item 9.
 
 ---
 

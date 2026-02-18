@@ -8,6 +8,7 @@
 
 | Goal | Doc |
 |------|-----|
+| **Project got big? One-page map (nodes, folders, “I want to…”)** | [docs/ONE_PAGE_MAP.md](./ONE_PAGE_MAP.md) |
 | **JARVIS plan (vision, tracks, next steps)** | [docs/JARVIS_PRODUCT_PLAN.md](./JARVIS_PRODUCT_PLAN.md) |
 | **JARVIS roadmap (all tracks + 2026 ecosystem)** | [docs/JARVIS_MASTER_ROADMAP.md](./JARVIS_MASTER_ROADMAP.md) |
 | **Repo map (where everything lives)** | [docs/REPO_INDEX.md](./REPO_INDEX.md) |
@@ -82,11 +83,17 @@ Code: **supabase/functions/jarvis/** (Edge Function), **apps/jarvis-ui/** (UI; `
 | Doc | Use |
 |-----|-----|
 | [PIXEL_MAKE_IT_WORK.md](./PIXEL_MAKE_IT_WORK.md) | **One path to working JARVIS on Pixel:** Termux+Termux:API (F-Droid), sshd, one Mac command (pixel-sync-and-start.sh). Start here. |
+| [PIXEL_TEST_AND_RUN_OPTIMAL.md](./PIXEL_TEST_AND_RUN_OPTIMAL.md) | **Test and run optimally:** get running → test checklist → hardening, swap, voice config, SOUL; quick reference table. |
+| [PIXEL_ONE_PLAN_BADASS_GOD_MODE.md](./PIXEL_ONE_PLAN_BADASS_GOD_MODE.md) | **One plan:** JARVIS on Pixel → Badass → God Mode. Single ordered path; copy-paste steps; use after a clean start or reinstall. |
 | [PIXEL_TROUBLESHOOTING.md](./PIXEL_TROUBLESHOOTING.md) | SSH unreachable, WiFi/location fail, gateway /tmp, permission denied, "no such file" — fixes and inline diagnostics. |
 | [TERMUX_INSTALL_OFFICIAL.md](./TERMUX_INSTALL_OFFICIAL.md) | Termux + Termux:API from same source (F-Droid direct APK or GitHub); per official termux-app README. |
 | [SOVEREIGN_MOBILE_NEXUS.md](./SOVEREIGN_MOBILE_NEXUS.md) | **Sovereign Mobile Nexus:** architecture reference for high-fidelity autonomous agent on Pixel (ADB bypass, hybrid model, senses/hands/soul, ADB/skill tables). |
 | [PIXEL_TEST_CHECKLIST.md](./PIXEL_TEST_CHECKLIST.md) | Verify Pixel setup: ADB, stack, voice node, /voice, /speak, pixel-sensors skill. Run after setup or changes. |
 | [PIXEL_PERFECTION_ROADMAP.md](./PIXEL_PERFECTION_ROADMAP.md) | **Pixel roadmap:** phases (foundation, polish, perfection, Sovereign Nexus, stretch), status, next steps. Single place for "what's next for JARVIS on Pixel." |
+| [PIXEL_EDGE_NATIVE_SOVEREIGN_ROADMAP.md](./PIXEL_EDGE_NATIVE_SOVEREIGN_ROADMAP.md) | **Edge-Native Sovereign roadmap:** design doc → phased plan (persistence, Tensor G3, Tailscale, hybrid model, voice loop, Cursor autonomy, heartbeat/memory, actuation, security). Use for "mission" ordering. |
+| [PIXEL_PHASES_ONE_BY_ONE.md](./PIXEL_PHASES_ONE_BY_ONE.md) | **Phases 0–9 one by one:** copy-paste checklist per phase (do this → test → next). Use when walking the roadmap stepwise. |
+| [PIXEL_PHASES_MAX_SPEED.md](./PIXEL_PHASES_MAX_SPEED.md) | **Max speed:** minimal steps 1–9 + one-shot SSH script for swap/FIFO/SOUL/cron. |
+| [PIXEL_OPTIONAL_STEPS.md](./PIXEL_OPTIONAL_STEPS.md) | **Optional:** Wakelock (ADB), Tailscale (remote access), SOUL (edit personality). |
 | [PIXEL_8_PRO_BADASS.md](./PIXEL_8_PRO_BADASS.md) | One-page max JARVIS on Pixel 8 Pro: one-time hardening, daily startup, voice, optional tweaks. |
 | [PIXEL_GOD_MODE.md](./PIXEL_GOD_MODE.md) | **GOD MODE checklist:** persistent server (ADB, swap, fake standby), RPC/Vulkan, voice DevOps, Cursor/BEAST/Echeo integration. |
 | [PIXEL_VOICE_RUNBOOK.md](./PIXEL_VOICE_RUNBOOK.md) | Exact commands: ADB, PulseAudio, FIFO TTS, Whisper install, voice node, Termux:API/F-Droid, Tailscale/Proot/latency. |
