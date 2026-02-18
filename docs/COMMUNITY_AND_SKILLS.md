@@ -57,3 +57,28 @@ Adding or improving a hero skill: follow CONTRIBUTING (skill structure, docs, PR
 | **See where skills live** | [REPO_INDEX.md](./REPO_INDEX.md) § Skills |
 | **Skill marketplace / listing** | Showcase site + product plan |
 | **Hero / premium skills** | [JARVIS_PRODUCT_PLAN.md](./JARVIS_PRODUCT_PLAN.md) §2, [PREMIUM_CLARITY.md](./PREMIUM_CLARITY.md) |
+
+**Done:** Hero skills **skills/focus-pro/** (timer + macOS `say` when session ends) and **skills/notion/** (stub: notion_search; add NOTION_API_KEY and implement). CONTRIBUTING § "Hero skill checklist" documents stub-first and product alignment.
+
+---
+
+## What others are doing (Clawdbot ecosystem)
+
+The broader Clawdbot / OpenClaw community (e.g. [ClawdBotAI](https://clawdbotai.co/skills), [getclawdbot.org](https://getclawdbot.org/docs/api)) uses **50+ to 565+ skills** in similar categories. This helps decide which skills to add or improve next.
+
+| Category | Popular in ecosystem | In this repo |
+|----------|----------------------|--------------|
+| **Productivity** | Gmail, Google Calendar, Notion, Obsidian | Notion ✅, google-workspace, microsoft-365, quick-notes, reminders |
+| **Developer** | GitHub, Sentry, Shell, Docker | github ✅, pr, pull-request, repo-knowledge; no Docker/Sentry |
+| **Information** | Web search, Wikipedia, Weather, News | web-search ✅, wikipedia ✅, weather ✅, news ✅ |
+| **Media / fun** | Spotify, YouTube, Twitter/X | video-creation, voice-control |
+| **Smart home** | Philips Hue, Home Assistant, Apple HomeKit | — |
+| **Browser** | Browse, fill forms, screenshots | — (MCP/browser is separate) |
+
+**High-value, low-friction adds** (no or simple API keys, commonly requested):
+
+- **Wikipedia** — definitions and summaries; MediaWiki API, no key. ✅ **skills/wikipedia/**.
+- **Weather** — Open-Meteo (free, no key). ✅ **skills/weather/**.
+- **News** — RSS headlines (BBC, NPR, Reuters). ✅ **skills/news/**.
+
+**References:** [ClawdBot Skills Library](https://clawdbotai.co/skills), [OpenClaw skills docs](https://docs.clawd.bot/tools/skills), [CONTRIBUTING.md](../CONTRIBUTING.md).

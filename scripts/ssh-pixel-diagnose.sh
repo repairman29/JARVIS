@@ -2,7 +2,7 @@
 # From Mac: SSH to Pixel and run stack diagnostic (why Proxy/Gateway 000).
 # Usage: ./scripts/ssh-pixel-diagnose.sh [pixel-ip]
 
-USER="jefe"
+USER="${TERMUX_USER:-u0_a310}"
 PORT="8022"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CACHE_FILE="$SCRIPT_DIR/../.pixel-ip"

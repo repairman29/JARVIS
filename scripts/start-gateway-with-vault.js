@@ -49,7 +49,10 @@ const GATEWAY_KEYS = [
   'NETLIFY_AUTH_TOKEN',
   'JARVIS_DISCORD_USER_ID',
   'BRAVE_API_KEY',
-  'BRAVE_SEARCH_API_KEY'
+  'BRAVE_SEARCH_API_KEY',
+  'ZENDESK_SUBDOMAIN',
+  'ZENDESK_EMAIL',
+  'ZENDESK_API_TOKEN'
 ];
 
 async function main() {
@@ -99,9 +102,28 @@ async function main() {
   }
 
   const repoRoot = path.resolve(__dirname, '..');
+  const workspaceJarvis = path.join(repoRoot, 'jarvis');
   // On Railway (or any cloud with PORT), ensure OpenClaw config enables HTTP chat completions.
   // Locally: do not overwrite ~/.clawdbot/clawdbot.json so user's primary model and tools stay intact.
   const isCloud = process.env.RAILWAY_PUBLIC_DOMAIN || (process.env.PORT && process.env.RAILWAY_PROJECT_ID);
+  // Local: ensure workspace points at repo jarvis so AGENTS.md, TOOLS.md, and skills (e.g. clock) load
+  if (!isCloud && fs.existsSync(workspaceJarvis)) {
+    const clawdbotJson = path.join(home, '.clawdbot', 'clawdbot.json');
+    if (fs.existsSync(clawdbotJson)) {
+      try {
+        const config = JSON.parse(fs.readFileSync(clawdbotJson, 'utf8'));
+        if (!config.agents) config.agents = {};
+        if (!config.agents.defaults) config.agents.defaults = {};
+        const current = config.agents.defaults.workspace;
+        if (current !== workspaceJarvis) {
+          config.agents.defaults.workspace = workspaceJarvis;
+          fs.writeFileSync(clawdbotJson, JSON.stringify(config, null, 2), 'utf8');
+        }
+      } catch (_) {
+        // Non-fatal: user config may be invalid
+      }
+    }
+  }
   const configPath = path.join(repoRoot, 'config', 'railway-openclaw.json');
   if (isCloud && fs.existsSync(configPath)) {
     const openclawDirs = [path.join(home, '.openclaw')];

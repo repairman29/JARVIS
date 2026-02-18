@@ -1,0 +1,17 @@
+# Voice node (scripts/voice_node.py) on Pixel / Termux.
+# Install: pip install -r scripts/voice_node_requirements.txt
+# Optional: PyYAML for voice_node_config.yaml; torch+silero-vad for Silero VAD.
+
+sounddevice>=0.4.6
+numpy>=1.20.0
+openwakeword>=0.5.0
+requests>=2.28.0
+PyYAML>=5.4
+
+# Optional: use Python Whisper instead of whisper.cpp (heavy on Termux)
+# whisper
+
+# Optional: Silero VAD (replace simple energy VAD; requires torch)
+# silero-vad
+# torch
+# torchaudio

@@ -1,0 +1,16 @@
+{
+  "name": "team-status",
+  "version": "1.0.0",
+  "description": "Read team agent status (who's on the team and ready). Use when the user asks who is available, team status, or which agents can run. Refresh with: node scripts/team-status.js",
+  "env": [],
+  "tools": [
+    {
+      "name": "get_team_status",
+      "description": "Get the current team status: which agents are on the roster and which are available (CLI present). Use when the user asks 'who's on the team', 'team status', 'who can run', or 'is BEAST MODE available'. Data comes from ~/.jarvis/team-status.json (updated by node scripts/team-status.js).",
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ]
+}

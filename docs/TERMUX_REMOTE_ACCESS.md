@@ -59,7 +59,7 @@ Uses the same IP as the log script (ADB or cache). You get an interactive shell 
 
 ```bash
 ssh -p 8022 <username>@<pixel-ip>
-# Example: ssh -p 8022 jefe@192.168.86.209
+# Example: ssh -p 8022 u0_a310@192.168.86.209
 ```
 
 Use the password you set. Then you’re in a Termux shell and can run:

@@ -244,22 +244,25 @@ On Pixel/Termux the node runs in **manual trigger** mode (press Enter to record)
 
 ## 9. Optional: Swap file
 
-If the device runs out of memory (e.g. during long conversations or large models), add a file-based swap in Termux:
+If the device runs out of memory (e.g. during long conversations or large models), add a file-based swap in Termux.
 
+**One command (install util-linux, format, try to enable):**
 ```bash
-dd if=/dev/zero of=~/swapfile bs=1024 count=2097152   # 2 GB
+bash ~/JARVIS/scripts/setup-swap-termux.sh
+```
+
+**Manual steps:** Install `util-linux` (provides `mkswap`/`swapon`), then create and enable swap:
+```bash
+pkg install util-linux -y
+dd if=/dev/zero of=~/swapfile bs=1024 count=4194304   # 4 GB
 chmod 600 ~/swapfile
 mkswap ~/swapfile
 swapon ~/swapfile
 ```
 
-To enable swap again after a reboot:
+**Re-enable after reboot:** `swapon ~/swapfile` (or add that line to `~/.bashrc`; the script can add it for you if swap turns on successfully).
 
-```bash
-swapon ~/swapfile
-```
-
-(You can add this to `termux-boot-start-jarvis` or a small boot script.)
+**If `swapon` fails:** On stock (non-rooted) Android, the kernel often blocks swap for apps. Options: (1) use a rooted device and run `su` then `swapon ~/swapfile`; (2) rely on system zRAM; (3) Shizuku + Termux (advanced). The swap file is still created and ready for when you have root.
 
 ---
 

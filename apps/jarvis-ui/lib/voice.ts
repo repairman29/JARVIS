@@ -60,7 +60,7 @@ export interface SpeakOptions {
   pitch?: number;
 }
 
-/** Speak text using browser SpeechSynthesis. Returns a function to cancel. */
+/** Speak text using browser SpeechSynthesis. Returns a function to cancel. Respects prefers-reduced-motion (no auto-speak). */
 export function speak(text: string, options: SpeakOptions = {}): () => void {
   const plain = markdownToPlainText(text);
   if (!plain) {
@@ -68,6 +68,10 @@ export function speak(text: string, options: SpeakOptions = {}): () => void {
     return () => {};
   }
   if (typeof window === 'undefined' || !window.speechSynthesis) {
+    options.onEnd?.();
+    return () => {};
+  }
+  if (prefersReducedMotion()) {
     options.onEnd?.();
     return () => {};
   }
@@ -94,4 +98,10 @@ export function stopSpeaking(): void {
 /** Whether TTS is supported in this environment. */
 export function isTTSSupported(): boolean {
   return typeof window !== 'undefined' && !!window.speechSynthesis;
+}
+
+/** User prefers reduced motion (OS/browser setting). When true, avoid auto-playing TTS. */
+export function prefersReducedMotion(): boolean {
+  if (typeof window === 'undefined' || !window.matchMedia) return false;
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }

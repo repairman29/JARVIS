@@ -3,7 +3,7 @@
 # You will be prompted once for your Termux SSH password.
 # Usage: ./scripts/ssh-pixel-start-jarvis.sh [pixel-ip]
 
-USER="jefe"
+USER="${TERMUX_USER:-u0_a310}"
 PORT="8022"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CACHE_FILE="$SCRIPT_DIR/../.pixel-ip"

@@ -121,6 +121,7 @@ Tune these when you lock a launch or a premium offering.
 
 | Topic | Doc |
 |-------|-----|
+| **Master roadmap** (all tracks + 2026 ecosystem backlog) | [JARVIS_MASTER_ROADMAP.md](./JARVIS_MASTER_ROADMAP.md) |
 | **Developer supremacy** (unbeatable JARVIS playbook) | [JARVIS_DEVELOPER_SUPREMACY.md](./JARVIS_DEVELOPER_SUPREMACY.md) |
 | **JARVIS smarter** (current smarts + next-level levers) | [JARVIS_SMARTER.md](./JARVIS_SMARTER.md) |
 | Windows/ROG roadmap (done) | [JARVIS_ROADMAP.md](../JARVIS_ROADMAP.md) |

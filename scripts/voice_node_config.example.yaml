@@ -1,0 +1,52 @@
+# Voice node config for JARVIS on Pixel (Termux).
+# Copy to ~/.jarvis/voice_node.yaml and edit.
+#
+# See docs/PIXEL_VOICE_RUNBOOK.md for PulseAudio, FIFO TTS, and dependencies.
+
+# Gateway (Clawdbot) — same as chat server
+gateway_url: "http://127.0.0.1:18789"
+gateway_agent_id: "main"
+
+# Audio: 16 kHz mono for wake word and STT
+sample_rate: 16000
+# Ring buffer length in seconds (pre-roll for wake word)
+ring_buffer_seconds: 2.0
+# Chunk size for wake word (80 ms = 1280 samples at 16 kHz)
+chunk_samples: 1280
+
+# Wake word: openwakeword model (empty = use default bundled models)
+# Custom: path to .onnx (e.g. trained "Hey Clawd" from docs/WAKEWORD_TRAINING.md)
+wakeword_models: []   # e.g. ["/data/data/com.termux/files/home/.jarvis/models/hey_clawd.onnx"]
+# 0.8 recommended for always-on to reduce false positives; 0.5 more sensitive
+wakeword_threshold: 0.5
+# Phrase to show in logs
+wake_phrase: "Hey JARVIS"
+
+# VAD: end-of-utterance. Simple energy-based (no extra deps).
+# Silence = RMS below this fraction of recent max
+vad_silence_threshold: 0.08
+# Seconds of silence before considering utterance complete (0.6 = snappier on Pixel)
+vad_silence_seconds: 0.7
+# Max recording length (seconds) after wake
+vad_max_utterance_seconds: 15.0
+
+# STT: Whisper. Run: bash ~/JARVIS/scripts/install-whisper-termux.sh (then --write-config or paste printed line)
+#   - whisper_cmd: "path/to/whisper-cli -m path/to/ggml-base.en.bin -l en -otxt -f"  (voice_node appends .wav path)
+#   - whisper_python: true  (use 'whisper' pip package; heavy on Termux)
+whisper_cmd: ""       # e.g. "$HOME/whisper.cpp/build/bin/whisper-cli -m $HOME/whisper.cpp/models/ggml-base.en.bin -l en -otxt -f"
+whisper_python: false # set true if using pip install whisper
+
+# TTS: write one sentence per line to this FIFO. Reader: while true; do cat FIFO | termux-tts-speak; done
+tts_fifo: ""          # e.g. "/data/data/com.termux/files/home/.tts_pipe"
+# If empty, script will try $TTS_FIFO or ~/.tts_pipe
+# Send "__STOP__" line to interrupt current TTS (barge-in)
+tts_barge_in_signal: "__STOP__"
+
+# System prompt: short replies for TTS. Pixel 8 Pro default:
+system_prompt: "You are JARVIS, a sharp voice assistant on this device. Be concise and direct. Reply in short, spoken sentences. No lists or markdown. You can run code, search, and use tools—say what you did briefly."
+# Optional: load persona from a file (first 1500 chars used for voice). Gateway still uses workspace jarvis/SOUL.md for full context.
+# system_prompt_file: "~/.jarvis/SOUL.md"
+
+# When true (default), strip "Hey JARVIS" / "JARVIS" from the start of the transcript before sending to the gateway.
+# Lets you say "Hey JARVIS, what time is it?" in manual-trigger mode without Chrome.
+strip_wake_phrase_from_transcript: true

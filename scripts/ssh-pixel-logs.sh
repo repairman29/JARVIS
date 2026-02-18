@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # From the Mac: SSH into Termux and print JARVIS logs (gateway, plan-execute, curl checks).
 # You will be prompted for your Termux user password (the one you set with passwd).
-# Prereq: Pixel on same Wi‑Fi, SSH in Termux (sshd on 8022), username jefe.
+# Prereq: Pixel on same Wi‑Fi, SSH in Termux (sshd on 8022), username u0_a310.
 # Usage: ./scripts/ssh-pixel-logs.sh [pixel-ip]
 # If no IP given: tries ADB, then cached IP from last successful ADB, then default.
 
-USER="jefe"
+USER="${TERMUX_USER:-u0_a310}"
 PORT="8022"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CACHE_FILE="$SCRIPT_DIR/../.pixel-ip"

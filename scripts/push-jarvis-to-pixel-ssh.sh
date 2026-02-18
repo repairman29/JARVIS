@@ -11,7 +11,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 JARVIS_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 FARM_ROOT="${NEURAL_FARM_DIR:-$(dirname "$JARVIS_ROOT")/neural-farm}"
 OUT="/tmp/jarvis-pixel-push"
-USER="${TERMUX_USER:-jefe}"
+USER="${TERMUX_USER:-u0_a310}"
 PORT="8022"
 CACHE_FILE="$JARVIS_ROOT/.pixel-ip"
 

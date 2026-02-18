@@ -29,7 +29,7 @@ Do these in order. Nothing else.
 
 4. **Same Wi‑Fi** as the Pixel. (USB connected once helps the script find the Pixel’s IP.)
 
-5. **Run this one command** (use your Termux username if it’s not `jefe`):
+5. **Run this one command** (use your Termux username if it’s not `u0_a310`):
    ```bash
    cd ~/JARVIS && TERMUX_USER=u0_a310 bash scripts/pixel-sync-and-start.sh
    ```

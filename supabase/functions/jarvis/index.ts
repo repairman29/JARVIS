@@ -54,12 +54,14 @@ async function loadSessionContext(
   return recent;
 }
 
-/** System prompt for JARVIS when used from the web UI (REST chat). Injects identity and channel context so JARVIS doesn't claim it "can't access" repos—it clarifies where it *does* have access (Cursor). */
-const WEB_UI_SYSTEM_PROMPT = `You are JARVIS (Just A Rather Very Intelligent System), repairman29's AI. Voice: modern, concise by default; never say "I cannot" without offering an alternative. Proactive, resourceful, loyal to the user's success.
+/** System prompt for JARVIS when used from the web UI (REST chat). Emphasize what JARVIS can do here; only mention Cursor when the user explicitly needs live repo/exec. */
+const WEB_UI_SYSTEM_PROMPT = `You are JARVIS (Just A Rather Very Intelligent System), repairman29's AI. Voice: modern, concise by default. Proactive, resourceful, loyal to the user's success. Never lead with "I can't" — do what you can, then offer one clear alternative only when something truly requires a different context.
 
-**Channel: Web chat (JARVIS UI).** You do NOT have live access to the user's codebase or GitHub repos in this chat. When they mention a repo (e.g. repairman29/BEAST-MODE, repairman29/JARVIS) or say "you've already scanned it" or "you can access it": acknowledge the project warmly, then say that for code review, improvements, or reading their repo you need either (1) them to open that repo in Cursor and ask you there—where you have full workspace access—or (2) they paste specific files or snippets here and you'll help. Do not say "I can't access GitHub" or "I cannot access external repositories"; instead say you don't have live repo access in this chat and point them to Cursor or pasted code.
+**Channel: Web chat (JARVIS UI).** This is a first-class place to use JARVIS. Default behavior: answer fully, use your tools, and get things done here.
 
-**What you CAN do here:** Answer questions, brainstorm, product/PM thinking (PRDs, roadmaps, metrics), suggest next actions, use any tools the gateway exposes (e.g. web search). When asked "which version" or "what capabilities," say you're JARVIS with productivity and reasoning capabilities, and for code/repo work they get the full experience in Cursor. End with a clear next action when appropriate.
+**Do here by default:** Answer questions (time, date, facts, how-to). Use tools the gateway exposes: web search, clock, launcher, workflows, and any other skills available. Brainstorm, product/PM thinking (PRDs, roadmaps, metrics), suggest next actions. For code: explain, write snippets, suggest changes — if they paste code or file paths you can help; if they describe a repo or product, answer from your knowledge and suggest they paste the relevant snippet if they want line-by-line edits. End with a clear next action when appropriate.
+
+**Only when the user explicitly needs live repo access or host exec:** If they ask you to "read my repo," "edit the file in my project," or "run this on my machine" and you have no tool that can do it here, then in one short sentence say that for live file/repo access or running commands on their machine they can use Cursor (or paste the snippet here and you'll tell them exactly what to change). Do not bring up Cursor or "come back to Cursor" for general questions, time, search, brainstorming, or when you can answer or use tools in this chat.
 
 **Known products (use these descriptions; do not invent a domain):** BEAST-MODE = quality intelligence, AI Janitor, vibe restore, architecture checks, invisible CI (JARVIS's quality agent). JARVIS = AI assistant, ops, skills, gateway. Olive = shopolive.xyz product. Echeo = capability scan, bounty matching. MythSeeker = AI Dungeon Master / RPG.`;
 
@@ -240,9 +242,10 @@ const MCP_TOOLS = [
 async function callGateway(
   gatewayUrl: string,
   gatewayToken: string,
-  messages: { role: string; content: string }[],
+  messages: { role: string; content: string | unknown[] }[],
   sessionId: string,
-  stream: boolean
+  stream: boolean,
+  imageDataUrl?: string
 ): Promise<{ content?: string; meta?: Record<string, unknown>; res?: Response; err?: string }> {
   const chatUrl = `${gatewayUrl.replace(/\/$/, "")}/v1/chat/completions`;
   const headers: Record<string, string> = {
@@ -251,15 +254,18 @@ async function callGateway(
   };
   if (gatewayToken) headers["Authorization"] = `Bearer ${gatewayToken}`;
 
+  const body: Record<string, unknown> = {
+    model: "openclaw:main",
+    messages,
+    stream,
+    user: sessionId,
+  };
+  if (imageDataUrl && typeof imageDataUrl === "string") body.imageDataUrl = imageDataUrl;
+
   const res = await fetch(chatUrl, {
     method: "POST",
     headers,
-    body: JSON.stringify({
-      model: "openclaw:main",
-      messages,
-      stream,
-      user: sessionId,
-    }),
+    body: JSON.stringify(body),
     signal: AbortSignal.timeout(120000),
   });
 
@@ -452,6 +458,27 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ ok: true, key, scope });
   }
 
+  if (action === "audit_log") {
+    const supabase = getSupabase();
+    if (!supabase) return jsonResponse({ error: "Audit log not available" }, 503);
+    const eventAction = (body.event_action ?? body.audit_action ?? body.action) as string | undefined;
+    const auditAction = typeof eventAction === "string" ? eventAction.trim() : "";
+    if (!auditAction) return jsonResponse({ error: "event_action (or audit_action) required" }, 400);
+    const details = body.details != null ? (typeof body.details === "object" ? body.details : { raw: body.details }) : null;
+    const auditSessionId = typeof body.session_id === "string" ? body.session_id.trim() || null : null;
+    const channel = typeof body.channel === "string" ? body.channel.trim() || null : null;
+    const actor = typeof body.actor === "string" ? body.actor.trim() || null : null;
+    const { error: insertErr } = await supabase.from("jarvis_audit_log").insert({
+      action: auditAction,
+      details,
+      session_id: auditSessionId,
+      channel,
+      actor,
+    });
+    if (insertErr) return jsonResponse({ error: insertErr.message }, 500);
+    return jsonResponse({ ok: true });
+  }
+
   if (action === "current_time") {
     const tz = typeof body.timezone === "string" ? body.timezone.trim() : "";
     const content = tz
@@ -505,11 +532,40 @@ Deno.serve(async (req: Request) => {
     const prefs = await loadPrefs(supabaseForPrefs, sessionId);
     if (prefs) systemContent += "\n\n" + prefs;
   }
+  const modelHint = body.model_hint as string | undefined;
+  if (modelHint === "fast") systemContent += "\n\nUser requested: use the fast/cheap model for this turn (quick answers).";
+  if (modelHint === "best") systemContent += "\n\nUser requested: use the best/strong model for this turn (deep work, complex reasoning).";
   const messagesWithSystem = hasSystem
     ? messages
     : [{ role: "system" as const, content: systemContent }, ...messages];
 
-  const result = await callGateway(gatewayUrl, gatewayToken, messagesWithSystem, sessionId, wantStream);
+  const imageDataUrl = typeof body.image_data_url === "string" && body.image_data_url.trim()
+    ? body.image_data_url.trim()
+    : undefined;
+
+  // Vision: merge image into last user message as multimodal content (OpenAI-style) so vision-capable models receive it.
+  let messagesToSend: { role: string; content: string | unknown[] }[] = messagesWithSystem;
+  if (imageDataUrl) {
+    const lastUserIdx = messagesWithSystem.map((m) => m.role).lastIndexOf("user");
+    if (lastUserIdx >= 0) {
+      const last = messagesWithSystem[lastUserIdx];
+      const textContent = typeof last.content === "string" ? last.content : String(last.content ?? "");
+      messagesToSend = [...messagesWithSystem];
+      (messagesToSend[lastUserIdx] as { role: string; content: unknown[] }).content = [
+        { type: "text", text: textContent || "What's in this image?" },
+        { type: "image_url", image_url: { url: imageDataUrl } },
+      ];
+    }
+  }
+
+  const result = await callGateway(
+    gatewayUrl,
+    gatewayToken,
+    messagesToSend,
+    sessionId,
+    wantStream,
+    undefined // already merged into messages when imageDataUrl was set
+  );
 
   if (result.err) {
     return jsonResponse({ error: result.err }, 502);
@@ -530,6 +586,7 @@ Deno.serve(async (req: Request) => {
   }
 
   if (result.res && result.res.body) {
+    // Stream is passed through as-is. UI expects meta (tools_used, structured_result) in SSE data when gateway sends it.
     return new Response(result.res.body, {
       status: 200,
       headers: {

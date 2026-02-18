@@ -1,7 +1,7 @@
 [
-  {"name":"BEAST-MODE","repo":"BEAST-MODE","description":"Quality intelligence, AI Janitor, vibe restore, architecture checks, invisible CI — JARVIS's quality agent","status":"active","deepWorkAccess":true},
+  {"name":"BEAST-MODE","repo":"BEAST-MODE","description":"Quality intelligence, AI Janitor, vibe restore, architecture checks, invisible CI — JARVIS's quality agent","status":"active","deepWorkAccess":true,"shipAccess":true},
   {"name":"JARVIS","repo":"JARVIS","description":"AI assistant, ops, skills, gateway — conversational productivity","status":"active"},
-  {"name":"Olive","repo":"olive","description":"Olive product (shopolive.xyz)","status":"active"},
+  {"name":"Olive","repo":"olive","description":"Olive product (shopolive.xyz)","status":"active","shipAccess":true},
   {"name":"Echeo","repo":"echeo","description":"Echeo platform — capability scan, bounty matching","status":"active"},
   {"name":"MythSeeker","repo":"MythSeeker","description":"AI Dungeon Master / RPG","status":"active"}
 ]

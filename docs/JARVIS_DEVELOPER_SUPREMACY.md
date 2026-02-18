@@ -20,12 +20,13 @@
 | **Goodies first** | Before building from scratch, JARVIS checks repairman29 repos for existing implementations | [JARVIS_AND_YOUR_REPOS.md](./JARVIS_AND_YOUR_REPOS.md), [jarvis/AGENTS.md](../jarvis/AGENTS.md) |
 | **Ship access** | Commit, push, deploy, workflow_dispatch for products with `shipAccess: true` | products.json, [JARVIS_FULL_ACCESS_ONE_PRODUCT.md](./JARVIS_FULL_ACCESS_ONE_PRODUCT.md) |
 | **Platform CLIs (maestro)** | Vercel, Railway, Stripe, Fly, Cursor — one command, then report | [jarvis/TOOLS.md](../jarvis/TOOLS.md) → Platform CLIs |
-| **Triad / swarm** | One pass = PM + Eng + QA (+ UX, Ops). PRD outline, issues, test plan in one go | [jarvis/PO_SWARMS.md](../jarvis/PO_SWARMS.md) |
+| **Triad / swarm** | One pass = PM + Eng + QA (+ UX, Ops). PRD outline, issues, test plan in one go. When to use vs single pass: [jarvis/PO_SWARMS.md](../jarvis/PO_SWARMS.md) § When to use swarm vs single pass. | [jarvis/PO_SWARMS.md](../jarvis/PO_SWARMS.md) |
 | **BEAST-MODE PM** | JARVIS as product manager for BEAST-MODE: quality, architecture, invisible CI | [jarvis/BEAST_MODE_PM.md](../jarvis/BEAST_MODE_PM.md) |
 | **Background agents** | Long tasks (refactors, multi-step builds) run in background; checkpoints + final summary | sessions_spawn, [REPAIRMAN29_OPERATIONS.md](./REPAIRMAN29_OPERATIONS.md) |
 | **Autonomous build** | Scheduled pull, validate, build so the repo stays green without you | `node scripts/jarvis-autonomous-build.js`, [REPAIRMAN29_OPERATIONS.md](./REPAIRMAN29_OPERATIONS.md) |
 | **Hot Rod mode** | Best model first (Claude, GPT-4o) when you need maximum reasoning | [GETTING_STARTED_MODES.md](../GETTING_STARTED_MODES.md) |
 | **Workflows** | Repeatable combos: “morning routine,” “deploy and notify,” “PR + deploy” | workflow-automation skill, create_workflow + execute_workflow |
+| **Zendesk (CXO Sidekick)** | Tickets, agents, groups, CSAT, SLA, triggers/automations — support visibility and actions in one place | zendesk skill, [ZENDESK_CXO_SIDEKICK_BLUEPRINT.md](./ZENDESK_CXO_SIDEKICK_BLUEPRINT.md), jarvis/TOOLS.md → Zendesk |
 | **Agent orchestration** | JARVIS uses BEAST MODE, Code Roach, Echeo, workflow_dispatch, sessions_spawn to build products | [JARVIS_AGENT_ORCHESTRATION.md](./JARVIS_AGENT_ORCHESTRATION.md), jarvis/AGENTS.md |
 
 ---

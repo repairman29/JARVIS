@@ -1,0 +1,26 @@
+{
+  "name": "focus-pro",
+  "version": "0.1.0",
+  "description": "Focus sessions, timers, and deep-work blocks. Hero skill stub; implement timers and session tracking for JARVIS.",
+  "env": [],
+  "tools": [
+    {
+      "name": "start_focus_session",
+      "description": "Start a focus session (e.g. 25 min Pomodoro or custom duration). Use when the user says they want to focus, start a timer, or do deep work.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "duration_minutes": {
+            "type": "number",
+            "description": "Length of the focus block in minutes (e.g. 25 for Pomodoro)",
+            "default": 25
+          },
+          "label": {
+            "type": "string",
+            "description": "Optional label for the session (e.g. 'writing', 'code review')"
+          }
+        }
+      }
+    }
+  ]
+}

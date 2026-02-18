@@ -131,11 +131,9 @@ curl -X POST http://<pixel-ip>:18888/speak -H "Content-Type: application/json" -
   pip install 'litellm[proxy]'
   ```
   Then run `bash ~/start-jarvis.sh` again.
-- **pip install litellm fails (fastuuid build / "error installing build dependencies"):** Use the **Termux User Repository** so pip gets pre-built wheels instead of compiling:
+- **pip install litellm fails (fastuuid build / "error installing build dependencies"):** The install script tries TUR and then falls back to **litellm&lt;1.76.1** (no fastuuid). Run:
   ```bash
-  pkg install python-cryptography
-  pip install --extra-index-url https://termux-user-repository.github.io/pypi/ fastuuid
-  pip install --extra-index-url https://termux-user-repository.github.io/pypi/ 'litellm[proxy]'
+  bash ~/JARVIS/scripts/install-litellm-termux.sh
   ```
-  If that still fails, try base litellm plus minimal proxy deps: `pip install litellm uvicorn "fastapi" pyyaml aiohttp` then run `bash ~/start-jarvis.sh` (proxy may have fewer features).
+  It will try: TUR + fastuuid + latest litellm, then minimal deps, then `litellm[proxy]<1.76.1` or `litellm<1.76.1` + uvicorn/fastapi/pyyaml/aiohttp. If that still fails, run `bash ~/start-jarvis.sh` anyway—the gateway will use the adapter at 8888 and chat will work without the proxy.
 - **Gateway 000 / "EACCES: permission denied, mkdir '/tmp/clawdbot'":** Termux can't write `/tmp`. The start script now sets `TMPDIR=~/tmp`; push the latest scripts and run `bash ~/start-jarvis.sh` again. Or once in Termux: `mkdir -p ~/tmp && export TMPDIR=$HOME/tmp` before starting the gateway.

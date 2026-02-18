@@ -1,0 +1,49 @@
+{
+  "name": "wikipedia",
+  "version": "1.0.0",
+  "description": "Search Wikipedia and get article summaries. No API key required. Use for definitions, factual overviews, and 'what is X' questions.",
+  "env": [],
+  "tools": [
+    {
+      "name": "wikipedia_search",
+      "description": "Search Wikipedia for articles matching a query. Returns titles, short snippets, and page IDs. Use when the user asks to search or find something on Wikipedia.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search query (e.g. 'machine learning', 'Paris', 'quantum computing')"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Max number of results to return (default 5, max 10)",
+            "default": 5
+          }
+        },
+        "required": ["query"]
+      }
+    },
+    {
+      "name": "wikipedia_summary",
+      "description": "Get the introductory summary (first paragraph(s)) of a Wikipedia article. Use when the user asks what something is, or for a definition or overview. Pass either a page title or a search query (first matching article will be used).",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Exact article title (e.g. 'Albert Einstein'). Prefer this when the user names a specific article."
+          },
+          "search": {
+            "type": "string",
+            "description": "Search term to find an article (e.g. 'einstein'). Used when no exact title given; the first search result is summarized."
+          },
+          "sentences": {
+            "type": "number",
+            "description": "Max number of sentences in the summary (default 5, max 10)",
+            "default": 5
+          }
+        }
+      }
+    }
+  ]
+}

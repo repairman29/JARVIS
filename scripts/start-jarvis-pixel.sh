@@ -26,24 +26,36 @@ pkill -f inferrlm_adapter 2>/dev/null || true
 cd "$FARM_DIR" && PIXEL_URL=http://127.0.0.1:8889 FARM_DEV=1 nohup python3 -u inferrlm_adapter.py >> "$PREFIX/adapter.log" 2>&1 &
 sleep 2
 
-# Proxy (4000): only if litellm is installed (on Termux it often fails to build)
+# Proxy (4000): only if litellm is installed for the same python3 we run (use python3 -m pip on device)
 echo "Starting proxy (4000)..."
 pkill -f "litellm.*config" 2>/dev/null || true
+PY="${PYTHON3:-python3}"
 PROXY_OK=""
-if python3 -c "import litellm" 2>/dev/null; then
+if $PY -c "import litellm" 2>/dev/null; then
   cd "$FARM_DIR"
   CONFIG="config-termux.yaml"
   [ ! -f "$CONFIG" ] && CONFIG="config.yaml"
-  nohup python3 -m litellm --config "$CONFIG" --port 4000 >> "$PREFIX/litellm.log" 2>&1 &
+  nohup $PY -m litellm --config "$CONFIG" --port 4000 >> "$PREFIX/litellm.log" 2>&1 &
   PROXY_OK=1
   sleep 3
 else
-  echo "  (litellm not installed — gateway will use adapter at 8888)"
-  # Point gateway at adapter so we don't need the proxy
-  mkdir -p "$HOME/.clawdbot"
-  grep -q "NEURAL_FARM_BASE_URL" "$HOME/.clawdbot/.env" 2>/dev/null || echo "NEURAL_FARM_BASE_URL=http://127.0.0.1:8888/v1" >> "$HOME/.clawdbot/.env"
-  cd "$JARVIS_DIR" && node scripts/set-primary-neural-farm.js >> "$PREFIX/set-farm.log" 2>&1 || true
-  sleep 1
+  echo "  (litellm not found for $PY — trying one-time install with $PY -m pip...)"
+  TUR="--extra-index-url https://termux-user-repository.github.io/pypi/"
+  $PY -m pip install $TUR "litellm[proxy]" -q 2>/dev/null || $PY -m pip install $TUR litellm uvicorn "fastapi" pyyaml aiohttp -q 2>/dev/null || true
+  if $PY -c "import litellm" 2>/dev/null; then
+    cd "$FARM_DIR"
+    CONFIG="config-termux.yaml"
+    [ ! -f "$CONFIG" ] && CONFIG="config.yaml"
+    nohup $PY -m litellm --config "$CONFIG" --port 4000 >> "$PREFIX/litellm.log" 2>&1 &
+    PROXY_OK=1
+    sleep 3
+  else
+    echo "  (litellm still not installed — gateway will use adapter at 8888. Run: bash ~/JARVIS/scripts/install-litellm-termux.sh)"
+    mkdir -p "$HOME/.clawdbot"
+    grep -q "NEURAL_FARM_BASE_URL" "$HOME/.clawdbot/.env" 2>/dev/null || echo "NEURAL_FARM_BASE_URL=http://127.0.0.1:8888/v1" >> "$HOME/.clawdbot/.env"
+    cd "$JARVIS_DIR" && node scripts/set-primary-neural-farm.js >> "$PREFIX/set-farm.log" 2>&1 || true
+    sleep 1
+  fi
 fi
 
 # Stub missing clipboard native modules so clawdbot gateway can start on Termux (Node may report android or linux)

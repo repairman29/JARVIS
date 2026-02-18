@@ -8,9 +8,13 @@ Index of scripts and patterns for **orchestrating JARVIS's team** and running ba
 
 | Script | What it does | When to run |
 |--------|--------------|-------------|
+| **ensure-team-ready.js** | Bootstrap: check farm + gateway, run team-status.js. Run once per session so team is ready under JARVIS. | On login or before using JARVIS + team. See **docs/JARVIS_OPTIMAL_TEAM_SETUP.md**. |
+| **team-status.js** | Check which team CLIs are on PATH; write `~/.jarvis/team-status.json`. | After installing CLIs or editing config/team-agents.json. |
 | **run-team-pipeline.js** | Safety net → BEAST MODE quality → Code Roach health → Echeo bounties. Skips missing CLIs. | On-demand or scheduled (cron). Use `--webhook` to post summary to Discord. |
 | **run-team-quality.js** | BEAST MODE quality only for focus repo (products.json first or `JARVIS_FOCUS_REPO` or arg). | Before ship, or after implement. |
 | **heartbeat-brief.js** | Safety net + optional open PRs/issues count; posts short brief to webhook. | Scheduled (cron) or on-demand. See jarvis/HEARTBEAT.md. |
+| **prune-jarvis-memory.js** | Cap session_messages per session (keep last N), remove stale session_summaries. | On-demand or weekly cron. See docs/JARVIS_MEMORY_CONSOLIDATION.md. Use `--dry-run` first. |
+| **archive-jarvis-sessions.js** | Turn conversations into embeddings + structured versions (topics, decisions, entities) for bot memory search. | On-demand or after prune (run archivist before prune). See docs/JARVIS_ARCHIVIST.md. Needs Ollama nomic-embed-text. |
 
 **Examples:**
 
@@ -42,7 +46,10 @@ JARVIS_FOCUS_REPO=olive node scripts/run-team-quality.js
 | **jarvis-autonomous-build.js** | Pull latest JARVIS, validate skills, run optimize-jarvis, build in-repo subprojects. | On-demand or scheduled (e.g. after push). run-autonomous-build.bat; add-autonomous-build-schedule.ps1. |
 | **index-repos.js** | Clone/pull repos from repos.json, chunk, embed, upsert to Supabase. | On-demand or scheduled (e.g. nightly). run-repo-index.bat; add-repo-index-schedule.ps1. |
 | **heartbeat-brief.js** | Proactive brief (safety net + optional GitHub stats) → webhook. | Cron or Task Scheduler. |
+| **jarvis-autonomous-heartbeat.js** | Full agent heartbeat: gateway + farm/LLM + tools → HEARTBEAT_OK or HEARTBEAT_REPORT → webhook. | Cron or on-demand. See **docs/JARVIS_AUTONOMOUS_AGENT.md**. |
+| **jarvis-autonomous-plan-execute.js** | JARVIS writes a plan and executes it (tools) with no human in the loop; reports AUTONOMOUS_DONE + summary. | Cron (e.g. daily). See **docs/JARVIS_AUTONOMOUS_AGENT.md** §1.5. |
 | **run-team-pipeline.js** | Team pipeline (safety net, quality, health, bounties) → optional webhook. | Cron or on-demand. |
+| **run-autonomous-release.js** | Build (build server pipeline) → quality (run-team-quality) → deploy (JARVIS_DEPLOY_CMD). Reads version from product repo; optional `--tag` to create git tag. No human in the loop. | Cron or GitHub Action. See **docs/AUTONOMOUS_RELEASES.md**. |
 
 ---
 
@@ -68,9 +75,23 @@ So **orchestration scripts** above are for **scheduled or one-shot** runs; **in-
 | Daily (e.g. 3 AM) | index-repos.js | Refresh repo index for repo-knowledge. |
 | Daily (e.g. 4 AM) | jarvis-autonomous-build.js | Keep JARVIS repo built. |
 | Daily or 2x/day | heartbeat-brief.js | Proactive brief to Discord. |
+| Every 6h or daily | jarvis-autonomous-heartbeat.js | Autonomous agent heartbeat (farm + tools) → webhook. See JARVIS_AUTONOMOUS_AGENT.md. |
+| Daily (e.g. 8 AM) | jarvis-autonomous-plan-execute.js | Plan + execute (JARVIS decides and runs steps); no human in loop. |
 | On-demand or daily | run-team-pipeline.js | Full team run; optional --webhook. |
+| Weekly (e.g. Sun 2 AM) | archive-jarvis-sessions.js then prune-jarvis-memory.js | Archive first (embeddings + structured versions for bots), then prune. Run prune `--dry-run` first. |
 
-**Add schedules:** See scripts/add-watchdog-cron.sh, add-repo-index-schedule.ps1, add-autonomous-build-schedule.ps1, add-safety-net-schedule.ps1.
+**Add schedules:** See scripts/add-watchdog-cron.sh, **add-prune-cron.sh** (weekly memory prune), **add-plan-execute-cron.js** (daily plan-execute; run for crontab line or `--add` to append), add-repo-index-schedule.ps1, add-autonomous-build-schedule.ps1, add-safety-net-schedule.ps1.
+
+---
+
+## Proactive extensions (scheduled brief, failure alerts)
+
+| Extension | How | Env / setup |
+|-----------|-----|-------------|
+| **Scheduled morning brief** | Run **heartbeat-brief.js** on a schedule (cron/Task Scheduler). It runs safety net, optional PR/issue counts, and posts a short brief to Discord. | Set **JARVIS_ALERT_WEBHOOK_URL** or **DISCORD_WEBHOOK_URL** in `~/.clawdbot/.env`. Example cron: `0 7 * * * cd /path/to/CLAWDBOT && node scripts/heartbeat-brief.js`. |
+| **Failure alert on pipeline run** | Run **run-team-pipeline.js --webhook** on a schedule or from CI. When the pipeline runs, the summary (including any failures) is posted to the webhook. For **alert-only-on-failure**, run the pipeline and on non-zero exit post a short message: `node scripts/run-team-pipeline.js --webhook || curl -s -X POST "$JARVIS_ALERT_WEBHOOK_URL" -H "Content-Type: application/json" -d '{"content":"⚠️ Team pipeline failed"}'`. | Same webhook env. Optional: GitHub Actions job that runs the pipeline and posts on failure. |
+| **CI/build break alert** | In GitHub Actions (or other CI), add a step that on failure calls your webhook (e.g. `curl -X POST $DISCORD_WEBHOOK_URL -d '{"content":"Build failed: ${{ github.repository }} ${{ github.run_id }}"}'`). Or use **run-team-pipeline.js --webhook** in a scheduled workflow so quality/safety-net failures are reported. | Webhook URL in repo secrets. |
+| **Calendar/email nudge (future)** | When Edge has access to calendar or email (e.g. Google Calendar API, Microsoft Graph, or MCP), add a scheduled job or Edge function that sends a brief nudge (e.g. "Meeting in 15 min" or "3 unread high-priority emails"). Optional: user-configurable schedule and filters. | Not implemented; document here when ready. |
 
 ---
 

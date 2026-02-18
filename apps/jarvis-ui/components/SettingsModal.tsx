@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { speak as speakTTS } from '@/lib/voice';
 
 export interface ConfigInfo {
@@ -40,6 +40,9 @@ export function SettingsModal({
 }: SettingsModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const [prefKey, setPrefKey] = useState('');
+  const [prefValue, setPrefValue] = useState('');
+  const [prefFeedback, setPrefFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -176,6 +179,89 @@ export function SettingsModal({
               )}
             </div>
           </div>
+          {config?.mode === 'edge' && (
+            <div style={{ paddingTop: '0.5rem', borderTop: '1px solid var(--border)' }}>
+              <div style={{ color: 'var(--text-muted)', marginBottom: '0.5rem', fontSize: '12px' }}>
+                Preferences (e.g. &quot;always use X&quot;) — saved to JARVIS memory
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  placeholder="Key (e.g. deploy_target)"
+                  value={prefKey}
+                  onChange={(e) => setPrefKey(e.target.value)}
+                  aria-label="Preference key"
+                  style={{
+                    padding: '0.35rem 0.5rem',
+                    background: 'var(--bg)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '6px',
+                    fontSize: '13px',
+                    color: 'var(--text)',
+                  }}
+                />
+                <input
+                  type="text"
+                  placeholder="Value (e.g. Vercel)"
+                  value={prefValue}
+                  onChange={(e) => setPrefValue(e.target.value)}
+                  aria-label="Preference value"
+                  style={{
+                    padding: '0.35rem 0.5rem',
+                    background: 'var(--bg)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '6px',
+                    fontSize: '13px',
+                    color: 'var(--text)',
+                  }}
+                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    className="btn-surface"
+                    disabled={!prefKey.trim() || !prefValue.trim()}
+                    onClick={async () => {
+                      setPrefFeedback(null);
+                      try {
+                        const res = await fetch('/api/pref', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ key: prefKey.trim(), value: prefValue.trim() }),
+                        });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) {
+                          setPrefFeedback((data as { error?: string }).error || 'Failed to save');
+                          return;
+                        }
+                        setPrefFeedback('Saved');
+                        setPrefKey('');
+                        setPrefValue('');
+                        window.setTimeout(() => setPrefFeedback(null), 2000);
+                      } catch {
+                        setPrefFeedback('Request failed');
+                      }
+                    }}
+                    style={{
+                      padding: '0.35rem 0.6rem',
+                      fontSize: '12px',
+                      background: 'var(--border)',
+                      color: 'var(--text)',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Save preference
+                  </button>
+                  {prefFeedback && (
+                    <span style={{ fontSize: '12px', color: prefFeedback === 'Saved' ? 'var(--accent)' : 'var(--text-muted)' }}>
+                      {prefFeedback}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
           {voiceSupported && (
             <>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -191,7 +277,7 @@ export function SettingsModal({
                 </label>
               </div>
               <p id="speak-replies-desc" style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>
-                When on, JARVIS speaks each reply using your browser&apos;s voice.
+                When on, JARVIS speaks each reply using your browser&apos;s voice. If your system has &quot;Reduce motion&quot; enabled, JARVIS won&apos;t auto-speak (accessibility).
               </p>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <input

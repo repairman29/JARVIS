@@ -1,0 +1,70 @@
+{
+  "name": "notion",
+  "version": "0.3.0",
+  "description": "Notion integration: search, create pages, query databases, append blocks. Requires NOTION_API_KEY.",
+  "env": ["NOTION_API_KEY"],
+  "tools": [
+    {
+      "name": "notion_search",
+      "description": "Search Notion for pages and databases. Use when the user asks to find something in Notion, search their workspace, or look up a page.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search query (title or content)"
+          }
+        },
+        "required": ["query"]
+      }
+    },
+    {
+      "name": "notion_create_page",
+      "description": "Create a new page in Notion as a child of an existing page or as a row in a database. Use when the user asks to create a page, add a note, or add a row to a database.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "parent_page_id": {
+            "type": "string",
+            "description": "Notion page UUID to create the new page under (copy from page URL or search). Omit if using parent_database_id."
+          },
+          "parent_database_id": {
+            "type": "string",
+            "description": "Notion database UUID to add a new row to. Omit if using parent_page_id."
+          },
+          "title": {
+            "type": "string",
+            "description": "Title of the new page or database row"
+          },
+          "content": {
+            "type": "string",
+            "description": "Optional body text for the page (only used when parent is a page)"
+          },
+          "database_title_key": {
+            "type": "string",
+            "description": "Name of the title property in the database (default: Name). Use if your database uses a different title property name."
+          }
+        }
+      }
+    },
+    {
+      "name": "notion_query_database",
+      "description": "Query a Notion database to list its rows. Use when the user asks to list database entries, show items from a database, or read a database.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "database_id": {
+            "type": "string",
+            "description": "Notion database UUID (from database URL or search results)"
+          },
+          "page_size": {
+            "type": "number",
+            "description": "Max number of rows to return (default 20, max 100)",
+            "default": 20
+          }
+        },
+        "required": ["database_id"]
+      }
+    }
+  ]
+}

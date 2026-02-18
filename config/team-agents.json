@@ -1,0 +1,58 @@
+{
+  "description": "Roster of AI agents under JARVIS command. Order = priority for pipeline and 'work top down'.",
+  "agents": [
+    {
+      "id": "beast-mode",
+      "name": "BEAST MODE",
+      "role": "Quality: score, janitor, vibe restore, architecture",
+      "cli": "beast-mode",
+      "execExamples": ["beast-mode quality score", "beast-mode janitor enable", "beast-mode vibe restore", "beast-mode architecture check"],
+      "whenInvoke": "Before ship; after implement; quality gate",
+      "workflowDispatch": { "owner": "repairman29", "repo": "BEAST-MODE", "workflowId": "quality.yml" },
+      "inProductsJson": true
+    },
+    {
+      "id": "code-roach",
+      "name": "Code Roach",
+      "role": "PR analysis, codebase health, crawl (knowledge base)",
+      "cli": "code-roach",
+      "execExamples": ["code-roach analyze pr", "code-roach health", "code-roach crawl"],
+      "whenInvoke": "When PR exists; after implement; health check",
+      "workflowDispatch": null,
+      "inProductsJson": false
+    },
+    {
+      "id": "echeo",
+      "name": "Echeo",
+      "role": "Bounty matching, capability scan, GitHub issues as bounties",
+      "cli": "echeo",
+      "execExamples": ["echeo --path .", "echeo --scrape-github ...", "echeo --match-needs ..."],
+      "whenInvoke": "\"What should I work on?\"; bounties; opportunity matching",
+      "workflowDispatch": null,
+      "inProductsJson": true
+    },
+    {
+      "id": "sessions-spawn",
+      "name": "Subagents (sessions_spawn)",
+      "role": "Long implementation runs; background task with deliverables + ETA",
+      "cli": null,
+      "execExamples": [],
+      "whenInvoke": "Long implementation; heavy refactor; deliver full response in background",
+      "workflowDispatch": null,
+      "inProductsJson": false,
+      "toolOnly": true
+    },
+    {
+      "id": "workflow-dispatch",
+      "name": "GitHub workflow_dispatch",
+      "role": "Trigger deploy, quality, or CI in any repo",
+      "cli": null,
+      "execExamples": [],
+      "whenInvoke": "Deploy; trigger BEAST/Code Roach in CI; run workers",
+      "workflowDispatch": null,
+      "inProductsJson": false,
+      "toolOnly": true
+    }
+  ],
+  "pipelineOrder": ["safety-net", "beast-mode", "code-roach", "echeo"]
+}

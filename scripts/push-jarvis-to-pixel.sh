@@ -68,9 +68,15 @@ if adb shell am startservice -n com.termux/com.termux.app.RunCommandService \
   echo "Setup started in Termux. Check the Termux app for progress."
 else
   echo ""
-  echo "Auto-start not available. On the Pixel, open Termux and run:"
-  echo "  termux-setup-storage   # once, to link Download"
-  echo "  bash ~/storage/downloads/setup-jarvis-termux.sh"
+  echo "Auto-start not available. On the Pixel, open Termux and run ONE of these:"
+  echo ""
+  echo "  Option A (if termux-setup-storage worked and ~/storage/downloads exists):"
+  echo "    bash ~/storage/downloads/setup-jarvis-termux.sh"
+  echo ""
+  echo "  Option B (grant Termux 'Files and media' in Android Settings > Apps > Termux > Permissions first):"
+  echo "    bash /storage/emulated/0/Download/setup-jarvis-termux.sh /storage/emulated/0/Download"
+  echo ""
+  echo "  Option C (after push via SSH so files are in home): bash ~/setup-jarvis-termux.sh"
 fi
 
 echo ""

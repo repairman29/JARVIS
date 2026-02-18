@@ -124,6 +124,22 @@ Or explicitly:
 
 ---
 
+## Intent-engineering flows (build and ship)
+
+One-phrase triggers so JARVIS runs the **right agent sequence** without you specifying each step. You guide intent; JARVIS orchestrates BEAST MODE, Code Roach, Echeo, and workflow_dispatch.
+
+| Trigger | What JARVIS does |
+|---------|-------------------|
+| **"Run a triad on [product]"** / **"Swarm on [product]"** | Product-owner pass: define PRD (or outline), create ~3 issues, propose 2-milestone roadmap. Uses **repo_summary(product.repo)** for context; does not invent domains. See **jarvis/PO_SWARMS.md**. |
+| **"Quality gate before ship"** / **"Run quality then ship [product]"** | Runs **BEAST MODE** quality (e.g. `beast-mode quality score`) on the product repo, then if green (or user confirms), runs ship flow: commit, push, workflow_dispatch or platform CLI. See **docs/JARVIS_AGENT_ORCHESTRATION.md** § When-to-invoke. |
+| **"Deep work on [product]"** | Full cycle: plan (PRD, roadmap, milestones) → develop (issues, PRs, implementation) → execute (ship, deploy). Scoped to one product; uses **repo_summary** first. See **jarvis/DEEP_WORK_PRODUCT.md**. |
+| **"What should I work on?"** | Uses **Echeo** (bounty/capability matching) and optionally repo-knowledge; suggests prioritized work. See **JARVIS_AGENT_ORCHESTRATION.md** § When-to-invoke. |
+| **"Health check [repo]"** | Runs **Code Roach** (`code-roach health`, `code-roach analyze pr` if PR exists) and optionally **BEAST MODE** quality; reports status. |
+
+**Ref:** [JARVIS_AGENT_ORCHESTRATION.md](JARVIS_AGENT_ORCHESTRATION.md), [jarvis/AGENTS.md](../jarvis/AGENTS.md) (Deep work, Product Owner Orchestration).
+
+---
+
 ## Notes
 
 - **Focus mode** uses `focus_mode` tool in Launcher (mutes + Focus Assist)

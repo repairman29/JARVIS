@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>com.jarvis.wake</string>
+	<key>CFBundleName</key>
+	<string>JarvisWakeMac</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>JARVIS Wake listens for "Hey JARVIS" so you can speak commands hands-free. Microphone is used only for speech recognition.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>JARVIS Wake uses speech recognition to detect "Hey JARVIS" and your voice commands. Enable in System Settings, Privacy and Security, Speech Recognition.</string>
+	<key>LSUIElement</key>
+	<false/>
+</dict>
+</plist>

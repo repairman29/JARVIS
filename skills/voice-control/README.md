@@ -35,3 +35,7 @@ cp -r skills/voice-control ~/jarvis/skills/
 - "JARVIS, start my morning routine workflow"
 
 Perfect for hands-free productivity, accessibility needs, and creating truly conversational computing experiences.
+
+## Wake word (current state)
+
+**"Hey JARVIS" wake-by-speech is not implemented yet.** The gateway runs in Node.js and has no microphone access. The skill’s `start_voice_recognition` uses *simulated* listening (no real audio). Real wake word would require an always-on client (browser, Electron, or native app) with mic access and wake-word/STT, then sending commands to the gateway. See **docs/JARVIS_VOICE.md** (§ Why can't we wake JARVIS with speech?).

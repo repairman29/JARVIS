@@ -6,16 +6,33 @@ export HOME=/data/data/com.termux/files/home
 PREFIX="$HOME"
 JARVIS_DIR="$PREFIX/JARVIS"
 FARM_DIR="$PREFIX/neural-farm"
-# Find where the tarballs are: same dir as this script, or Termux storage, or system Download
+# Find where the tarballs are: explicit arg, same dir as this script, or Termux storage, or system Download
 SCRIPT_DIR=""
 if [ -n "$BASH_SOURCE" ]; then
   SCRIPT_DIR="$(cd "$(dirname "$BASH_SOURCE")" 2>/dev/null && pwd)"
 fi
 DOWNLOAD=""
-for try in "$SCRIPT_DIR" "$HOME/storage/downloads" "/storage/emulated/0/Download" "/sdcard/Download" "$HOME"; do
-  [ -n "$try" ] && [ -f "$try/JARVIS.tar.gz" ] && [ -f "$try/neural-farm.tar.gz" ] && DOWNLOAD="$try" && break
-done
+# Optional first argument: directory that contains JARVIS.tar.gz and neural-farm.tar.gz
+if [ -n "$1" ] && [ -d "$1" ] && [ -f "$1/JARVIS.tar.gz" ] && [ -f "$1/neural-farm.tar.gz" ]; then
+  DOWNLOAD="$1"
+fi
+if [ -z "$DOWNLOAD" ]; then
+  for try in "$SCRIPT_DIR" "$HOME/storage/downloads" "$HOME/storage/downloads/Download" "/storage/emulated/0/Download" "/sdcard/Download" "$HOME"; do
+    [ -n "$try" ] && [ -f "$try/JARVIS.tar.gz" ] && [ -f "$try/neural-farm.tar.gz" ] && DOWNLOAD="$try" && break
+  done
+fi
 [ -z "$DOWNLOAD" ] && DOWNLOAD="$HOME"
+# If we still don't have tarballs, bail with instructions
+if [ ! -f "$DOWNLOAD/JARVIS.tar.gz" ] || [ ! -f "$DOWNLOAD/neural-farm.tar.gz" ]; then
+  echo "No JARVIS.tar.gz + neural-farm.tar.gz found."
+  echo "Try one of these (in Termux):"
+  echo "  1. Grant Termux 'Files and media' in Android Settings > Apps > Termux > Permissions"
+  echo "     then: bash /storage/emulated/0/Download/setup-jarvis-termux.sh /storage/emulated/0/Download"
+  echo "  2. Run termux-setup-storage, pick Download when the folder picker appears, then:"
+  echo "     bash ~/storage/downloads/setup-jarvis-termux.sh"
+  echo "  3. Or push from Mac: cd ~/JARVIS && bash scripts/pixel-sync-and-start.sh  then run: bash ~/setup-jarvis-termux.sh"
+  exit 1
+fi
 LOG="$PREFIX/jarvis-setup.log"
 
 log() { echo "[$(date +%H:%M:%S)] $*" | tee -a "$LOG"; }
@@ -42,14 +59,14 @@ fi
 mkdir -p "$PREFIX"
 if [ -f "$DOWNLOAD/JARVIS.tar.gz" ]; then
   log "Extracting JARVIS..."
-  tar -xzf "$DOWNLOAD/JARVIS.tar.gz" -C "$PREFIX"
+  tar -xzf "$DOWNLOAD/JARVIS.tar.gz" -C "$PREFIX" 2>/dev/null || tar -xzf "$DOWNLOAD/JARVIS.tar.gz" -C "$PREFIX"
 fi
 [ -d "$PREFIX/JARVIS" ] && JARVIS_DIR="$PREFIX/JARVIS"
 [ ! -d "$JARVIS_DIR" ] && { log "Put JARVIS.tar.gz in Download (run push script from Mac) and re-run."; exit 1; }
 
 if [ -f "$DOWNLOAD/neural-farm.tar.gz" ]; then
   log "Extracting neural-farm..."
-  tar -xzf "$DOWNLOAD/neural-farm.tar.gz" -C "$PREFIX"
+  tar -xzf "$DOWNLOAD/neural-farm.tar.gz" -C "$PREFIX" 2>/dev/null || tar -xzf "$DOWNLOAD/neural-farm.tar.gz" -C "$PREFIX"
 fi
 [ -d "$PREFIX/neural-farm" ] && FARM_DIR="$PREFIX/neural-farm"
 [ ! -d "$FARM_DIR" ] && { log "Put neural-farm.tar.gz in Download and re-run."; exit 1; }
@@ -57,9 +74,12 @@ fi
 # 4. neural-farm: .env and deps
 log "Setting up neural-farm..."
 echo "PIXEL_URL=http://127.0.0.1:8889" > "$FARM_DIR/.env"
-# Install litellm. Use TUR for pre-built wheels if pip build fails (cryptography, fastuuid).
+# Install litellm for the same python3 we run (avoids "not installed" when pip/python3 differ).
 TUR="--extra-index-url https://termux-user-repository.github.io/pypi/"
-[ -f "$FARM_DIR/requirements.txt" ] && pip install $TUR -r "$FARM_DIR/requirements.txt" -q 2>/dev/null || pip install $TUR "litellm[proxy]" -q 2>/dev/null || true
+[ -f "$FARM_DIR/requirements.txt" ] && python3 -m pip install $TUR -r "$FARM_DIR/requirements.txt" -q 2>/dev/null || python3 -m pip install $TUR "litellm[proxy]" -q 2>/dev/null || true
+if ! python3 -c "import litellm" 2>/dev/null; then
+  [ -f "$JARVIS_DIR/scripts/install-litellm-termux.sh" ] && log "Installing litellm (install-litellm-termux.sh)..." && bash "$JARVIS_DIR/scripts/install-litellm-termux.sh" >> "$LOG" 2>&1 || true
+fi
 [ -f "$FARM_DIR/config-termux.yaml" ] && cp "$FARM_DIR/config-termux.yaml" "$FARM_DIR/config.yaml" 2>/dev/null || true
 
 # 5. JARVIS: env and deps
@@ -81,11 +101,15 @@ sleep 2
 log "Starting LiteLLM proxy (4000)..."
 pkill -f "litellm.*config" 2>/dev/null || true
 cd "$FARM_DIR"
-pip install -r "$FARM_DIR/requirements.txt" -q 2>/dev/null || pip install "litellm[proxy]" -q 2>/dev/null || true
-CONFIG="config-termux.yaml"
-[ ! -f "$CONFIG" ] && CONFIG="config.yaml"
-nohup python3 -m litellm --config "$CONFIG" --port 4000 >> "$PREFIX/litellm.log" 2>&1 &
-sleep 3
+python3 -m pip install $TUR -r "$FARM_DIR/requirements.txt" -q 2>/dev/null || python3 -m pip install $TUR "litellm[proxy]" -q 2>/dev/null || true
+if python3 -c "import litellm" 2>/dev/null; then
+  CONFIG="config-termux.yaml"
+  [ ! -f "$CONFIG" ] && CONFIG="config.yaml"
+  nohup python3 -m litellm --config "$CONFIG" --port 4000 >> "$PREFIX/litellm.log" 2>&1 &
+  sleep 3
+else
+  log "LiteLLM not installed — run later: bash ~/JARVIS/scripts/install-litellm-termux.sh"
+fi
 
 # 8. Clipboard stubs so gateway starts on Termux (no native clipboard on Android/Linux arm64)
 if [ -d "$JARVIS_DIR/scripts/pixel-stubs" ]; then
@@ -106,6 +130,14 @@ sleep 2
 nohup node scripts/webhook-trigger-server.js >> "$PREFIX/webhook.log" 2>&1 &
 sleep 1
 
+# 9b. Start chat server (18888) so browser on device can load http://127.0.0.1:18888
+if [ -f "$JARVIS_DIR/scripts/pixel-chat-server.js" ]; then
+  log "Starting chat server (18888)..."
+  pkill -f "pixel-chat-server" 2>/dev/null || true
+  nohup node scripts/pixel-chat-server.js >> "$PREFIX/chat-server.log" 2>&1 &
+  sleep 2
+fi
+
 # 10. Cron (absolute paths)
 log "Setting crontab..."
 CRON="$PREFIX/jarvis.cron"
@@ -122,4 +154,6 @@ echo "cd \"$JARVIS_DIR\" && bash scripts/start-pixel-chat-only.sh" > "$PREFIX/st
 chmod +x "$PREFIX/start-jarvis.sh" "$PREFIX/start-chat.sh"
 log "Launchers: bash ~/start-jarvis.sh  and  bash ~/start-chat.sh"
 
-log "Done. Enable Wake lock in Termux settings. Check: curl -s http://127.0.0.1:4000/ && curl -s http://127.0.0.1:18789/"
+log "Done. Enable Wake lock in Termux settings."
+log "Chat on Pixel: open Chrome → http://127.0.0.1:18888"
+log "Check: curl -s http://127.0.0.1:4000/ && curl -s http://127.0.0.1:18789/ && curl -s http://127.0.0.1:18888/"

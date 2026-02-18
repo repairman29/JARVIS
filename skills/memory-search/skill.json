@@ -1,0 +1,53 @@
+{
+  "name": "memory-search",
+  "version": "0.1.0",
+  "description": "Search JARVIS archived conversations: semantic (vector) search and structured (topics, decisions) query. Use when the user asks what we decided, past conversations about X, or to find prior context.",
+  "env": ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"],
+  "tools": [
+    {
+      "name": "memory_search",
+      "description": "Semantic search over archived conversations. Use when the user asks 'what did we say about X', 'find conversations about Y', or 'what did we decide about Z'.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Natural language search (e.g. 'OAuth refresh', 'deployment decision')"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Max results (default 6, max 10)",
+            "default": 6
+          },
+          "session_id": {
+            "type": "string",
+            "description": "Optional: limit search to one session"
+          }
+        },
+        "required": ["query"]
+      }
+    },
+    {
+      "name": "archive_search",
+      "description": "Structured search over session versions (topics, summary, decisions). Use when the user wants sessions about a topic or by session id.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "topic": {
+            "type": "string",
+            "description": "Filter by topic or keyword in summary"
+          },
+          "session_id": {
+            "type": "string",
+            "description": "Optional: only this session"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Max archive rows (default 10, max 20)",
+            "default": 10
+          }
+        }
+      }
+    }
+  ]
+}

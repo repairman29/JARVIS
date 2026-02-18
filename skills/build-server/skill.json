@@ -1,0 +1,47 @@
+{
+  "name": "build-server",
+  "version": "1.0.0",
+  "description": "Trigger builds on the JARVIS build server. Use when the user asks to build a repo, run the build server, or 'build olive/JARVIS'. Requires the build server to be running (node scripts/build-server.js).",
+  "env": [],
+  "tools": [
+    {
+      "name": "build_server_build",
+      "description": "Run a build (or npm install) for a repo via the build server. Returns success/failure and log tail. Use for 'build olive', 'run build for JARVIS', 'build server build repo X'.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "repo": {
+            "type": "string",
+            "description": "Repo name (e.g. JARVIS, olive). Must be configured in build-server-repos.json or products.json."
+          },
+          "command": {
+            "type": "string",
+            "description": "Command to run",
+            "enum": ["build", "install", "test"],
+            "default": "build"
+          }
+        },
+        "required": ["repo"]
+      }
+    },
+    {
+      "name": "build_server_pipeline",
+      "description": "Run full pipeline for a repo: install → build → test (in order; stops on first failure). Prefer this for 'ship', 'build and test', 'CI for repo X'. Returns success/failure and which step failed.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "repo": {
+            "type": "string",
+            "description": "Repo name (e.g. JARVIS, olive). Must be configured in build-server-repos.json or products.json."
+          }
+        },
+        "required": ["repo"]
+      }
+    },
+    {
+      "name": "build_server_health",
+      "description": "Check if the build server is running and reachable.",
+      "parameters": { "type": "object", "properties": {} }
+    }
+  ]
+}

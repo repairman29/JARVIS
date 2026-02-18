@@ -1,0 +1,54 @@
+# openWakeWord training config for "Hey Clawd"
+# Use this in the openWakeWord Colab notebook after running the Data Download cells.
+# See: https://github.com/dscripka/openWakeWord/blob/main/notebooks/automatic_model_training.ipynb
+# JARVIS doc: docs/WAKEWORD_TRAINING.md
+# Multiple phrases train one binary model that triggers on any of them (covers "claud" / "clawd" spellings).
+
+model_name: "hey_clawd"
+target_phrase:
+  - "hey clawd"
+  - "hey claud"
+
+custom_negative_phrases: []
+
+# For a quick Colab run use 1000–5000; for production 20000+ positive samples
+n_samples: 5000
+n_samples_val: 1000
+steps: 10000
+
+tts_batch_size: 50
+augmentation_batch_size: 16
+piper_sample_generator_path: "./piper-sample-generator"
+output_dir: "./my_custom_model"
+
+# Must match directories created by the notebook's Download Data cells
+rir_paths:
+  - "./mit_rirs"
+background_paths:
+  - "./audioset_16k"
+  - "./fma"
+background_paths_duplication_rate:
+  - 1
+  - 1
+
+false_positive_validation_data_path: "./validation_set_features.npy"
+augmentation_rounds: 1
+
+# Must match the .npy file downloaded in the notebook
+feature_data_files:
+  ACAV100M_sample: "./openwakeword_features_ACAV100M_2000_hrs_16bit.npy"
+
+batch_n_per_class:
+  ACAV100M_sample: 1024
+  adversarial_negative: 50
+  positive: 50
+
+model_type: "dnn"
+layer_size: 32
+
+max_negative_weight: 1500
+target_false_positives_per_hour: 0.2
+
+# Optional: relax for small datasets (notebook often uses 0.6 / 0.25)
+target_accuracy: 0.6
+target_recall: 0.25

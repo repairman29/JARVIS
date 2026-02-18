@@ -64,6 +64,6 @@ Use a **fast/cheap** model for simple queries and a **strong** model for complex
 
 - **Primary** = strong model (e.g. `openai/gpt-4o`, `anthropic/claude-sonnet-4`) in `clawdbot.json` → `agents.defaults.model.primary`.
 - **Fallbacks** = fast/cheap models (e.g. Groq 8B, OpenRouter free tier) so the gateway waterfalls when primary is rate-limited or for lighter turns.
-- **Optional:** A future session or message hint (e.g. "use fast" / "use best") could let the UI or user force a tier; for now, set primary and fallbacks in gateway config.
+- **UI hint:** In the JARVIS web UI (jarvis-ui), type **`/fast`** or **`/best`** in the composer to set a model hint for the session: `/fast` asks for the fast/cheap model (quick answers), `/best` asks for the best/strong model (deep work). Type **`/model`** to clear the hint. The hint is sent to the Edge and injected into context; gateway routing by hint may be added later.
 
 See [jarvis/HEARTBEAT.md](jarvis/HEARTBEAT.md) for proactive briefs; [docs/JARVIS_CUTTING_EDGE.md](docs/JARVIS_CUTTING_EDGE.md) for the full improvement list.

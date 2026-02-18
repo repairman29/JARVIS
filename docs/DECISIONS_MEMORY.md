@@ -23,7 +23,7 @@ We use Vercel for olive (shopolive.xyz) frontend; Railway for backend. Don't sug
 
 ## Instructions for JARVIS
 
-- When the user says **"remember this decision"** or **"we decided X"**: Append to **DECISIONS.md** in the current repo (or product repo if in deep work) with today's date and a one-line summary (and 1–2 sentences if needed). If the file doesn't exist, create it with a short heading (e.g. "# Decisions") and the entry.
+- When the user says **"remember this decision"** or **"we decided X"**: Run **`node scripts/append-decision.js "One-line summary"`** from the repo root (or product repo root if in deep work). The script creates DECISIONS.md with "# Decisions" if missing and appends a dated entry. Alternatively append manually with today's date and a one-line summary (and 1–2 sentences if needed).
 - When **planning** or when the user asks **"what did we decide about X?"**: Use **repo_search** for "decision" or **repo_file** for DECISIONS.md to recall relevant decisions and use them as context.
 - Keep entries **short** so the file stays scannable.
 

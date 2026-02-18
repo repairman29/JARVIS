@@ -6,6 +6,9 @@ const TOKEN = process.env.CLAWDBOT_GATEWAY_TOKEN || process.env.OPENCLAW_GATEWAY
 const EDGE_TOKEN = (process.env.JARVIS_AUTH_TOKEN || '').trim();
 const CHAT_URL = `${GATEWAY_URL.replace(/\/$/, '')}/v1/chat/completions`;
 
+/** Injected when using local gateway so JARVIS does not deflect to Cursor for everything. Same intent as Edge WEB_UI_SYSTEM_PROMPT. */
+const WEB_CHAT_SYSTEM_HINT = `Channel: Web chat (JARVIS UI). Do everything you can here: answer questions, use tools (web search, clock, etc.), brainstorm, suggest next actions. Only mention Cursor or "come back to Cursor" when the user explicitly needs live repo access or to run commands on their machine—otherwise help fully in this chat.`;
+
 /** Extract assistant text from gateway JSON (OpenAI-style or OpenResponses-style). */
 function extractContent(data: unknown): string {
   if (data == null || typeof data !== 'object') return '';
@@ -40,6 +43,10 @@ export interface ChatRequestBody {
   messages: { role: 'user' | 'assistant' | 'system'; content: string }[];
   sessionId?: string;
   stream?: boolean;
+  /** 'fast' | 'best' — hint for model tier (see GETTING_STARTED_MODES) */
+  modelHint?: 'fast' | 'best';
+  /** Optional image (data URL or base64). Forwarded to Edge when set; vision models can use it when supported. */
+  imageDataUrl?: string;
 }
 
 export async function POST(req: NextRequest) {
@@ -54,7 +61,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const { messages, sessionId = 'jarvis-ui', stream = false } = body;
+    const { messages, sessionId = 'jarvis-ui', stream = false, modelHint, imageDataUrl } = body;
 
     if (!Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json(
@@ -74,8 +81,9 @@ export async function POST(req: NextRequest) {
         messages,
         session_id: sessionId,
       };
-      // Some backends expect "task" instead of or in addition to "message"
       if (messageBody) edgeBody.task = messageBody;
+      if (modelHint === 'fast' || modelHint === 'best') edgeBody.model_hint = modelHint;
+      if (imageDataUrl && typeof imageDataUrl === 'string') edgeBody.image_data_url = imageDataUrl;
       const res = await fetch(EDGE_URL.replace(/\/$/, ''), {
         method: 'POST',
         headers: edgeHeaders,
@@ -148,15 +156,22 @@ export async function POST(req: NextRequest) {
       'x-openclaw-agent-id': 'main',
     };
     if (TOKEN) headers['Authorization'] = `Bearer ${TOKEN}`;
+    if (modelHint === 'fast' || modelHint === 'best') headers['X-JARVIS-Model-Hint'] = modelHint;
+
+    // Prepend web-chat context so JARVIS helps here instead of deflecting to Cursor (local gateway has no Edge prompt).
+    const gatewayMessages = messages.some((m) => m.role === 'system')
+      ? messages
+      : [{ role: 'system' as const, content: WEB_CHAT_SYSTEM_HINT }, ...messages];
 
     const res = await fetch(CHAT_URL, {
       method: 'POST',
       headers,
       body: JSON.stringify({
         model: 'openclaw:main',
-        messages,
+        messages: gatewayMessages,
         stream,
         user: sessionId,
+        ...(imageDataUrl && typeof imageDataUrl === 'string' ? { imageDataUrl } : {}),
       }),
       signal: AbortSignal.timeout(120000),
     });

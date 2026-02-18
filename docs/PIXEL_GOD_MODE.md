@@ -56,7 +56,7 @@ curl -X POST http://<pixel-ip>:18888/speak -H "Content-Type: application/json" -
 
 **Requirements:** Chat server running on Pixel (port 18888), TTS FIFO created and reader loop running (runbook §4). The server writes the request body to the FIFO; `termux-tts-speak` speaks it. From the same LAN, use the Pixel’s IP; from elsewhere use SSH tunnel or ngrok.
 
-**Alternative (SSH):** `ssh -p 8022 jefe@<pixel-ip> 'echo "High priority: <message>" | python3 ~/JARVIS/scripts/voice-node-demo.py'` — see [PIXEL_VOICE_DEMO.md § Option B](./PIXEL_VOICE_DEMO.md#option-b-demo-gateway--tts-no-mic-no-whisper).
+**Alternative (SSH):** `ssh -p 8022 u0_a310@<pixel-ip> 'echo "High priority: <message>" | python3 ~/JARVIS/scripts/voice-node-demo.py'` — see [PIXEL_VOICE_DEMO.md § Option B](./PIXEL_VOICE_DEMO.md#option-b-demo-gateway--tts-no-mic-no-whisper).
 
 ---
 

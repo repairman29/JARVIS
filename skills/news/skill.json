@@ -1,0 +1,28 @@
+{
+  "name": "news",
+  "version": "1.0.0",
+  "description": "Latest headlines from trusted RSS feeds. No API key. Use when the user asks for news, headlines, or what's happening in the world.",
+  "env": [],
+  "tools": [
+    {
+      "name": "news_headlines",
+      "description": "Get latest news headlines. Use when the user asks for 'latest news', 'headlines', 'what's in the news', or 'news today'. Returns title, link, and source for each story.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "number",
+            "description": "Max number of headlines to return (default 10, max 25)",
+            "default": 10
+          },
+          "source": {
+            "type": "string",
+            "description": "Preferred feed: bbc, npr, reuters, or all (default: all, merges and dedupes by title)",
+            "enum": ["all", "bbc", "npr", "reuters"],
+            "default": "all"
+          }
+        }
+      }
+    }
+  ]
+}

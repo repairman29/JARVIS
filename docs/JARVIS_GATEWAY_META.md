@@ -2,6 +2,8 @@
 
 **Purpose:** For gateway implementers (e.g. Clawdbot or custom gateways). The JARVIS UI and Edge function already support **meta**; once the gateway sends it, tool visibility (2.6) and structured output (2.7) work end-to-end.
 
+**Status:** UI and Edge are ready (pass-through + Edge maps `tool_calls` → `tools_used` for non-stream). Gateway must send `meta` (or `tool_calls`) so the UI can show "Used: X" and structured blocks.
+
 **Contract (exact shapes):** [JARVIS_UI_GATEWAY_CONTRACT.md](./JARVIS_UI_GATEWAY_CONTRACT.md)
 
 ---
@@ -80,3 +82,14 @@ Use the same shapes as in the contract:
 | Streaming | Send a final SSE line **`data: {"meta":{...}}`** after the last content delta. |
 
 **References:** [JARVIS_UI_GATEWAY_CONTRACT.md](./JARVIS_UI_GATEWAY_CONTRACT.md), [JARVIS_UI_AUDIT.md](./JARVIS_UI_AUDIT.md) (2.6, 2.7).
+
+---
+
+## 6. Implementation checklist (gateway codebase)
+
+Use this when adding meta support to a gateway (e.g. Clawdbot).
+
+- [ ] **Non-stream:** When building the final JSON response after a turn, add a top-level **`meta`** object. After each tool/skill invocation, append the tool name to an array and set **`meta.tools_used`** to that array. If the response already has **`choices[0].message.tool_calls`**, the JARVIS Edge will map them to `meta.tools_used` automatically—so either send **`meta.tools_used`** or **`tool_calls`**.
+- [ ] **Structured result:** When a tool returns list/table/key-value or JSON, set **`meta.structured_result`** to that object (see §4 for shapes). Send it in the same response as **`content`**.
+- [ ] **Streaming:** After sending the last content delta (e.g. last `data: {"choices":[{"delta":{"content":"..."}}]}`), send one more SSE line: **`data: {"meta":{"tools_used":["name1","name2"],"structured_result":{...}}}`**. The UI merges this into the message for that turn.
+- [ ] **Prompt trimmed:** If the model request was truncated, set **`meta.prompt_trimmed_to`** (number of characters) so the UI can show "Prompt trimmed to N characters."

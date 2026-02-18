@@ -5,6 +5,10 @@ Heartbeat should **drive production**: check queues, launch subagents, and advan
 
 **Automated brief:** Run `node scripts/heartbeat-brief.js` (or schedule via cron). Runs safety net, builds a short brief, and posts to `JARVIS_ALERT_WEBHOOK_URL` or `DISCORD_WEBHOOK_URL`. Use `--no-webhook` to run checks only; `--json` for JSON output.
 
+**Autonomous agent heartbeat:** Run `node scripts/jarvis-autonomous-heartbeat.js` (or schedule via cron). Calls the gateway so JARVIS (farm + tools) runs this checklist and replies with HEARTBEAT_OK or HEARTBEAT_REPORT. See **docs/JARVIS_AUTONOMOUS_AGENT.md**.
+
+**Plan and execute (no human in loop):** Run `node scripts/jarvis-autonomous-plan-execute.js`. JARVIS creates a plan and runs it with tools; when done replies with AUTONOMOUS_DONE and a summary. Schedule daily (e.g. 8 AM) or on-demand.
+
 ## Today (Production Mode — Beast-Mode focus)
 - [ ] Check if user needs anything (if no action items, continue checklist)
 - [ ] **Product order:** Use **products.json** (master list, top-down). Focus repo = first active product unless user says otherwise; then work down the list.

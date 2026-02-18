@@ -11,10 +11,17 @@ export interface ComposerHandle {
 export interface ComposerProps {
   disabled?: boolean;
   placeholder?: string;
-  onSubmit: (text: string) => void;
+  /** When image is attached, opts.imageDataUrl is set. Backend can use it when vision is supported. */
+  onSubmit: (text: string, opts?: { imageDataUrl?: string }) => void;
   onSlashClear?: () => void;
   onSlashTools?: () => void;
   onSlashSession?: (name: string) => void;
+  /** /fast → use fast model for this session. */
+  onSlashFast?: () => void;
+  /** /best → use best model for this session. */
+  onSlashBest?: () => void;
+  /** /model → clear model hint. */
+  onSlashModelClear?: () => void;
 }
 
 // Browser SpeechRecognition (Web Speech API)
@@ -68,16 +75,28 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
     onSlashClear,
     onSlashTools,
     onSlashSession,
+    onSlashFast,
+    onSlashBest,
+    onSlashModelClear,
   },
   ref
 ) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const lastFinalIndexRef = useRef(-1);
+  const onSubmitRef = useRef(onSubmit);
+  const pushToTalkHoldRef = useRef(false);
+  const pushToTalkSubmitOnEndRef = useRef(false);
+  const pushToTalkHoldTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [speechSupported, setSpeechSupported] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState('');
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [attachedImageDataUrl, setAttachedImageDataUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    onSubmitRef.current = onSubmit;
+  }, [onSubmit]);
 
   useEffect(() => {
     const C = getSpeechRecognition();
@@ -113,6 +132,18 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
       setVoiceError(null);
     };
     rec.onend = () => {
+      if (pushToTalkSubmitOnEndRef.current) {
+        pushToTalkSubmitOnEndRef.current = false;
+        const el = textareaRef.current;
+        const text = el?.value?.trim() ?? '';
+        if (text && typeof onSubmitRef.current === 'function') {
+          onSubmitRef.current(text);
+        }
+        if (el) {
+          el.value = '';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }
       setIsListening(false);
       setInterimTranscript('');
       lastFinalIndexRef.current = -1;
@@ -181,6 +212,57 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
     }
   }, [disabled, isListening]);
 
+  const onMicMouseDown = useCallback(() => {
+    if (disabled || !recognitionRef.current) return;
+    setVoiceError(null);
+    pushToTalkHoldRef.current = true;
+    if (pushToTalkHoldTimeoutRef.current) {
+      clearTimeout(pushToTalkHoldTimeoutRef.current);
+      pushToTalkHoldTimeoutRef.current = null;
+    }
+    pushToTalkHoldTimeoutRef.current = setTimeout(() => {
+      pushToTalkHoldTimeoutRef.current = null;
+    }, 250);
+    if (!isListening) {
+      setInterimTranscript('');
+      setIsListening(true);
+      try {
+        recognitionRef.current.start();
+      } catch {
+        setIsListening(false);
+        pushToTalkHoldRef.current = false;
+      }
+    }
+  }, [disabled, isListening]);
+
+  const onMicMouseUp = useCallback(() => {
+    if (!recognitionRef.current) return;
+    const wasHold = pushToTalkHoldRef.current && pushToTalkHoldTimeoutRef.current === null;
+    pushToTalkHoldRef.current = false;
+    if (pushToTalkHoldTimeoutRef.current) {
+      clearTimeout(pushToTalkHoldTimeoutRef.current);
+      pushToTalkHoldTimeoutRef.current = null;
+    }
+    if (isListening) {
+      if (wasHold) {
+        pushToTalkSubmitOnEndRef.current = true;
+      }
+      recognitionRef.current.stop();
+    }
+  }, [isListening]);
+
+  const onMicMouseLeave = useCallback(() => {
+    if (pushToTalkHoldRef.current && isListening && recognitionRef.current) {
+      pushToTalkSubmitOnEndRef.current = true;
+      recognitionRef.current.stop();
+    }
+    pushToTalkHoldRef.current = false;
+    if (pushToTalkHoldTimeoutRef.current) {
+      clearTimeout(pushToTalkHoldTimeoutRef.current);
+      pushToTalkHoldTimeoutRef.current = null;
+    }
+  }, [isListening]);
+
   useImperativeHandle(
     ref,
     () => ({
@@ -204,14 +286,16 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
 
   const submit = useCallback(() => {
     const el = textareaRef.current;
-    if (!el) return;
+    if (!el || disabled) return;
     const text = el.value.trim();
-    if (!text || disabled) return;
+    const hasImage = !!attachedImageDataUrl;
+    if (!text && !hasImage) return;
     // Slash commands (Phase 3.5)
     if (text === '/clear') {
       onSlashClear?.();
       el.value = '';
       el.style.height = 'auto';
+      setAttachedImageDataUrl(null);
       return;
     }
     if (text === '/tools') {
@@ -227,10 +311,29 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
       el.style.height = 'auto';
       return;
     }
-    onSubmit(text);
+    if (text === '/fast') {
+      onSlashFast?.();
+      el.value = '';
+      el.style.height = 'auto';
+      return;
+    }
+    if (text === '/best') {
+      onSlashBest?.();
+      el.value = '';
+      el.style.height = 'auto';
+      return;
+    }
+    if (text === '/model') {
+      onSlashModelClear?.();
+      el.value = '';
+      el.style.height = 'auto';
+      return;
+    }
+    onSubmit(text || (hasImage ? 'What’s in this image?' : ''), hasImage ? { imageDataUrl: attachedImageDataUrl ?? undefined } : undefined);
     el.value = '';
     el.style.height = 'auto';
-  }, [onSubmit, disabled, onSlashClear, onSlashTools, onSlashSession]);
+    setAttachedImageDataUrl(null);
+  }, [onSubmit, disabled, attachedImageDataUrl, onSlashClear, onSlashTools, onSlashSession]);
 
   // Focus composer on load so developer can type immediately (Phase 1.1)
   useEffect(() => {
@@ -238,11 +341,35 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
     if (el) el.focus();
   }, []);
 
+  const onPaste = useCallback((e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          const dataUrl = reader.result;
+          if (typeof dataUrl === 'string') setAttachedImageDataUrl(dataUrl);
+        };
+        reader.readAsDataURL(file);
+        return;
+      }
+    }
+  }, []);
+
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (attachedImageDataUrl) {
+          setAttachedImageDataUrl(null);
+          return;
+        }
         el.value = '';
         el.style.height = 'auto';
         el.blur();
@@ -261,7 +388,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
         // Node may be detached (deferred DOM)
       }
     };
-  }, [submit]);
+  }, [submit, attachedImageDataUrl]);
 
   useEffect(() => {
     const el = textareaRef.current;
@@ -298,6 +425,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
           placeholder={isListening ? 'Listening…' : placeholder}
           rows={1}
           aria-label="Message JARVIS"
+          onPaste={onPaste}
           className="composer-input"
           style={{
             flex: 1,
@@ -319,9 +447,14 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
           <button
             type="button"
             onClick={toggleVoice}
+            onMouseDown={onMicMouseDown}
+            onMouseUp={onMicMouseUp}
+            onMouseLeave={onMicMouseLeave}
+            onTouchStart={(e) => { e.preventDefault(); onMicMouseDown(); }}
+            onTouchEnd={(e) => { e.preventDefault(); onMicMouseUp(); }}
             disabled={disabled}
-            aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
-            title={isListening ? 'Stop listening' : 'Voice input'}
+            aria-label={isListening ? 'Stop voice input (or release to send)' : 'Voice input (hold to talk, release to send)'}
+            title={isListening ? 'Stop listening or release to send' : 'Voice input — click to toggle, or hold and release to send'}
             style={{
               flexShrink: 0,
               width: '44px',
@@ -351,6 +484,32 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
           {interimTranscript ? ` "${interimTranscript}"` : ''}
         </p>
       )}
+      {attachedImageDataUrl && (
+        <div style={{ margin: '0.35rem 0 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <img
+            src={attachedImageDataUrl}
+            alt="Attached"
+            style={{ height: 48, maxWidth: 80, objectFit: 'cover', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}
+          />
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Image attached (paste). Send or Esc to clear.</span>
+          <button
+            type="button"
+            onClick={() => setAttachedImageDataUrl(null)}
+            aria-label="Remove attached image"
+            style={{
+              padding: '0.2rem 0.4rem',
+              fontSize: '11px',
+              background: 'var(--bg)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              cursor: 'pointer',
+              color: 'var(--text-muted)',
+            }}
+          >
+            Clear
+          </button>
+        </div>
+      )}
       {voiceError && (
         <p style={{ margin: '0.35rem 0 0', fontSize: '12px', color: 'var(--error, #e5534b)' }}>
           🎤 {voiceError}
@@ -359,7 +518,10 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
       <p style={{ margin: '0.5rem 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
         Enter to send · Shift+Enter new line · Esc clear · Cmd+J focus
         {speechSupported && ' · 🎤 Voice'}
-        {' · /clear, /session, /tools'}
+        {!speechSupported && (
+          <span title="Speech Recognition API"> · Voice input not supported in this browser (try Chrome or Edge)</span>
+        )}
+        {' · Paste image to attach · /clear, /session, /tools, /fast, /best, /model'}
       </p>
     </div>
   );

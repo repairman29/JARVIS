@@ -7,7 +7,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 JARVIS_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 OUT="$JARVIS_ROOT/.termux-apks"
-USER="jefe"
+USER="${TERMUX_USER:-u0_a310}"
 PORT="8022"
 CACHE_FILE="$JARVIS_ROOT/.pixel-ip"
 

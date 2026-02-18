@@ -12,6 +12,7 @@
  * Env: JARVIS_ALERT_WEBHOOK_URL or DISCORD_WEBHOOK_URL for posting the brief.
  */
 
+const { execSync } = require('child_process');
 const { runSafetyNet } = require('./jarvis-safety-net.js');
 const { loadEnvFile: loadVaultEnv, resolveEnv } = require('./vault.js');
 
@@ -19,6 +20,57 @@ async function getEnv(key, fallback) {
   const env = loadVaultEnv();
   const fromVault = await resolveEnv(key, env);
   return fromVault || process.env[key] || (env && env[key]) || fallback;
+}
+
+function safeExec(cmd) {
+  try {
+    return { ok: true, output: execSync(cmd, { encoding: 'utf8', stdio: 'pipe' }).trim() };
+  } catch {
+    return { ok: false };
+  }
+}
+
+function isGhAvailable() {
+  const which = process.platform === 'win32' ? 'where gh' : 'which gh';
+  return safeExec(which).ok;
+}
+
+/** Return { openPrs, openIssues } when gh is available; otherwise { openPrs: null, openIssues: null }. */
+function getOpenPrsAndIssues() {
+  if (!isGhAvailable()) return { openPrs: null, openIssues: null };
+  let openPrs = null;
+  let openIssues = null;
+  const prResult = safeExec('gh pr list --state open --json number');
+  if (prResult.ok && prResult.output) {
+    try {
+      const arr = JSON.parse(prResult.output);
+      openPrs = Array.isArray(arr) ? arr.length : 0;
+    } catch {
+      openPrs = null;
+    }
+  }
+  const issueResult = safeExec('gh issue list --state open --json number');
+  if (issueResult.ok && issueResult.output) {
+    try {
+      const arr = JSON.parse(issueResult.output);
+      openIssues = Array.isArray(arr) ? arr.length : 0;
+    } catch {
+      openIssues = null;
+    }
+  }
+  return { openPrs, openIssues };
+}
+
+/** Derive a one-line "next action" from snapshot and optional PR/issue counts. */
+function getNextAction(snapshot, openPrs, openIssues) {
+  const checks = snapshot.checks || [];
+  const failing = checks.find((c) => c.status === 'fail');
+  if (failing) return `Next: fix ${failing.name}`;
+  const warn = checks.find((c) => c.status === 'warn');
+  if (warn) return `Next: address ${warn.name}`;
+  if (openPrs != null && openPrs > 0) return `Next: review ${openPrs} open PR(s)`;
+  if (openIssues != null && openIssues > 0) return `Next: triage ${openIssues} open issue(s)`;
+  return 'Next: all clear';
 }
 
 async function postWebhook(url, payload) {
@@ -71,9 +123,19 @@ async function main() {
   const repoCheck = (snapshot.checks || []).find((c) => c.name === 'repo_index_freshness');
   const repoMsg = repoCheck && repoCheck.message ? ` | ${repoCheck.message}` : '';
 
+  const { openPrs, openIssues } = getOpenPrsAndIssues();
+  const nextAction = getNextAction(snapshot, openPrs, openIssues);
+
+  const counts = [];
+  if (openPrs != null) counts.push(`${openPrs} open PR(s)`);
+  if (openIssues != null) counts.push(`${openIssues} open issue(s)`);
+  const countsLine = counts.length ? counts.join(', ') : null;
+
   const lines = [
     `JARVIS brief — ${status} (${score}/100)${repoMsg}`,
+    countsLine,
     checks.length ? `Checks: ${checks.join(', ')}` : null,
+    nextAction,
     `Host: ${snapshot.host?.hostname || 'unknown'} (${snapshot.timestamp || new Date().toISOString()})`,
   ].filter(Boolean);
   const content = lines.join('\n');

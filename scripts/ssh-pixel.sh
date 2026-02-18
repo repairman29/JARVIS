@@ -4,7 +4,7 @@
 # Usage: ./scripts/ssh-pixel.sh [pixel-ip]
 # Password: use the one you set with passwd in Termux. If it has "!", type: yourpass\!
 
-USER="jefe"
+USER="${TERMUX_USER:-u0_a310}"
 PORT="8022"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CACHE_FILE="$SCRIPT_DIR/../.pixel-ip"

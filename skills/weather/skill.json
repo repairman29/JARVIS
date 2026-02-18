@@ -1,0 +1,36 @@
+{
+  "name": "weather",
+  "version": "1.0.0",
+  "description": "Current weather for any location using Open-Meteo. No API key. Use when the user asks for weather, temperature, or conditions in a city or place.",
+  "env": [],
+  "tools": [
+    {
+      "name": "weather_current",
+      "description": "Get current weather for a location (city name, place, or 'here' for a generic check). Use when the user asks 'what's the weather', 'weather in Denver', 'temperature in London', or similar. Returns temperature, conditions, humidity, wind.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "string",
+            "description": "City or place name (e.g. 'Denver', 'London', 'Tokyo'). Required unless coordinates provided."
+          },
+          "latitude": {
+            "type": "number",
+            "description": "Latitude (optional; used with longitude instead of location)"
+          },
+          "longitude": {
+            "type": "number",
+            "description": "Longitude (optional; used with latitude)"
+          },
+          "units": {
+            "type": "string",
+            "description": "Temperature and wind units",
+            "enum": ["celsius", "fahrenheit"],
+            "default": "fahrenheit"
+          }
+        },
+        "required": []
+      }
+    }
+  ]
+}

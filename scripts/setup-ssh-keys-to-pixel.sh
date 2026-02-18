@@ -9,7 +9,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CACHE_FILE="$SCRIPT_DIR/../.pixel-ip"
 PORT="8022"
-USER="jefe"
+USER="${TERMUX_USER:-u0_a310}"
 
 # Pixel IP
 PIXEL_IP="${1:-$(cat "$CACHE_FILE" 2>/dev/null | tr -d '\r\n \t')}"
@@ -27,7 +27,7 @@ if [ -z "$KEY" ]; then
 fi
 
 echo "Using key: $KEY"
-echo "Copying to jefe@$PIXEL_IP port $PORT (enter your Termux password when prompted)..."
+echo "Copying to $USER@$PIXEL_IP port $PORT (enter your Termux password when prompted)..."
 echo "If it fails, on the Pixel run once:  mkdir -p ~/.ssh && chmod 700 ~/.ssh"
 ssh-copy-id -i "$KEY" -p "$PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$USER@$PIXEL_IP"
 

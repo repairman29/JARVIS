@@ -108,9 +108,23 @@ clawdbot gateway restart
 
 ## 🛠️ **Skill Development Guide**
 
+### **MCP or skill? (when to add a new capability)**
+
+When you want JARVIS (or Cursor/Copilot) to use a new tool or data source, choose:
+
+| Prefer | When |
+|--------|------|
+| **MCP server** | The integration is useful to **multiple clients** (JARVIS, Cursor, ChatGPT, Copilot, OpenClaw). Implement or wrap an [Model Context Protocol](https://modelcontextprotocol.io/) server once; any MCP-capable client can use it. Reduces custom connectors and aligns with the 2026 agentic ecosystem. |
+| **JARVIS skill** | The integration is **JARVIS/gateway-specific** (e.g. launcher, window manager, quick-notes, workflow-automation), needs tight gateway/OS coupling, or there is no suitable MCP server yet. Skills live in `skills/<name>/` and are loaded by the Clawdbot gateway. |
+
+**Guidance:** If an official or community MCP server already exists for the service (e.g. Notion, Google Drive, filesystem), consider using that and exposing it via JARVIS MCP config so JARVIS and Cursor share one connector. If you need behavior that only the gateway can provide (exec, local OS, custom auth), build a skill. Document your choice in the skill or MCP README. See [docs/JARVIS_MASTER_ROADMAP.md](docs/JARVIS_MASTER_ROADMAP.md) § MCP-first for new skills.
+
 ### **Creating a New Skill**
 
 #### **1. Skill Structure**
+
+Before creating a new skill, check **§ MCP or skill?** above — prefer an MCP server when the integration is useful to multiple clients (Cursor, Copilot, OpenClaw).
+
 ```
 skills/my-skill/
 ├── skill.json          # Skill metadata and tool definitions
@@ -184,6 +198,15 @@ module.exports = { tools };
 - Brief skill overview
 - Installation instructions
 - Quick usage examples
+
+#### **5. Hero skill checklist (featured / premium skills)**
+
+For hero or premium skills (e.g. Focus Pro, Notion, GitHub++), use the same structure above and:
+
+- [ ] **Product alignment** — Confirm with [JARVIS_PRODUCT_PLAN.md](docs/JARVIS_PRODUCT_PLAN.md) §2 (Showcase / premium) and [COMMUNITY_AND_SKILLS.md](docs/COMMUNITY_AND_SKILLS.md). Document in PREMIUM_CLARITY or the showcase if it’s premium.
+- [ ] **Stub first (optional)** — Add `skill.json` + one tool stub in `index.js` + README + SKILL.md (see **skills/focus-pro/** as reference). Ship stub so the checklist is real; implement timers/APIs in a follow-up.
+- [ ] **SKILL.md** — Include "When to use", tool table, and natural language examples so the model can discover and call the skill.
+- [ ] **Test** — `node -e "const s = require('./skills/<name>'); console.log(s.tools)"`; run gateway and try from chat.
 
 ### **Natural Language Design Principles**
 

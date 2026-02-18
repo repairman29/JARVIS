@@ -454,7 +454,7 @@ function generateOptimizationReport() {
   
   // Count JARVIS components
   try {
-    const skillsDir = path.join(os.homdir(), 'jarvis', 'skills');
+    const skillsDir = path.join(os.homedir(), 'jarvis', 'skills');
     if (fs.existsSync(skillsDir)) {
       reportData.jarvis.skillCount = fs.readdirSync(skillsDir).length;
     }

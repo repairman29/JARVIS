@@ -31,8 +31,14 @@ function ensureConfigAndEnv() {
   const configPath = path.join(dir, 'clawdbot.json');
   const workspaceJarvis = path.join(repoRoot, 'jarvis');
 
-  if (!fs.existsSync(configPath)) {
-    const config = {
+  let config = {};
+  if (fs.existsSync(configPath)) {
+    try {
+      config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    } catch (_) {}
+  }
+  if (!config.gateway) {
+    config = {
       gateway: { mode: 'local' },
       agents: {
         defaults: {
@@ -41,19 +47,21 @@ function ensureConfigAndEnv() {
         }
       }
     };
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
-  } else {
-    try {
-      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-      const defaults = config.agents && config.agents.defaults ? config.agents.defaults : {};
-      if (!defaults.workspace && fs.existsSync(workspaceJarvis)) {
-        if (!config.agents) config.agents = {};
-        if (!config.agents.defaults) config.agents.defaults = {};
-        config.agents.defaults.workspace = workspaceJarvis;
-        fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
-      }
-    } catch (_) {}
   }
+  const defaults = config.agents && config.agents.defaults ? config.agents.defaults : {};
+  if (!defaults.workspace && fs.existsSync(workspaceJarvis)) {
+    if (!config.agents) config.agents = {};
+    if (!config.agents.defaults) config.agents.defaults = {};
+    config.agents.defaults.workspace = workspaceJarvis;
+  }
+  // Termux/Android: can't write /tmp; use home/tmp for log file so gateway doesn't mkdir /tmp/clawdbot
+  const homeTmp = path.join(homedir(), 'tmp');
+  try {
+    if (!fs.existsSync(homeTmp)) fs.mkdirSync(homeTmp, { recursive: true });
+    if (!config.logging) config.logging = {};
+    config.logging.file = config.logging.file || path.join(homeTmp, 'clawdbot.log');
+  } catch (_) {}
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
 
   const envPath = path.join(dir, '.env');
   let env = {};
@@ -79,12 +87,22 @@ function main() {
     loadEnvFile();
   } catch (_) {}
 
+  // Termux/Android can't write /tmp; use home/tmp so clawdbot can mkdir for logs
+  const env = { ...process.env };
+  if (!env.TMPDIR) {
+    const homeTmp = path.join(homedir(), 'tmp');
+    try {
+      if (!fs.existsSync(homeTmp)) fs.mkdirSync(homeTmp, { recursive: true });
+      env.TMPDIR = homeTmp;
+    } catch (_) {}
+  }
+
   const child = spawn('npx', ['clawdbot', 'gateway', 'run', '--allow-unconfigured'], {
     cwd: repoRoot,
     detached: true,
     stdio: 'ignore',
     shell: true,
-    env: { ...process.env }
+    env
   });
   child.unref();
   process.exit(0);

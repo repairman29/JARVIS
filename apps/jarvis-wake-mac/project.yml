@@ -1,0 +1,25 @@
+# XcodeGen spec — run: xcodegen (from this directory) to generate JarvisWakeMac.xcodeproj
+name: JarvisWakeMac
+options:
+  bundleIdPrefix: com.jarvis
+  deploymentTarget:
+    macOS: "13.0"
+  xcodeVersion: "15.0"
+  generateEmptyDirectories: true
+targets:
+  JarvisWakeMac:
+    type: application
+    platform: macOS
+    sources:
+      - path: JarvisWakeMac
+        excludes:
+          - "*.plist"
+          - "*.entitlements"
+    settings:
+      base:
+        INFOPLIST_FILE: JarvisWakeMac/Info.plist
+        CODE_SIGN_ENTITLEMENTS: JarvisWakeMac/JarvisWakeMac.entitlements
+        PRODUCT_BUNDLE_IDENTIFIER: com.jarvis.wake
+        LD_RUNPATH_SEARCH_PATHS: "@executable_path/../Frameworks"
+    entitlements:
+      path: JarvisWakeMac/JarvisWakeMac.entitlements

@@ -27,14 +27,15 @@ Without this, scheduled plan-execute and heartbeat may not run when the phone is
 
 After a reboot, crond and the JARVIS stack are not running until you open Termux and run something. To start them automatically:
 
-1. **Install Termux:Boot** from F-Droid. Open the app once so it’s allowed to run at boot.
-2. In **Termux** (not Boot), create the boot directory and copy the start script:
+1. **Install Termux:Boot** (F-Droid, same source as Termux). Then **open the Termux:Boot app once** — tap its icon in the app drawer. That registers it with Android to run at boot. (On Pixel there are no separate “run at startup” toggles; opening the app is enough.)
+2. In **Termux** (not Boot), put the start script in the boot directory. Newer Termux:Boot (0.8+) uses `~/.config/termux/boot/`; older uses `~/.termux/boot/`. To cover both:
    ```bash
-   mkdir -p ~/.termux/boot
+   mkdir -p ~/.termux/boot ~/.config/termux/boot
    cp ~/JARVIS/scripts/termux-boot-start-jarvis ~/.termux/boot/
-   chmod +x ~/.termux/boot/termux-boot-start-jarvis
+   cp ~/JARVIS/scripts/termux-boot-start-jarvis ~/.config/termux/boot/
+   chmod +x ~/.termux/boot/termux-boot-start-jarvis ~/.config/termux/boot/termux-boot-start-jarvis
    ```
-3. Reboot the Pixel. Termux:Boot will run the script: it enables wake lock, starts crond, and runs `start-jarvis-pixel.sh`. Check `~/jarvis-boot.log` if something fails.
+3. Reboot the Pixel. Termux:Boot runs the script: wake lock, crond, then `start-jarvis-pixel.sh`. Check `~/jarvis-boot.log` (first line: `... boot script started` means it ran).
 
 **Result:** After every reboot, JARVIS stack and cron start without opening Termux.
 

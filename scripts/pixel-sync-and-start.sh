@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # One script: push JARVIS to the Pixel, then start the stack.
 # Prereq: On the Pixel — Termux open, run "sshd", same Wi‑Fi as Mac. InferrLM app Server ON.
-# In Termux run: whoami   and  passwd   (use that username if not jefe).
+# In Termux run: whoami   and  passwd   (use that username if not u0_a310).
 # Usage: cd ~/JARVIS && bash scripts/pixel-sync-and-start.sh [pixel-ip]
 # Or: TERMUX_USER=u0_a310 bash scripts/pixel-sync-and-start.sh
 
@@ -9,7 +9,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 JARVIS_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 CACHE_FILE="$JARVIS_ROOT/.pixel-ip"
-USER="${TERMUX_USER:-jefe}"
+USER="${TERMUX_USER:-u0_a310}"   # override with TERMUX_USER if your Termux whoami differs
 PORT="8022"
 
 # IP

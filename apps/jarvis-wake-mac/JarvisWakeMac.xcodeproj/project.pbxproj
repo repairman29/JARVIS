@@ -1,0 +1,278 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		B1A1B2C3D4E5F60100000001 /* JarvisWakeMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A1B2C3D4E5F60100000001 /* JarvisWakeMacApp.swift */; };
+		B1A1B2C3D4E5F60100000002 /* WakeWordEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A1B2C3D4E5F60100000002 /* WakeWordEngine.swift */; };
+		B1A1B2C3D4E5F60100000003 /* JarvisClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A1B2C3D4E5F60100000003 /* JarvisClient.swift */; };
+		B1A1B2C3D4E5F60100000004 /* TTSManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A1B2C3D4E5F60100000004 /* TTSManager.swift */; };
+		B1A1B2C3D4E5F60100000005 /* WakeConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A1B2C3D4E5F60100000005 /* WakeConfig.swift */; };
+		B1A1B2C3D4E5F60100000006 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A1B2C3D4E5F60100000006 /* SettingsView.swift */; };
+		B1A1B2C3D4E5F60100000007 /* MainWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A1B2C3D4E5F60100000009 /* MainWindowView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		F1A1B2C3D4E5F60100000000 /* JarvisWakeMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JarvisWakeMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F1A1B2C3D4E5F60100000001 /* JarvisWakeMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JarvisWakeMacApp.swift; sourceTree = "<group>"; };
+		F1A1B2C3D4E5F60100000002 /* WakeWordEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WakeWordEngine.swift; sourceTree = "<group>"; };
+		F1A1B2C3D4E5F60100000003 /* JarvisClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JarvisClient.swift; sourceTree = "<group>"; };
+		F1A1B2C3D4E5F60100000004 /* TTSManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TTSManager.swift; sourceTree = "<group>"; };
+		F1A1B2C3D4E5F60100000005 /* WakeConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WakeConfig.swift; sourceTree = "<group>"; };
+		F1A1B2C3D4E5F60100000006 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		F1A1B2C3D4E5F60100000007 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		F1A1B2C3D4E5F60100000008 /* JarvisWakeMac.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = JarvisWakeMac.entitlements; sourceTree = "<group>"; };
+		F1A1B2C3D4E5F60100000009 /* MainWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		E1A1B2C3D4E5F60100000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		G1A1B2C3D4E5F60100000001 = {
+			isa = PBXGroup;
+			children = (
+				G1A1B2C3D4E5F60100000002 /* JarvisWakeMac */,
+				G1A1B2C3D4E5F60100000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		G1A1B2C3D4E5F60100000002 /* JarvisWakeMac */ = {
+			isa = PBXGroup;
+			children = (
+				F1A1B2C3D4E5F60100000001 /* JarvisWakeMacApp.swift */,
+				F1A1B2C3D4E5F60100000002 /* WakeWordEngine.swift */,
+				F1A1B2C3D4E5F60100000003 /* JarvisClient.swift */,
+				F1A1B2C3D4E5F60100000004 /* TTSManager.swift */,
+				F1A1B2C3D4E5F60100000005 /* WakeConfig.swift */,
+				F1A1B2C3D4E5F60100000006 /* SettingsView.swift */,
+				F1A1B2C3D4E5F60100000009 /* MainWindowView.swift */,
+				F1A1B2C3D4E5F60100000007 /* Info.plist */,
+				F1A1B2C3D4E5F60100000008 /* JarvisWakeMac.entitlements */,
+			);
+			path = JarvisWakeMac;
+			sourceTree = "<group>";
+		};
+		G1A1B2C3D4E5F60100000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F1A1B2C3D4E5F60100000000 /* JarvisWakeMac.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		T1A1B2C3D4E5F60100000001 /* JarvisWakeMac */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C1A1B2C3D4E5F60100000002 /* Build configuration list for PBXNativeTarget "JarvisWakeMac" */;
+			buildPhases = (
+				S1A1B2C3D4E5F60100000001 /* Sources */,
+				E1A1B2C3D4E5F60100000001 /* Frameworks */,
+				R1A1B2C3D4E5F60100000001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = JarvisWakeMac;
+			productName = JarvisWakeMac;
+			productReference = F1A1B2C3D4E5F60100000000 /* JarvisWakeMac.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		P1A1B2C3D4E5F60100000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+			};
+			buildConfigurationList = C1A1B2C3D4E5F60100000001 /* Build configuration list for PBXProject "JarvisWakeMac" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = G1A1B2C3D4E5F60100000001;
+			productRefGroup = G1A1B2C3D4E5F60100000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				T1A1B2C3D4E5F60100000001 /* JarvisWakeMac */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		R1A1B2C3D4E5F60100000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		S1A1B2C3D4E5F60100000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B1A1B2C3D4E5F60100000001 /* JarvisWakeMacApp.swift in Sources */,
+				B1A1B2C3D4E5F60100000002 /* WakeWordEngine.swift in Sources */,
+				B1A1B2C3D4E5F60100000003 /* JarvisClient.swift in Sources */,
+				B1A1B2C3D4E5F60100000004 /* TTSManager.swift in Sources */,
+				B1A1B2C3D4E5F60100000005 /* WakeConfig.swift in Sources */,
+				B1A1B2C3D4E5F60100000006 /* SettingsView.swift in Sources */,
+				B1A1B2C3D4E5F60100000007 /* MainWindowView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		D1A1B2C3D4E5F60100000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		D1A1B2C3D4E5F60100000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_OPTIMIZATION_LEVEL = s;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		D1A1B2C3D4E5F60100000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				CODE_SIGN_ENTITLEMENTS = JarvisWakeMac/JarvisWakeMac.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = JarvisWakeMac/Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jarvis.wake;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		D1A1B2C3D4E5F60100000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				CODE_SIGN_ENTITLEMENTS = JarvisWakeMac/JarvisWakeMac.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = JarvisWakeMac/Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jarvis.wake;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		C1A1B2C3D4E5F60100000001 /* Build configuration list for PBXProject "JarvisWakeMac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D1A1B2C3D4E5F60100000001 /* Debug */,
+				D1A1B2C3D4E5F60100000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C1A1B2C3D4E5F60100000002 /* Build configuration list for PBXNativeTarget "JarvisWakeMac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D1A1B2C3D4E5F60100000003 /* Debug */,
+				D1A1B2C3D4E5F60100000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = P1A1B2C3D4E5F60100000001 /* Project object */;
+}

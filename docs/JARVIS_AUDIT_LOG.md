@@ -50,6 +50,10 @@ CREATE TABLE IF NOT EXISTS jarvis_audit_log (
 
 Then in gateway config or code, on every exec / workflow_dispatch / destructive action, insert a row.
 
+**Edge function:** The JARVIS Edge function accepts `POST` with `action: "audit_log"` and writes to `jarvis_audit_log`. Body: `event_action` (required, e.g. `"exec"`, `"workflow_dispatch"`), optional `details` (object), `session_id`, `channel`, `actor`. Apply the migration first: `supabase db push` or run the SQL in the Supabase dashboard.
+
+**Script:** From repo root, **`node scripts/audit-log.js <event_action> [details] [--channel CH] [--session ID] [--actor WHO]`** POSTs to the Edge. Set `JARVIS_EDGE_URL` (or `NEXT_PUBLIC_JARVIS_EDGE_URL`) and optional `JARVIS_AUTH_TOKEN` in `~/.clawdbot/.env`. Example: `node scripts/audit-log.js exec "npm run build" --channel cron --actor deploy`. See RUNBOOK § Supabase.
+
 ### Option 3: File log
 
 Gateway or a wrapper script can append to a log file (e.g. `~/.jarvis/audit.log`) with one line per action. Rotate and secure the file as needed.
@@ -62,7 +66,14 @@ JARVIS agent instructions already say: **confirm with the user** before destruct
 
 ---
 
+## Agentic security (runbook)
+
+For permission scoping (elevated vs normal, allowFrom), audit trail usage, and mitigations for **indirect prompt injection** and **memory poisoning**, see **[RUNBOOK.md](../RUNBOOK.md) § Agentic security**. Summary: scope elevated access per channel; log every exec/workflow_dispatch; use explicit context declarations and multi-source verification; audit memory and audit log periodically.
+
+---
+
 ## References
 
 - **Elevated access:** [RUNBOOK.md](../RUNBOOK.md) — enable restart, allowFrom.discord.
+- **Agentic security (full):** [RUNBOOK.md](../RUNBOOK.md) § Agentic security — permissions, audit, prompt-injection and memory-poisoning mitigations.
 - **Agent rules:** [jarvis/AGENTS.md](../jarvis/AGENTS.md) — confirm before destructive ops.

@@ -4,7 +4,7 @@ Developer-grade chat UI for JARVIS. Talks to the Clawdbot gateway; implements th
 
 ## Prerequisites
 
-- **Clawdbot gateway** running (e.g. `clawdbot gateway run` or `node scripts/start-gateway-with-vault.js` from repo root).
+- **Clawdbot gateway** running (e.g. `clawdbot gateway run` or `node scripts/start-gateway-with-vault.js` from repo root; or `node scripts/start-gateway-background.js` to start in background). After adding or changing skills, restart the gateway so it picks them up.
 - Gateway URL: default `http://127.0.0.1:18789`.
 - **Chat Completions API** enabled on the gateway (see [Enable Chat API](#enable-chat-api-fix-chat-api-not-enabled) below).
 
@@ -112,4 +112,4 @@ Runs on **3001** so it doesn’t clash with the gateway (18789) or other apps. C
 ## E2E tests
 
 - **API (curl):** `npm run e2e` — hits `/`, `/api/health`, `/api/config`, `/api/chat`. Expect all OK or accepted skip when gateway/Edge is down.
-- **Browser (Playwright):** `npm run test:e2e` — loads the UI, opens Settings/Skills, session dropdown, composer slash commands, export buttons. Start the dev server first (`npm run dev`); Playwright reuses it. After pulling changes, restart the dev server so tests see the latest code. Optional: `npm run test:e2e:ui` for the Playwright UI.
+- **Browser (Playwright):** `npm run test:e2e` — loads the UI, opens Settings/Skills, session dropdown, composer slash commands, export buttons. By default Playwright starts its own dev server on port 3002. If you already have `npm run dev` on 3001, use **`PLAYWRIGHT_BASE_URL=http://localhost:3001 npm run test:e2e`** so tests run against it and you avoid the Next.js dev lock. Optional: `npm run test:e2e:ui` for the Playwright UI.

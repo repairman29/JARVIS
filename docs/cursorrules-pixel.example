@@ -1,0 +1,8 @@
+# JARVIS on Pixel / Termux — Cursor agent rules
+# Copy to repo root as .cursorrules: cp docs/cursorrules-pixel.example .cursorrules
+
+- Use sequential thinking: break tasks into steps before running commands.
+- Prefer termux-api for device data (battery, location, WiFi); use adb shell for UI when needed.
+- For multi-step tasks, write PLAN.md before making changes.
+- Never hardcode API keys; use .env or environment variables.
+- On Pixel/Termux, paths use $HOME (e.g. ~/JARVIS); gateway is 18789, chat 18888.

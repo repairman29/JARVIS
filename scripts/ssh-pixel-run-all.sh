@@ -4,7 +4,7 @@
 # Usage: ./scripts/ssh-pixel-run-all.sh [pixel-ip]
 # Prereq: Pixel on same Wi‑Fi, Termux with sshd (pkg install openssh), JARVIS at ~/JARVIS.
 
-USER="jefe"
+USER="${TERMUX_USER:-u0_a310}"
 PORT="8022"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CACHE_FILE="$SCRIPT_DIR/../.pixel-ip"

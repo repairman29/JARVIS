@@ -3,6 +3,8 @@
 **Single source of truth for "cool badassery" and Windows polish.**  
 Status: ✅ Done | 🚧 In progress | ⬜ Todo
 
+**Full JARVIS roadmap (all tracks + 2026 ecosystem):** [docs/JARVIS_MASTER_ROADMAP.md](./docs/JARVIS_MASTER_ROADMAP.md)
+
 See [JARVIS_BADASSERY.md](./JARVIS_BADASSERY.md) for full idea write-ups.
 
 ---

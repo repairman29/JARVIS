@@ -7,6 +7,13 @@
 # Clawdbot local config (contains secrets)
 .clawdbot/
 
+# Build server repo paths (machine-specific)
+build-server-repos.json
+
+# Pixel IP cache (from ssh-pixel-logs.sh ADB discovery)
+.pixel-ip
+.termux-apks/
+
 # API keys and tokens
 *.pem
 *.key

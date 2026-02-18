@@ -1,0 +1,6 @@
+{
+  "name": "@mariozechner/clipboard-android-arm64",
+  "version": "0.3.2",
+  "description": "Stub for Termux/Android - clipboard not available",
+  "main": "index.js"
+}

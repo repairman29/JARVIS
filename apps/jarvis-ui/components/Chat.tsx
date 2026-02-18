@@ -94,6 +94,7 @@ export function Chat() {
   const [hasMounted, setHasMounted] = useState(false);
   const [theme, setThemeState] = useState<ThemeValue>('dark');
   const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
+  const [modelHint, setModelHint] = useState<'fast' | 'best' | null>(null);
   const themeDropdownRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sessionDropdownRef = useRef<HTMLDivElement>(null);
@@ -135,7 +136,7 @@ export function Chat() {
 
   // Hydrate session history from Edge when using Edge backend (session survives refresh)
   useEffect(() => {
-    if (!sessionId || !hasMounted || hydratedForSessionRef.current === sessionId) return;
+    if (!sessionId || !hasMounted || hydratedForSessionRef.current === sessionId || messages.length > 0) return;
     let cancelled = false;
     fetch(`/api/session?sessionId=${encodeURIComponent(sessionId)}`, { cache: 'no-store' })
       .then((r) => r.json())
@@ -161,7 +162,7 @@ export function Chat() {
     return () => {
       cancelled = true;
     };
-  }, [sessionId, hasMounted]);
+  }, [sessionId, hasMounted, messages.length]);
 
   useEffect(() => {
     if (!themeDropdownOpen) return;
@@ -399,6 +400,7 @@ export function Chat() {
           messages: messageHistory,
           sessionId: sessionId || 'jarvis-ui',
           stream: false,
+          ...(modelHint ? { modelHint } : {}),
         }),
         signal: AbortSignal.timeout(60000),
       });
@@ -425,10 +427,10 @@ export function Chat() {
     } catch (err) {
       if (mountedRef.current) setErrorMessage(err instanceof Error ? err.message : 'Run and copy failed');
     }
-  }, [messages, sessionId]);
+  }, [messages, sessionId, modelHint]);
 
   const sendMessage = useCallback(
-    async (text: string) => {
+    async (text: string, opts?: { imageDataUrl?: string }) => {
       stopSpeaking(); // cancel any in-progress TTS when user sends (interrupt)
       const userMsg: ChatMessage = {
         id: `u-${Date.now()}`,
@@ -457,6 +459,8 @@ export function Chat() {
             messages: messageHistory,
             sessionId: sessionId || 'jarvis-ui',
             stream: true,
+            ...(modelHint ? { modelHint } : {}),
+            ...(opts?.imageDataUrl ? { imageDataUrl: opts.imageDataUrl } : {}),
           }),
           signal: controller.signal,
         });
@@ -613,7 +617,7 @@ export function Chat() {
         if (mountedRef.current) setIsLoading(false);
       }
     },
-    [messages, sessionId, speakReplies, speakReplyAndMaybeListen]
+    [messages, sessionId, modelHint, speakReplies, speakReplyAndMaybeListen]
   );
 
   return (
@@ -664,6 +668,20 @@ export function Chat() {
             >
               Session: {sessionId ? sessionId.slice(0, 12) + (sessionId.length > 12 ? '…' : '') : '—'} ▼
             </button>
+            {modelHint && (
+              <span
+                title="Model hint: use /model to clear"
+                style={{
+                  padding: '0.2rem 0.4rem',
+                  fontSize: '11px',
+                  background: 'var(--border)',
+                  color: 'var(--text-muted)',
+                  borderRadius: 'var(--radius-sm)',
+                }}
+              >
+                {modelHint === 'fast' ? 'Fast' : 'Best'}
+              </span>
+            )}
             {sessionDropdownOpen && (
               <div
                 role="listbox"
@@ -1059,6 +1077,9 @@ export function Chat() {
         onSlashClear={clearMessages}
         onSlashTools={() => setSkillsOpen(true)}
         onSlashSession={handleSessionChange}
+        onSlashFast={() => setModelHint('fast')}
+        onSlashBest={() => setModelHint('best')}
+        onSlashModelClear={() => setModelHint(null)}
       />
 
       <SettingsModal
