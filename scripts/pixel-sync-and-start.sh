@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# One script: push JARVIS to the Pixel, then start the stack.
+# Push JARVIS to the Pixel, then start the stack. Prompts for Termux SSH password unless you ran setup-ssh-keys once.
+# For one-command automation with no password: run setup-ssh-keys-to-pixel.sh once, then use pixel-auto-sync-and-start.sh.
 # Prereq: On the Pixel — Termux open, run "sshd", same Wi‑Fi as Mac. InferrLM app Server ON.
-# In Termux run: whoami   and  passwd   (use that username if not u0_a310).
 # Usage: cd ~/JARVIS && bash scripts/pixel-sync-and-start.sh [pixel-ip]
 # Or: TERMUX_USER=u0_a310 bash scripts/pixel-sync-and-start.sh
 

@@ -18,6 +18,7 @@ const os = require('os');
 const GATEWAY_PORT = Number(process.env.GATEWAY_PORT || process.env.PORT || '18789');
 const CHAT_PORT = Number(process.env.CHAT_SERVER_PORT || '18888');
 const GATEWAY_HOST = process.env.GATEWAY_HOST || '127.0.0.1';
+const ADAPTER_PORT = Number(process.env.ADAPTER_PORT || '8888');
 
 function buildChatHtml(voiceMode) {
   return `<!DOCTYPE html>
@@ -347,9 +348,9 @@ const CHAT_HTML = buildChatHtml(false);
 const VOICE_HTML = buildChatHtml(true);
 
 const server = http.createServer((req, res) => {
-  const pathname = url.parse(req.url).pathname;
+  const pathname = (url.parse(req.url).pathname || '/').replace(/\/$/, '') || '/';
 
-  if (req.method === 'GET' && (pathname === '/' || pathname === '/index.html')) {
+  if (req.method === 'GET' && (pathname === '' || pathname === '/' || pathname === '/index.html')) {
     res.writeHead(200, { 'Content-Type': 'text/html', 'Cache-Control': 'no-store, no-cache, must-revalidate' });
     res.end(CHAT_HTML);
     return;
@@ -360,30 +361,78 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (req.method === 'POST' && pathname === '/v1/chat/completions') {
+  if (req.method === 'POST' && (pathname === '/v1/chat/completions' || pathname === '/v1/chat/completions/')) {
     const chunks = [];
     req.on('data', (c) => chunks.push(c));
     req.on('end', () => {
       const body = Buffer.concat(chunks);
-      const proxy = http.request({
-        hostname: GATEWAY_HOST,
-        port: GATEWAY_PORT,
-        path: '/v1/chat/completions',
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': body.length,
-          'x-openclaw-agent-id': req.headers['x-openclaw-agent-id'] || 'main',
-        },
-      }, (pres) => {
+      let responded = false;
+      function forwardTo(host, port, onResponse) {
+        const proxy = http.request({
+          hostname: host,
+          port,
+          path: '/v1/chat/completions',
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': body.length,
+            'x-openclaw-agent-id': req.headers['x-openclaw-agent-id'] || 'main',
+          },
+        }, onResponse);
+        proxy.on('error', (e) => {
+          if (responded) return;
+          if (host === GATEWAY_HOST && port === GATEWAY_PORT && (e.code === 'ECONNREFUSED' || e.message.includes('refused'))) {
+            responded = true;
+            console.warn('Gateway unreachable, using adapter at 127.0.0.1:' + ADAPTER_PORT);
+            forwardTo('127.0.0.1', ADAPTER_PORT, (adapterRes) => {
+              res.writeHead(adapterRes.statusCode, { 'Content-Type': adapterRes.headers['content-type'] || 'application/json' });
+              adapterRes.pipe(res);
+            });
+            return;
+          }
+          responded = true;
+          res.writeHead(502, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: { message: (host + ':' + port + ' unreachable: ') + e.message } }));
+        });
+        proxy.end(body);
+      }
+      forwardTo(GATEWAY_HOST, GATEWAY_PORT, (pres) => {
+        if (responded) return;
+        if (pres.statusCode === 405) {
+          pres.resume();
+          responded = true;
+          console.warn('Gateway returned 405, using adapter at 127.0.0.1:' + ADAPTER_PORT);
+          forwardTo('127.0.0.1', ADAPTER_PORT, (adapterRes) => {
+            res.writeHead(adapterRes.statusCode, { 'Content-Type': adapterRes.headers['content-type'] || 'application/json' });
+            adapterRes.pipe(res);
+          });
+          return;
+        }
+        if (pres.statusCode === 502) {
+          const chunks = [];
+          pres.on('data', (c) => chunks.push(c));
+          pres.on('end', () => {
+            if (responded) return;
+            const body = Buffer.concat(chunks).toString('utf8');
+            if (/refused|ECONNREFUSED|urlopen/.test(body)) {
+              responded = true;
+              console.warn('Gateway returned 502 (backend refused), using adapter at 127.0.0.1:' + ADAPTER_PORT);
+              forwardTo('127.0.0.1', ADAPTER_PORT, (adapterRes) => {
+                res.writeHead(adapterRes.statusCode, { 'Content-Type': adapterRes.headers['content-type'] || 'application/json' });
+                adapterRes.pipe(res);
+              });
+              return;
+            }
+            responded = true;
+            res.writeHead(502, { 'Content-Type': pres.headers['content-type'] || 'application/json' });
+            res.end(body);
+          });
+          return;
+        }
+        responded = true;
         res.writeHead(pres.statusCode, { 'Content-Type': pres.headers['content-type'] || 'application/json' });
         pres.pipe(res);
       });
-      proxy.on('error', (e) => {
-        res.writeHead(502, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: { message: 'Gateway unreachable: ' + e.message } }));
-      });
-      proxy.end(body);
     });
     return;
   }

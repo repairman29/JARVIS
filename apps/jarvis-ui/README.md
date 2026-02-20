@@ -97,6 +97,7 @@ Open **http://localhost:3001**. The UI uses a stable session (stored in `localSt
 | `CLAWDBOT_GATEWAY_TOKEN` or `OPENCLAW_GATEWAY_TOKEN` | Bearer token for gateway auth. Leave empty if gateway has no auth. |
 | `NEXT_PUBLIC_JARVIS_EDGE_URL` | Optional. When set, chat and health use the JARVIS Edge Function (hosted JARVIS) instead of the gateway. |
 | `JARVIS_AUTH_TOKEN` | Optional. Bearer token for Edge Function when using `NEXT_PUBLIC_JARVIS_EDGE_URL`. |
+| `JARVIS_FARM_URL` or `FARM_URL` | Optional. When set **with** `NEXT_PUBLIC_JARVIS_EDGE_URL`, enables **hybrid** mode: health and chat try the farm first (e.g. `http://<pixel-ip>:18789`); if unreachable, use Edge. Session is always persisted to Edge so the same thread is available on farm or away. See [JARVIS_EDGE_AND_PIXEL_FARM.md](../../docs/JARVIS_EDGE_AND_PIXEL_FARM.md) § Hybrid app. |
 
 ## Features (roadmap)
 

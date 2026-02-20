@@ -2,12 +2,75 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const GATEWAY_URL = (process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://127.0.0.1:18789').trim();
 const EDGE_URL = (process.env.NEXT_PUBLIC_JARVIS_EDGE_URL || '').trim();
+const FARM_URL = (process.env.JARVIS_FARM_URL || process.env.FARM_URL || '').trim();
 const TOKEN = process.env.CLAWDBOT_GATEWAY_TOKEN || process.env.OPENCLAW_GATEWAY_TOKEN || '';
 const EDGE_TOKEN = (process.env.JARVIS_AUTH_TOKEN || '').trim();
 const CHAT_URL = `${GATEWAY_URL.replace(/\/$/, '')}/v1/chat/completions`;
+const FARM_PROBE_MS = 2500;
+
+/** Fire-and-forget: append user + assistant to Edge session (for hybrid farm path). */
+async function appendToEdgeSession(
+  sessionId: string,
+  userContent: string,
+  assistantContent: string
+): Promise<void> {
+  if (!EDGE_URL) return;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (EDGE_TOKEN) headers['Authorization'] = `Bearer ${EDGE_TOKEN}`;
+  try {
+    await fetch(EDGE_URL.replace(/\/$/, ''), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        action: 'append_session',
+        session_id: sessionId,
+        messages: [
+          { role: 'user', content: userContent },
+          { role: 'assistant', content: assistantContent },
+        ],
+      }),
+      signal: AbortSignal.timeout(10000),
+    });
+  } catch {
+    // best-effort; do not fail the chat response
+  }
+}
+
+/** Consume SSE stream and return accumulated assistant content (for hybrid farm stream → append). */
+async function accumulateStreamContent(stream: ReadableStream<Uint8Array>): Promise<string> {
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let content = '';
+  const reader = stream.getReader();
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split(/\n/);
+      buffer = lines.pop() ?? '';
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('data: ') && trimmed !== 'data: [DONE]') {
+          try {
+            const payload = trimmed.slice(6);
+            const parsed = JSON.parse(payload) as { choices?: Array<{ delta?: { content?: string } }> };
+            const delta = parsed?.choices?.[0]?.delta?.content;
+            if (typeof delta === 'string') content += delta;
+          } catch {
+            // ignore
+          }
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  return content;
+}
 
 /** Injected when using local gateway so JARVIS does not deflect to Cursor for everything. Same intent as Edge WEB_UI_SYSTEM_PROMPT. */
-const WEB_CHAT_SYSTEM_HINT = `Channel: Web chat (JARVIS UI). Do everything you can here: answer questions, use tools (web search, clock, etc.), brainstorm, suggest next actions. Only mention Cursor or "come back to Cursor" when the user explicitly needs live repo access or to run commands on their machine—otherwise help fully in this chat.`;
+const WEB_CHAT_SYSTEM_HINT = `Channel: Web chat (JARVIS UI). You have full tool access here, including repo knowledge: use repo_summary, repo_search, and repo_file when the gateway has a workspace and indexed repos. Answer questions, search repos, cite sources (e.g. "From repo_summary(olive): …"). Use web search, clock, launcher, workflows, and other skills. Only mention Cursor when the user explicitly needs live file edit on their machine or host exec and no tool can do it—otherwise help fully in this chat. When asked what JARVIS or repairman29/JARVIS is, use repo_summary(JARVIS) and answer from this codebase; do not describe the unrelated Python/NLTK JARVIS project from the web.`;
 
 /** Extract assistant text from gateway JSON (OpenAI-style or OpenResponses-style). */
 function extractContent(data: unknown): string {
@@ -68,6 +131,127 @@ export async function POST(req: NextRequest) {
         { error: { message: 'messages array required', type: 'invalid_request_error' } },
         { status: 400 }
       );
+    }
+
+    // Hybrid: when both Edge and Farm URL are set, try farm first
+    let useFarm = false;
+    if (EDGE_URL && FARM_URL) {
+      try {
+        const base = FARM_URL.replace(/\/$/, '');
+        const probe = await fetch(`${base}/`, {
+          method: 'GET',
+          headers: TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {},
+          signal: AbortSignal.timeout(FARM_PROBE_MS),
+        });
+        useFarm = probe.ok;
+      } catch {
+        useFarm = false;
+      }
+    }
+
+    if (useFarm) {
+      const FARM_CHAT_URL = `${FARM_URL.replace(/\/$/, '')}/v1/chat/completions`;
+      const lastUserContent = messages.filter((m) => m.role === 'user').pop()?.content ?? '';
+      const farmHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'x-openclaw-agent-id': 'main',
+      };
+      if (TOKEN) farmHeaders['Authorization'] = `Bearer ${TOKEN}`;
+      if (modelHint === 'fast' || modelHint === 'best') farmHeaders['X-JARVIS-Model-Hint'] = modelHint;
+      const gatewayMessages = messages.some((m) => m.role === 'system')
+        ? messages
+        : [{ role: 'system' as const, content: WEB_CHAT_SYSTEM_HINT }, ...messages];
+
+      const farmRes = await fetch(FARM_CHAT_URL, {
+        method: 'POST',
+        headers: farmHeaders,
+        body: JSON.stringify({
+          model: 'openclaw:main',
+          messages: gatewayMessages,
+          stream,
+          user: sessionId,
+          ...(imageDataUrl && typeof imageDataUrl === 'string' ? { imageDataUrl } : {}),
+        }),
+        signal: AbortSignal.timeout(120000),
+      });
+
+      if (!farmRes.ok) {
+        const errBody = await farmRes.text();
+        let errJson: { error?: { message?: string; type?: string } } = {};
+        try {
+          errJson = JSON.parse(errBody);
+        } catch {
+          errJson = { error: { message: errBody || farmRes.statusText, type: 'api_error' } };
+        }
+        const message =
+          farmRes.status === 405
+            ? 'Chat API not enabled on farm gateway.'
+            : errJson.error?.message || farmRes.statusText;
+        return NextResponse.json(
+          { error: { ...errJson.error, message, type: errJson.error?.type || 'api_error' } },
+          { status: farmRes.status }
+        );
+      }
+
+      const backendHeader = { 'X-Backend': 'farm' };
+
+      if (!stream) {
+        const raw = await farmRes.text();
+        let data: unknown;
+        try {
+          data = raw ? JSON.parse(raw) : {};
+        } catch {
+          return NextResponse.json(
+            { error: { message: 'Farm returned invalid JSON', type: 'api_error' } },
+            { status: 502 }
+          );
+        }
+        const content = extractContent(data);
+        const fallback = content === '' ? 'Farm returned no text.' : content;
+        const obj = data as Record<string, unknown>;
+        const meta = (obj?.meta as Record<string, unknown>) ?? (obj?.usage as Record<string, unknown>);
+        const promptTrimmedTo =
+          typeof meta?.prompt_trimmed_to === 'number' ? meta.prompt_trimmed_to : undefined;
+        const toolsUsed =
+          Array.isArray(meta?.tools_used) && (meta.tools_used as unknown[]).every((t) => typeof t === 'string')
+            ? (meta.tools_used as string[])
+            : undefined;
+        const structuredResult = meta?.structured_result;
+        await appendToEdgeSession(sessionId, lastUserContent, fallback);
+        const body: {
+          content: string;
+          meta?: { prompt_trimmed_to?: number; tools_used?: string[]; structured_result?: unknown };
+        } = { content: fallback };
+        if (promptTrimmedTo != null || (toolsUsed != null && toolsUsed.length > 0) || structuredResult != null) {
+          body.meta = {};
+          if (promptTrimmedTo != null) body.meta.prompt_trimmed_to = promptTrimmedTo;
+          if (toolsUsed != null && toolsUsed.length > 0) body.meta.tools_used = toolsUsed;
+          if (structuredResult != null) body.meta.structured_result = structuredResult;
+        }
+        return NextResponse.json(body, {
+          headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', ...backendHeader },
+        });
+      }
+
+      if (!farmRes.body) {
+        return NextResponse.json(
+          { error: { message: 'Farm returned no body', type: 'api_error' } },
+          { status: 502 }
+        );
+      }
+      const [forClient, forAccumulate] = farmRes.body.tee();
+      void accumulateStreamContent(forAccumulate).then((assistantContent) => {
+        if (assistantContent.trim()) appendToEdgeSession(sessionId, lastUserContent, assistantContent);
+      });
+      return new Response(forClient, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+          ...backendHeader,
+        },
+      });
     }
 
     if (EDGE_URL) {

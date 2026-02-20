@@ -50,6 +50,7 @@ JARVIS_FOCUS_REPO=olive node scripts/run-team-quality.js
 | **jarvis-autonomous-plan-execute.js** | JARVIS writes a plan and executes it (tools) with no human in the loop; reports AUTONOMOUS_DONE + summary. | Cron (e.g. daily). See **docs/JARVIS_AUTONOMOUS_AGENT.md** §1.5. |
 | **run-team-pipeline.js** | Team pipeline (safety net, quality, health, bounties) → optional webhook. | Cron or on-demand. |
 | **run-autonomous-release.js** | Build (build server pipeline) → quality (run-team-quality) → deploy (JARVIS_DEPLOY_CMD). Reads version from product repo; optional `--tag` to create git tag. No human in the loop. | Cron or GitHub Action. See **docs/AUTONOMOUS_RELEASES.md**. |
+| **add-overnight-autonomous-cron.js** | Add cron for overnight: plan-execute (e.g. 2 AM), heartbeat (e.g. every 6h), optional run-autonomous-release. `--add` to append to crontab; `--plan-time 3`, `--release`. | One-time setup. See **docs/JARVIS_OVERNIGHT_BUILDS.md**. |
 
 ---
 

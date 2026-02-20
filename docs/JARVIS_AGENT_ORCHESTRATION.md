@@ -62,6 +62,19 @@ When doing **deep work** or **building out a product**:
 If a CLI is not installed or a workflow doesn’t exist, JARVIS can still do planning, implementation via repo-knowledge + exec, and ship via GitHub + platform CLIs; add a note like “Install beast-mode CLI to run quality checks from JARVIS” or “Add a quality workflow to BEAST-MODE repo so I can trigger it.”
 
 
+## Parallel delegation — command many agents at once
+
+When **multiple tasks are independent** (no shared state, order doesn't matter), JARVIS should **delegate in parallel** instead of one-by-one:
+
+- **Multiple tool calls in one turn** — If the model supports it, return several `tool_calls` in one response (e.g. `workflow_dispatch` for BEAST MODE on repo A and `workflow_dispatch` for Code Roach on repo B). The gateway runs them in parallel and merges results. See [JARVIS_PARALLEL_TOOL_CALLS.md](./JARVIS_PARALLEL_TOOL_CALLS.md).
+- **Multiple sessions_spawn** — Spawn more than one subagent in the same turn (or quick succession) with **different tasks** (e.g. one for "PRD for olive", one for "test plan for BEAST-MODE"). Results come back to the same chat; synthesize and report.
+- **Multiple exec or workflow_dispatch** — Trigger quality on one repo and health on another in one go when both are independent.
+
+**Rule:** Independent tasks → parallel delegation. Dependent tasks (e.g. implement then quality then deploy) → sequence.
+
+Full pattern, examples, and "exploit / delegate / command" guidance: [JARVIS_PARALLEL_DELEGATION.md](./JARVIS_PARALLEL_DELEGATION.md).
+
+
 ## When-to-invoke rules
 
 Use these rules so JARVIS doesn't guess — invoke the right system at the right step. Reference this section from **jarvis/AGENTS.md**.
@@ -78,6 +91,7 @@ Use these rules so JARVIS doesn't guess — invoke the right system at the right
 
 ## References
 
+- **Parallel delegation (exploit, delegate, command many agents):** [JARVIS_PARALLEL_DELEGATION.md](./JARVIS_PARALLEL_DELEGATION.md)
 - **Deep work:** [jarvis/DEEP_WORK_PRODUCT.md](../jarvis/DEEP_WORK_PRODUCT.md)
 - **GitHub skill (workflow_dispatch):** [jarvis/TOOLS.md](../jarvis/TOOLS.md) → GitHub, [skills/github/SKILL.md](../skills/github/SKILL.md)
 - **Platform CLIs:** [jarvis/TOOLS.md](../jarvis/TOOLS.md) → Platform CLIs (Maestro)

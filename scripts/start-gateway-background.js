@@ -97,7 +97,10 @@ function main() {
     } catch (_) {}
   }
 
-  const child = spawn('npx', ['clawdbot', 'gateway', 'run', '--allow-unconfigured'], {
+  const args = ['clawdbot', 'gateway', 'run', '--allow-unconfigured'];
+  if (env.PORT) args.push('--port', env.PORT);
+  if (env.PORT && env.BIND_LAN) args.push('--bind', 'lan');
+  const child = spawn('npx', args, {
     cwd: repoRoot,
     detached: true,
     stdio: 'ignore',

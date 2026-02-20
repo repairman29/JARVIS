@@ -14,13 +14,18 @@ ring_buffer_seconds: 2.0
 # Chunk size for wake word (80 ms = 1280 samples at 16 kHz)
 chunk_samples: 1280
 
-# Wake word: openwakeword model (empty = use default bundled models)
-# Custom: path to .onnx (e.g. trained "Hey Clawd" from docs/WAKEWORD_TRAINING.md)
+# Wake word: openwakeword (default) or porcupine. See docs/PIXEL_WAKE_WORD_OPTIONS.md.
+# wakeword_engine: "openwakeword"   # default when onnxruntime available
+# wakeword_engine: "porcupine"      # alternative; no onnxruntime; needs porcupine_access_key and .ppn path
+# OpenWakeWord: custom .onnx (e.g. trained "Hey Clawd" from docs/WAKEWORD_TRAINING.md)
 wakeword_models: []   # e.g. ["/data/data/com.termux/files/home/.jarvis/models/hey_clawd.onnx"]
 # 0.8 recommended for always-on to reduce false positives; 0.5 more sensitive
 wakeword_threshold: 0.5
 # Phrase to show in logs
 wake_phrase: "Hey JARVIS"
+# Porcupine only (when wakeword_engine: porcupine): get key at https://console.picovoice.ai/
+# porcupine_access_key: "YOUR_ACCESS_KEY"
+# porcupine_keyword_path: "/path/to/hey_jarvis.ppn"   # custom from Picovoice Console
 
 # VAD: end-of-utterance. Simple energy-based (no extra deps).
 # Silence = RMS below this fraction of recent max

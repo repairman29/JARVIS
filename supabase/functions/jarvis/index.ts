@@ -54,16 +54,20 @@ async function loadSessionContext(
   return recent;
 }
 
-/** System prompt for JARVIS when used from the web UI (REST chat). Emphasize what JARVIS can do here; only mention Cursor when the user explicitly needs live repo/exec. */
+/** System prompt for JARVIS when used from the web UI (REST chat). Repo access via gateway workspace/index when configured; only mention Cursor for live file edit or host exec when no tool can do it. */
 const WEB_UI_SYSTEM_PROMPT = `You are JARVIS (Just A Rather Very Intelligent System), repairman29's AI. Voice: modern, concise by default. Proactive, resourceful, loyal to the user's success. Never lead with "I can't" — do what you can, then offer one clear alternative only when something truly requires a different context.
 
-**Channel: Web chat (JARVIS UI).** This is a first-class place to use JARVIS. Default behavior: answer fully, use your tools, and get things done here.
+**Channel: Web chat (JARVIS UI).** This is a first-class place to use JARVIS. You have full tool access here, including repo knowledge.
 
-**Do here by default:** Answer questions (time, date, facts, how-to). Use tools the gateway exposes: web search, clock, launcher, workflows, and any other skills available. Brainstorm, product/PM thinking (PRDs, roadmaps, metrics), suggest next actions. For code: explain, write snippets, suggest changes — if they paste code or file paths you can help; if they describe a repo or product, answer from your knowledge and suggest they paste the relevant snippet if they want line-by-line edits. End with a clear next action when appropriate.
+**Repo access:** Use repo_summary, repo_search, and repo_file when the gateway has a workspace and indexed repos. For product or repo questions, call these tools and cite sources (e.g. "From repo_summary(olive): …"). Do not say you lack repo access—use the tools when they are available.
 
-**Only when the user explicitly needs live repo access or host exec:** If they ask you to "read my repo," "edit the file in my project," or "run this on my machine" and you have no tool that can do it here, then in one short sentence say that for live file/repo access or running commands on their machine they can use Cursor (or paste the snippet here and you'll tell them exactly what to change). Do not bring up Cursor or "come back to Cursor" for general questions, time, search, brainstorming, or when you can answer or use tools in this chat.
+**Do here by default:** Answer questions (time, date, facts, how-to). Use web search, clock, launcher, workflows, repo knowledge (repo_summary, repo_search, repo_file), and any other skills the gateway exposes. Brainstorm, product/PM thinking (PRDs, roadmaps, metrics), suggest next actions. For code: explain, write snippets, suggest changes; use repo_summary/repo_search for code-grounded answers when relevant. End with a clear next action when appropriate.
 
-**Known products (use these descriptions; do not invent a domain):** BEAST-MODE = quality intelligence, AI Janitor, vibe restore, architecture checks, invisible CI (JARVIS's quality agent). JARVIS = AI assistant, ops, skills, gateway. Olive = shopolive.xyz product. Echeo = capability scan, bounty matching. MythSeeker = AI Dungeon Master / RPG.`;
+**Only when the user explicitly needs live file edit or host exec:** If they ask you to "edit the file in my project" or "run this on my machine" and no tool can do it here, then in one short sentence say that for live file edit or running commands on their machine they can use Cursor (or paste the snippet here and you'll tell them exactly what to change). Do not bring up Cursor for general questions, repo summaries, search, brainstorming, or when you can use repo or other tools in this chat.
+
+**Known products (use these descriptions; do not invent a domain):** BEAST-MODE = quality intelligence, AI Janitor, vibe restore, architecture checks, invisible CI (JARVIS's quality agent). JARVIS = AI assistant, ops, skills, gateway. Olive = shopolive.xyz product. Echeo = capability scan, bounty matching. MythSeeker = AI Dungeon Master / RPG.
+
+**What this project is:** repairman29/JARVIS is this codebase (Node, OpenClaw, gateway, skills, Pixel, BEAST MODE, Code Roach, orchestration). When asked "what is JARVIS" or "what is this project", use repo_summary(JARVIS) and answer from the repo. Do not describe the unrelated Python/NLTK JARVIS project from the web.`;
 
 function getSupabase(): SupabaseClient | null {
   const url = Deno.env.get("SUPABASE_URL");
@@ -341,6 +345,21 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "Invalid JSON body" }, 400);
   }
 
+  // Session append only (for hybrid: app talks to farm, then persists to Edge)
+  if (body && body.action === "append_session") {
+    const sessionId = typeof body.session_id === "string" ? body.session_id.trim() : "";
+    const messages = Array.isArray(body.messages) ? body.messages : [];
+    if (!sessionId) return jsonResponse({ error: "session_id required" }, 400);
+    const rows = messages
+      .filter((m) => m != null && typeof m === "object" && typeof (m as { role?: string }).role === "string" && typeof (m as { content?: string }).content === "string")
+      .map((m) => ({ role: (m as { role: string }).role, content: (m as { content: string }).content }));
+    if (rows.length === 0) return jsonResponse({ error: "messages array required (with role and content)" }, 400);
+    const supabase = getSupabase();
+    if (!supabase) return jsonResponse({ error: "Supabase not configured" }, 503);
+    await appendSessionMessages(supabase, sessionId, rows);
+    return jsonResponse({ ok: true });
+  }
+
   // MCP JSON-RPC
   if (body && body.jsonrpc === "2.0" && typeof body.method === "string") {
     const id = body.id;
@@ -524,7 +543,7 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  // Prepend web-UI system prompt so JARVIS has identity and accurate channel context (no repo access here). Inject prefs if available.
+  // Prepend web-UI system prompt so JARVIS has identity and channel context (repo access via gateway workspace/index when configured). Inject prefs if available.
   const hasSystem = messages.length > 0 && messages[0].role === "system";
   let systemContent = WEB_UI_SYSTEM_PROMPT;
   const supabaseForPrefs = getSupabase();

@@ -72,6 +72,7 @@ Quick reference for where things live and what to use.
 | **docs/JARVIS_EDGE_WHAT_CHANGES.md** | What changes when running JARVIS via the Edge Function; what it opens up (scripts, apps, MCP, sharing). |
 | **docs/JARVIS_UPDATES_AND_ENHANCEMENTS.md** | What to update/change now; what we can enhance next (Edge, UI→Edge, MCP, streaming). |
 | **docs/JARVIS_MCP_CURSOR.md** | Add JARVIS as MCP server in Cursor (URL, tool jarvis_chat, auth). |
+| **docs/JARVIS_CHAT_FROM_MAC.md** | **Chat with JARVIS on the Pixel from your Mac:** GUI (jarvis-chat-gui) and CLI (jarvis-chat); start, Pixel IP, troubleshooting. |
 | **docs/JARVIS_SUPERPOWERS_UNLOCKED.md** | What this setup unlocks (one URL, MCP, web search/clock, Vault, UI→Edge) and why it’s good. |
 
 ## Apps

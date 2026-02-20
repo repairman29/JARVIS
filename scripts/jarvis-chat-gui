@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Open the JARVIS chat GUI (browser window to chat with JARVIS on the Pixel).
+# Usage: ./scripts/jarvis-chat-gui [port]
+# Default port: 9191. Open http://localhost:9191
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec node "$SCRIPT_DIR/jarvis-chat-gui.js" "$@"

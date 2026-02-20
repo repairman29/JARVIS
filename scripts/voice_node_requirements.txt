@@ -8,6 +8,9 @@ openwakeword>=0.5.0
 requests>=2.28.0
 PyYAML>=5.4
 
+# Optional: Porcupine wake word (no onnxruntime; use when wakeword_engine: porcupine)
+# pvporcupine
+
 # Optional: use Python Whisper instead of whisper.cpp (heavy on Termux)
 # whisper
 

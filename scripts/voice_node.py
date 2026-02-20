@@ -35,13 +35,20 @@ try:
 except ImportError:
     HAS_SOUNDDEVICE = False
 
-# Wake word
+# Wake word: OpenWakeWord (onnx) or Porcupine (no onnx; Termux-friendly)
 try:
     from openwakeword.model import Model as OWWModel
     HAS_OWW = True
 except ImportError:
     OWWModel = None
     HAS_OWW = False
+
+try:
+    import pvporcupine
+    HAS_PORCUPINE = True
+except ImportError:
+    pvporcupine = None
+    HAS_PORCUPINE = False
 
 import requests
 
@@ -58,6 +65,9 @@ DEFAULT_CONFIG = {
     "wakeword_models": [],
     "wakeword_threshold": 0.5,
     "wake_phrase": "Hey JARVIS",
+    "wakeword_engine": "",  # "openwakeword" | "porcupine" (empty = auto: OWW if available else Porcupine)
+    "porcupine_access_key": "",
+    "porcupine_keyword_path": "",  # path to .ppn; if empty and engine=porcupine, use built-in "jarvis"
     "vad_silence_threshold": 0.08,
     "vad_silence_seconds": 0.7,
     "vad_max_utterance_seconds": 15.0,
@@ -209,6 +219,28 @@ def record_until_silence(
 # -----------------------------------------------------------------------------
 
 def create_wake_model(config: dict):
+    engine = (config.get("wakeword_engine") or "").strip().lower()
+    # Porcupine path (no onnxruntime; works on Termux/ARM)
+    if engine == "porcupine" or (not engine and not HAS_OWW and HAS_PORCUPINE):
+        if not HAS_PORCUPINE:
+            return None
+        key = (config.get("porcupine_access_key") or os.environ.get("PORCUPINE_ACCESS_KEY") or "").strip()
+        if not key:
+            print("Warning: porcupine_access_key (or PORCUPINE_ACCESS_KEY) required for Porcupine.", file=sys.stderr)
+            return None
+        path = (config.get("porcupine_keyword_path") or "").strip()
+        if path:
+            path = os.path.expanduser(path)
+        try:
+            sensitivity = config.get("wakeword_threshold", 0.5)
+            if path and os.path.isfile(path):
+                return pvporcupine.create(access_key=key, keyword_paths=[path], sensitivities=[sensitivity])
+            # Built-in "jarvis" (or "hey jarvis" depending on Picovoice version)
+            return pvporcupine.create(access_key=key, keywords=["jarvis"], sensitivities=[sensitivity])
+        except Exception as e:
+            print(f"Warning: could not load Porcupine: {e}", file=sys.stderr)
+            return None
+    # OpenWakeWord path
     if not HAS_OWW:
         return None
     models = config.get("wakeword_models") or []
@@ -224,6 +256,22 @@ def create_wake_model(config: dict):
 def check_wake(audio: np.ndarray, model, config: dict) -> bool:
     if model is None:
         return False
+    # Porcupine: expects frames of model.frame_length (e.g. 512); our chunk may be 1280
+    if HAS_PORCUPINE and hasattr(model, "frame_length"):
+        try:
+            fl = model.frame_length
+            # Feed our chunk in frame_length-sized pieces
+            for i in range(0, len(audio) - fl + 1, fl):
+                frame = audio[i : i + fl]
+                if len(frame) != fl:
+                    break
+                idx = model.process(frame.tolist())
+                if idx >= 0:
+                    return True
+        except Exception:
+            pass
+        return False
+    # OpenWakeWord
     try:
         pred = model.predict(audio)
         thresh = config.get("wakeword_threshold", 0.5)
@@ -410,15 +458,15 @@ def main() -> None:
     if not HAS_SOUNDDEVICE:
         print("Install sounddevice and start PulseAudio (see PIXEL_VOICE_RUNBOOK.md).", file=sys.stderr)
         sys.exit(1)
-    # On Termux/Android, openwakeword often fails (onnxruntime has no wheel). Use manual trigger.
+    # Wake word: OpenWakeWord (needs onnxruntime) or Porcupine (Termux-friendly). Else manual trigger.
     manual_trigger = os.environ.get("VOICE_NODE_MANUAL_TRIGGER", "").lower() in ("1", "true", "yes")
-    if not HAS_OWW and not manual_trigger:
-        print("Install openwakeword: pip install openwakeword", file=sys.stderr)
-        print("Or run with VOICE_NODE_MANUAL_TRIGGER=1 for press-Enter-to-record (no wake word).", file=sys.stderr)
+    wake_model = create_wake_model(config)
+    if wake_model is None and not manual_trigger:
+        print("No wake word engine available. Install openwakeword (+ onnxruntime) or pvporcupine (see PIXEL_WAKE_WORD_OPTIONS.md).", file=sys.stderr)
+        print("Or run with VOICE_NODE_MANUAL_TRIGGER=1 for press-Enter-to-record.", file=sys.stderr)
         sys.exit(1)
-    if not HAS_OWW:
+    if wake_model is None:
         manual_trigger = True
-    wake_model = create_wake_model(config) if HAS_OWW else None
     ring = RingBuffer(ring_len)
     tts_stop = threading.Event()
     # Queue for record_until_silence (chunks from stream callback); cap to ~16s
@@ -548,6 +596,11 @@ def main() -> None:
     finally:
         stream.stop()
         stream.close()
+        if wake_model is not None and hasattr(wake_model, "delete"):
+            try:
+                wake_model.delete()
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":

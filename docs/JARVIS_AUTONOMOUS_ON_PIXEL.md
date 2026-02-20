@@ -21,6 +21,8 @@ So Android doesn’t kill Termux when the screen is off and cron can run:
 
 Without this, scheduled plan-execute and heartbeat may not run when the phone is idle.
 
+**Pixel as the brain:** To keep the Pixel always on as JARVIS's brain, leave **Wake lock ON** and (optional) enable **Stay awake when charging** in Developer options when plugged in. See **docs/PIXEL_AS_BRAIN.md**. If you prefer the Pixel to sleep and use the Mac for overnight runs, see **docs/PIXEL_LET_IT_SLEEP.md**.
+
 ---
 
 ## 2. Start after reboot (optional but recommended)

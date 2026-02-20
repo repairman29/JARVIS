@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Chat with JARVIS on the Pixel from your Mac (WiFi). Runs jarvis-chat.js.
+# Usage: ./scripts/jarvis-chat "one-shot prompt"
+#        ./scripts/jarvis-chat
+#        ./scripts/jarvis-chat 192.168.1.50 "prompt"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec node "$SCRIPT_DIR/jarvis-chat.js" "$@"

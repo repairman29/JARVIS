@@ -29,19 +29,29 @@ Do these in order. Nothing else.
 
 4. **Same Wi‑Fi** as the Pixel. (USB connected once helps the script find the Pixel’s IP.)
 
-5. **Run this one command** (use your Termux username if it’s not `u0_a310`):
+5. **One-time: make it automatic (no password)**  
+   Run once (you’ll be asked for your Termux password one time):
+   ```bash
+   cd ~/JARVIS && ./scripts/setup-ssh-keys-to-pixel.sh
+   ```
+   After that, sync and start never ask for a password.
+
+6. **Run sync and start** (use your Termux username if it’s not `u0_a310`):
+   ```bash
+   cd ~/JARVIS && ./scripts/pixel-auto-sync-and-start.sh
+   ```
+   If you didn’t run the one-time step above, use the older script and enter your password when asked:
    ```bash
    cd ~/JARVIS && TERMUX_USER=u0_a310 bash scripts/pixel-sync-and-start.sh
    ```
-   Replace **u0_a310** with what **whoami** showed in Termux. Enter your Termux password when it asks. It will push JARVIS and start the stack.  
    If it says “SSH not reachable”: on the Pixel run **`sshd`**, then try again.  
-   If it says “Permission denied”: you used the wrong username or password — use the **whoami** value and the password you set with **passwd**.
+   If it says “Permission denied”: run **setup-ssh-keys-to-pixel.sh** once, or use the correct **whoami** value and the password you set with **passwd**.
 
 ---
 
 ## Use JARVIS
 
-6. On the Pixel, open **Chrome** and go to: **http://127.0.0.1:18888**  
+7. On the Pixel, open **Chrome** and go to: **http://127.0.0.1:18888**  
    Chat works. Voice: **http://127.0.0.1:18888/voice**
 
 ---

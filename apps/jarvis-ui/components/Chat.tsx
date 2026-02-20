@@ -79,7 +79,7 @@ export function Chat() {
   const [status, setStatus] = useState<'idle' | 'connecting' | 'ok' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [gatewayHint, setGatewayHint] = useState<string | null>(null);
-  const [gatewayMode, setGatewayMode] = useState<'local' | 'edge'>('local');
+  const [gatewayMode, setGatewayMode] = useState<'local' | 'edge' | 'farm'>('local');
   const [sessionId, setSessionId] = useState<string>('');
   const [sessionList, setSessionList] = useState<string[]>([]);
   const [sessionDropdownOpen, setSessionDropdownOpen] = useState(false);
@@ -265,7 +265,7 @@ export function Chat() {
       if (ok) {
         setStatus('ok');
         setGatewayHint(null);
-        setGatewayMode(data.mode === 'edge' ? 'edge' : 'local');
+        setGatewayMode(data.mode === 'edge' ? 'edge' : data.mode === 'farm' ? 'farm' : 'local');
       } else {
         setStatus('error');
         setErrorMessage(data?.error || 'Gateway unreachable');
@@ -931,7 +931,7 @@ export function Chat() {
             }}
             aria-hidden
           />
-          {status === 'ok' && (gatewayMode === 'edge' ? 'Edge' : 'Gateway: local')}
+          {status === 'ok' && (gatewayMode === 'edge' ? 'Edge' : gatewayMode === 'farm' ? 'Farm' : 'Gateway: local')}
           {status === 'error' && 'Disconnected'}
           {status === 'connecting' && 'Reconnecting…'}
           {status === 'idle' && 'Checking…'}

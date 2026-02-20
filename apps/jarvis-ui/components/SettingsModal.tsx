@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import { speak as speakTTS } from '@/lib/voice';
 
 export interface ConfigInfo {
-  mode: 'edge' | 'local';
+  mode: 'edge' | 'local' | 'hybrid';
   gatewayDisplay: string;
+  hybrid?: boolean;
 }
 
 export interface SettingsModalProps {
@@ -168,7 +169,7 @@ export function SettingsModal({
             <div style={{ color: 'var(--text)' }}>
               {config ? (
                 <>
-                  {config.mode === 'edge' ? 'Edge' : 'Local gateway'}
+                  {config.mode === 'hybrid' ? 'Hybrid' : config.mode === 'edge' ? 'Edge' : 'Local gateway'}
                   <br />
                   <code style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                     {config.gatewayDisplay}
@@ -179,7 +180,7 @@ export function SettingsModal({
               )}
             </div>
           </div>
-          {config?.mode === 'edge' && (
+          {(config?.mode === 'edge' || config?.mode === 'hybrid') && (
             <div style={{ paddingTop: '0.5rem', borderTop: '1px solid var(--border)' }}>
               <div style={{ color: 'var(--text-muted)', marginBottom: '0.5rem', fontSize: '12px' }}>
                 Preferences (e.g. &quot;always use X&quot;) — saved to JARVIS memory

@@ -31,6 +31,8 @@
 |-----|-----|
 | [JARVIS_EDGE_AUTH.md](./JARVIS_EDGE_AUTH.md) | Edge auth: required in cloud when token set; no auth locally; sync script. |
 | [JARVIS_EDGE_WHAT_CHANGES.md](./JARVIS_EDGE_WHAT_CHANGES.md) | What changes when JARVIS runs behind the Edge Function. |
+| [JARVIS_EDGE_AND_PIXEL_FARM.md](./JARVIS_EDGE_AND_PIXEL_FARM.md) | **Edge vs Pixel/iPhone farm:** Are they connected? Only if `JARVIS_GATEWAY_URL` points at the Pixel (tunnel or public URL). |
+| [notes/edge-farm-hybrid-mac.md](./notes/edge-farm-hybrid-mac.md) | **Notes:** Same topic + hybrid app + manage from MacBook (one place). See [notes/README.md](./notes/README.md). |
 | [supabase/README.md](../supabase/README.md) | Deploy `jarvis` Edge Function, set secrets, REST. |
 | [JARVIS_MCP_SUPABASE.md](./JARVIS_MCP_SUPABASE.md) | JARVIS MCP on Supabase (Edge + Vault); spec. |
 | [JARVIS_MCP_CURSOR.md](./JARVIS_MCP_CURSOR.md) | Add JARVIS as MCP server in Cursor. |
@@ -70,11 +72,14 @@ Code: **supabase/functions/jarvis/** (Edge Function), **apps/jarvis-ui/** (UI; `
 | [JARVIS_VISION_BACKLOG.md](./JARVIS_VISION_BACKLOG.md) | Vision/screen backlog: use cases, options (paste image, MCP, local VLM), when to implement. |
 | [REPO_INDEX.md](./REPO_INDEX.md) | Full map: skills paths, key docs, apps, Olive, ignored. |
 | [JARVIS_AGENT_ORCHESTRATION.md](./JARVIS_AGENT_ORCHESTRATION.md) | Build flow: JARVIS + BEAST MODE, Code Roach, Echeo, workflow_dispatch, sessions_spawn. |
+| [JARVIS_PARALLEL_DELEGATION.md](./JARVIS_PARALLEL_DELEGATION.md) | **Exploit, delegate, command many agents in parallel:** right agent per task; parallel tool calls, multiple sessions_spawn, multiple workflow_dispatch; gather and summarize. |
+| [JARVIS_HOW_TO_TEST.md](./JARVIS_HOW_TO_TEST.md) | **How to test:** Pixel LLM speed/model tests, parallel delegation tests, web repo access, quick smoke; commands and success criteria. |
 | [JARVIS_OWNS_SHIPPING.md](./JARVIS_OWNS_SHIPPING.md) | JARVIS owns the full ship flow (build → quality → deploy); no handoff to user. shipAccess, guardrails. |
 | [JARVIS_NEURAL_FARM_CURSOR_CHOICES.md](./JARVIS_NEURAL_FARM_CURSOR_CHOICES.md) | Canonical choices JARVIS gives for Cursor + Neural Farm (Base URL, key, model, start command). |
 | [JARVIS_TEAM_DEPLOY_AND_RUN.md](./JARVIS_TEAM_DEPLOY_AND_RUN.md) | How JARVIS deploys and runs his agent team (CLIs, workflows, token, index). |
 | [JARVIS_OPTIMAL_TEAM_SETUP.md](./JARVIS_OPTIMAL_TEAM_SETUP.md) | Optimal setup: team roster (config/team-agents.json), team-status.js, ensure-team-ready.js, one-time checklist. |
 | [AUTONOMOUS_RELEASES.md](./AUTONOMOUS_RELEASES.md) | How close we are to autonomous releases; run-autonomous-release.js (build → quality → deploy). |
+| [JARVIS_OVERNIGHT_BUILDS.md](./JARVIS_OVERNIGHT_BUILDS.md) | **Program JARVIS to build products overnight:** cron (plan-execute 2 AM, heartbeat 6h, optional autonomous release), setup checklist, keep Mac awake. |
 | [LONG_RUNNING_AGENTS_AND_MANAGING_A_SLEW.md](./LONG_RUNNING_AGENTS_AND_MANAGING_A_SLEW.md) | Long-running agents: what exists (autonomous JARVIS, sessions_spawn, pipeline); gap (“manage a slew”); options (registry, queue, status). |
 | [ORCHESTRATION_SCRIPTS.md](./ORCHESTRATION_SCRIPTS.md) | Index of pipeline scripts (run-team-pipeline, run-team-quality) and background/scheduled agents. |
 
@@ -101,7 +106,18 @@ Code: **supabase/functions/jarvis/** (Edge Function), **apps/jarvis-ui/** (UI; `
 | [WAKEWORD_TRAINING.md](./WAKEWORD_TRAINING.md) | Custom wake word (e.g. "Hey JARVIS"): openWakeWord, Colab, .onnx for when onnxruntime is available on Termux. |
 | [EDGE_NATIVE_VOICE_NODE.md](./EDGE_NATIVE_VOICE_NODE.md) | Architecture: Tensor G3, voice pipeline, mapping to JARVIS scripts. |
 | [JARVIS_ON_ANDROID_COMMUNICATE.md](./JARVIS_ON_ANDROID_COMMUNICATE.md) | Chat and voice from the Pixel (18888, /voice, shortcuts). |
+| [JARVIS_CHAT_FROM_MAC.md](./JARVIS_CHAT_FROM_MAC.md) | **Chat with JARVIS on the Pixel from your Mac:** GUI (jarvis-chat-gui) and CLI (jarvis-chat); how to start, Pixel IP, troubleshooting. |
+| [PIXEL_WIFI_AUTOMATION.md](./PIXEL_WIFI_AUTOMATION.md) | **WiFi automation:** sync/start (pixel-auto-sync-and-start), SSH scripts, logs, diagnose, set env; one-time SSH keys. |
 | [JARVIS_AUTONOMOUS_ON_PIXEL.md](./JARVIS_AUTONOMOUS_ON_PIXEL.md) | Wake lock, Termux:Boot, cron (plan-execute, heartbeat). |
+| [PIXEL_UNBRIDLE.md](./PIXEL_UNBRIDLE.md) | **Unbridle the Pixel:** One-time ADB PPK bypass (adb-pixel-ppk-bypass.sh), reboot, optional deviceidle whitelist; so Android doesn’t kill the stack. |
+| [PIXEL_AS_BRAIN.md](./PIXEL_AS_BRAIN.md) | **Pixel as the brain:** Keep Wake lock ON, Stay awake when charging (optional), no wakelock release; stack + cron always on. |
+| [PIXEL_LET_IT_SLEEP.md](./PIXEL_LET_IT_SLEEP.md) | **Pixel to sleep:** Turn off Termux Wake lock; release wakelock in boot script; tradeoff with cron. |
+| [PIXEL_WHAT_IT_CAN_DO_NOW.md](./PIXEL_WHAT_IT_CAN_DO_NOW.md) | **What the Pixel can do now:** capabilities, JARVIS use cases (on-device, from Mac, autonomous), quick reference. |
+| [PIXEL_WAKE_WORD_OPTIONS.md](./PIXEL_WAKE_WORD_OPTIONS.md) | **True "Hey JARVIS" on-device:** Option A Termux python-onnxruntime, Option B Porcupine, Option C browser /voice; custom phrase. |
+| [PIXEL_GEMINI_NANO_BRIDGE.md](./PIXEL_GEMINI_NANO_BRIDGE.md) | **Gemini Nano as LLM endpoint:** Android app exposing OpenAI-compatible /v1/chat/completions on localhost for gateway/router. |
+| [PIXEL_LLM_SPEED_AND_PRIORITY.md](./PIXEL_LLM_SPEED_AND_PRIORITY.md) | **Speed test and chat vs. task priority:** Run pixel-llm-speed-test.js; use PIXEL_LLM_ROUTE=chat-task so chat → Nano, tasks → InferrLM. |
+| [PIXEL_LLM_MODEL_GUIDE.md](./PIXEL_LLM_MODEL_GUIDE.md) | **What each Pixel/InferrLM model is best for:** Gemma 4B for tasks, 1B/Granite for fast chat, VibeThinker for math/code; recommended JARVIS env mapping. |
+| [PIXEL_PROOT_DISTRO.md](./PIXEL_PROOT_DISTRO.md) | **Proot-Distro:** Full Ubuntu (or other distro) in Termux for glibc parity; when to use; run JARVIS inside Proot. |
 | [SOUL_AND_PERSONA.md](./SOUL_AND_PERSONA.md) | Where SOUL/persona lives (workspace, ~/.jarvis/SOUL.md), voice system_prompt_file. |
 | [SOUL_TEMPLATE.md](./SOUL_TEMPLATE.md) | Copy to ~/.jarvis/SOUL.md for JARVIS identity and constraints. |
 
