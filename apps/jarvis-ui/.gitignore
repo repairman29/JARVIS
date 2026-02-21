@@ -1,3 +1,4 @@
 .vercel
 .env.vercel.check
 .env*.local
+e2e/.auth/

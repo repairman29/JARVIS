@@ -3,6 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 // E2E uses 3002 by default so tests run when dev server is on 3001. Override with PLAYWRIGHT_BASE_URL.
 const defaultPort = 3002;
 const baseURL = process.env.PLAYWRIGHT_BASE_URL || `http://localhost:${defaultPort}`;
+const hasAuthEnv = !!process.env.E2E_LOGIN_PASSWORD;
 
 export default defineConfig({
   testDir: './e2e',
@@ -17,7 +18,22 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    ...(hasAuthEnv
+      ? [
+          { name: 'auth-setup', testMatch: /auth\.setup\.ts/ },
+          {
+            name: 'chromium-authed',
+            use: {
+              ...devices['Desktop Chrome'],
+              storageState: 'e2e/.auth/user.json',
+            },
+            dependencies: ['auth-setup'],
+          },
+        ]
+      : []),
+  ],
   // When PLAYWRIGHT_BASE_URL is set, use that server (e.g. npm run dev on 3001); otherwise start next dev on defaultPort.
   ...(process.env.PLAYWRIGHT_BASE_URL
     ? {}

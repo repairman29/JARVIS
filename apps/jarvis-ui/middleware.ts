@@ -70,10 +70,10 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
   const secret = process.env.JARVIS_UI_AUTH_SECRET ?? '';
-  // When password is set but secret is missing, we can't verify cookies — require login for everyone
+  // When secret is missing (e.g. Vercel Edge often has no env at runtime), don't block here.
+  // Let the request through; AuthGuard will call /api/auth/check (Node) where env is available.
   if (!secret) {
-    if (path.startsWith('/api/')) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return redirectToLogin(req, path);
+    return NextResponse.next();
   }
   const cookie = req.cookies.get(COOKIE_NAME)?.value;
   if (!cookie) {
