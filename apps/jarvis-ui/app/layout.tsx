@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Outfit } from 'next/font/google';
+import { AuthGuard } from '@/components/AuthGuard';
 import './globals.css';
 
 const outfit = Outfit({
@@ -38,7 +39,7 @@ export default function RootLayout({
           color: 'var(--text)',
         }}
       >
-        {children}
+        <AuthGuard>{children}</AuthGuard>
       </body>
     </html>
   );

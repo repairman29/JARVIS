@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { Message as MessageComponent } from './Message';
 import { Composer, type ComposerHandle } from './Composer';
 import { SettingsModal } from './SettingsModal';
 import { SkillsPanel } from './SkillsPanel';
+import { HelpModal } from './HelpModal';
 import { speak as speakTTS, stopSpeaking, isTTSSupported } from '@/lib/voice';
 import type { MessageRole } from './Message';
 import type { ConfigInfo } from './SettingsModal';
@@ -29,8 +31,8 @@ export interface ChatMessage {
   id: string;
   role: MessageRole;
   content: string;
-  /** When gateway/edge sends meta for this turn (roadmap 2.6 tools_used, 2.7 structured_result). */
-  meta?: { tools_used?: string[]; structured_result?: unknown };
+  /** When gateway/edge sends meta for this turn (roadmap 2.6 tools_used, 2.7 structured_result, backend used). */
+  meta?: { tools_used?: string[]; structured_result?: unknown; backendUsed?: string };
 }
 
 const SESSION_KEY = 'jarvis-ui-session';
@@ -85,6 +87,7 @@ export function Chat() {
   const [sessionDropdownOpen, setSessionDropdownOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [skillsOpen, setSkillsOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [config, setConfig] = useState<ConfigInfo | null>(null);
   const [promptTrimmedTo, setPromptTrimmedTo] = useState<number | null>(null);
   const [runAndCopyFeedback, setRunAndCopyFeedback] = useState<string | null>(null);
@@ -378,7 +381,10 @@ export function Chat() {
     setSessionDropdownOpen(false);
   }, []);
 
-  const CHAT_TIMEOUT_MS = 30000; // 30s so "Thinking…" doesn't hang forever
+  const CHAT_TIMEOUT_MS =
+    typeof process.env.NEXT_PUBLIC_JARVIS_CHAT_TIMEOUT_MS === 'string'
+      ? parseInt(process.env.NEXT_PUBLIC_JARVIS_CHAT_TIMEOUT_MS, 10) || 90000
+      : 90000; // 90s for farm/Nano; override with NEXT_PUBLIC_JARVIS_CHAT_TIMEOUT_MS
 
   /** 4.8 Run and copy result: send composer (or last user) text once, copy response to clipboard. */
   const runAndCopyResult = useCallback(async () => {
@@ -491,6 +497,7 @@ export function Chat() {
           return;
         }
 
+        const backendUsed = res.headers.get('X-Backend') || undefined;
         const contentType = res.headers.get('content-type') || '';
         if (contentType.includes('text/event-stream') && res.body) {
           const reader = res.body.getReader();
@@ -541,11 +548,12 @@ export function Chat() {
                 id: `a-${Date.now()}`,
                 role: 'assistant',
                 content: replyContent || 'No response.',
-                ...((streamToolsUsed?.length || streamStructuredResult != null)
+                ...((streamToolsUsed?.length || streamStructuredResult != null || backendUsed)
                   ? {
                       meta: {
                         ...(streamToolsUsed?.length ? { tools_used: streamToolsUsed } : {}),
                         ...(streamStructuredResult != null ? { structured_result: streamStructuredResult } : {}),
+                        ...(backendUsed ? { backendUsed } : {}),
                       },
                     }
                   : {}),
@@ -583,6 +591,7 @@ export function Chat() {
           const structuredResult = meta?.structured_result != null ? meta.structured_result : undefined;
           const safeContent = (typeof content === 'string' ? content : '').trim() || fallback;
 
+          const backendUsed = res.headers.get('X-Backend') || undefined;
           if (mountedRef.current) {
             if (trimmedTo != null) setPromptTrimmedTo(trimmedTo);
             setMessages((prev) => [
@@ -591,8 +600,8 @@ export function Chat() {
                 id: `a-${Date.now()}`,
                 role: 'assistant',
                 content: safeContent,
-                ...((toolsUsed?.length || structuredResult != null)
-                  ? { meta: { ...(toolsUsed?.length ? { tools_used: toolsUsed } : {}), ...(structuredResult != null ? { structured_result: structuredResult } : {}) } }
+                ...((toolsUsed?.length || structuredResult != null || backendUsed)
+                  ? { meta: { ...(toolsUsed?.length ? { tools_used: toolsUsed } : {}), ...(structuredResult != null ? { structured_result: structuredResult } : {}), ...(backendUsed ? { backendUsed } : {}) } }
                   : {}),
               },
             ]);
@@ -906,6 +915,56 @@ export function Chat() {
           <button
             type="button"
             className="btn-surface"
+            onClick={() => setHelpOpen(true)}
+            data-testid="header-help"
+            style={{
+              padding: '0.2rem 0.5rem',
+              fontSize: '12px',
+              background: 'transparent',
+              color: 'var(--text-muted)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              cursor: 'pointer',
+            }}
+          >
+            Help
+          </button>
+          <Link
+            href="/dashboard"
+            className="btn-surface"
+            data-testid="header-dashboard"
+            style={{
+              padding: '0.2rem 0.5rem',
+              fontSize: '12px',
+              background: 'transparent',
+              color: 'var(--text-muted)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              cursor: 'pointer',
+              textDecoration: 'none',
+            }}
+          >
+            Dashboard
+          </Link>
+          <a
+            href="/api/auth/logout"
+            className="btn-surface"
+            style={{
+              padding: '0.2rem 0.5rem',
+              fontSize: '12px',
+              background: 'transparent',
+              color: 'var(--text-muted)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              cursor: 'pointer',
+              textDecoration: 'none',
+            }}
+          >
+            Logout
+          </a>
+          <button
+            type="button"
+            className="btn-surface"
             onClick={() => setSettingsOpen(true)}
             data-testid="header-settings"
             style={{
@@ -1010,23 +1069,60 @@ export function Chat() {
       >
         {messages.length === 0 && !streamingContent && !isLoading && (
           <>
-            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '1rem' }}>
-              Send a message to start.{sessionId ? ` Session: ${sessionId.slice(0, 12)}…` : ''}
+            <div style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>
+              <p style={{ color: 'var(--text)', fontSize: '15px', margin: '0 0 0.5rem', lineHeight: 1.5 }}>
+                JARVIS is your AI assistant. Ask anything, use skills, or try a suggestion below.
+              </p>
+              <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0 }}>
+                {sessionId ? `Session: ${sessionId.slice(0, 14)}${sessionId.length > 14 ? '…' : ''}` : ''}
+              </p>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.25rem' }}>
+              {[
+                'What can you do?',
+                'Give me a daily brief',
+                'Search the web for Next.js 15 release notes',
+                'Open Skills panel',
+              ].map((label) => (
+                <button
+                  key={label}
+                  type="button"
+                  className="btn-surface"
+                  onClick={() => {
+                    if (label === 'Open Skills panel') setSkillsOpen(true);
+                    else sendMessage(label);
+                  }}
+                  style={{
+                    padding: '0.5rem 0.85rem',
+                    fontSize: '13px',
+                    background: 'var(--bg-elevated)',
+                    color: 'var(--accent)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-sm)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '12px', margin: 0, lineHeight: 1.5 }}>
+              Tip: use <strong>/tools</strong> for skills, <strong>/clear</strong> to start fresh, <strong>Session</strong> to switch threads. Click <button type="button" onClick={() => setHelpOpen(true)} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: 0, fontSize: 'inherit', textDecoration: 'underline' }}>Help</button> for more.
             </p>
             {status === 'error' && gatewayHint && (
               <div
                 style={{
                   marginTop: '1.5rem',
                   padding: '1rem',
-                  background: 'var(--bg-elevated)',
-                  border: '1px solid var(--border)',
+                  background: 'var(--error-bg)',
+                  border: '1px solid var(--error-text)',
                   borderRadius: '8px',
                   fontSize: '13px',
-                  color: 'var(--text-muted)',
+                  color: 'var(--error-text)',
                   lineHeight: 1.6,
                 }}
               >
-                <strong style={{ color: 'var(--text)' }}>Gateway unreachable.</strong>
+                <strong>Gateway unreachable.</strong>
                 <br />
                 {gatewayHint}
               </div>
@@ -1040,6 +1136,7 @@ export function Chat() {
             content={m.content}
             toolsUsed={m.meta?.tools_used}
             structuredResult={m.meta?.structured_result}
+            backendUsed={m.meta?.backendUsed}
             onSpeak={m.role === 'assistant' ? speakReplyAndMaybeListen : undefined}
           />
         ))}
@@ -1095,6 +1192,7 @@ export function Chat() {
         onConversationModeChange={setConversationMode}
       />
       <SkillsPanel open={skillsOpen} onClose={() => setSkillsOpen(false)} />
+      <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>
   );
 }

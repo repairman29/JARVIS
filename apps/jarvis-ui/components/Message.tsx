@@ -23,6 +23,8 @@ export interface MessageProps {
   toolsUsed?: string[];
   /** When gateway/edge sends meta.structured_result (roadmap 2.7). */
   structuredResult?: unknown;
+  /** When API returns X-Backend (farm | edge) for this turn. */
+  backendUsed?: string;
   /** Assistant only: called when user clicks "Speak" to hear this message (TTS). */
   onSpeak?: (text: string) => void;
 }
@@ -178,11 +180,12 @@ function StructuredResultView({ data }: { data: unknown }) {
   );
 }
 
-export function Message({ role, content, isStreaming, toolsUsed, structuredResult, onSpeak }: MessageProps) {
+export function Message({ role, content, isStreaming, toolsUsed, structuredResult, backendUsed, onSpeak }: MessageProps) {
   const safeContent = typeof content === 'string' ? content : '';
   const isUser = role === 'user';
   const showToolsUsed = !isUser && Array.isArray(toolsUsed) && toolsUsed.length > 0;
   const showStructured = !isUser && structuredResult != null && typeof structuredResult === 'object';
+  const showBackendUsed = !isUser && typeof backendUsed === 'string' && backendUsed.length > 0;
   const showSpeak = !isUser && typeof onSpeak === 'function' && safeContent.length > 0 && !isStreaming;
 
   return (
@@ -204,8 +207,21 @@ export function Message({ role, content, isStreaming, toolsUsed, structuredResul
           border: '1px solid var(--border)',
         }}
       >
-        {showSpeak && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.35rem' }}>
+        {(showBackendUsed || showSpeak) && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {showBackendUsed && (
+              <span
+                style={{
+                  fontSize: '11px',
+                  color: 'var(--text-muted)',
+                  textTransform: 'capitalize',
+                }}
+                title="Backend that answered this turn"
+              >
+                Used: {backendUsed}
+              </span>
+            )}
+            {showSpeak && (
             <button
               type="button"
               onClick={() => onSpeak?.(safeContent)}
@@ -226,6 +242,7 @@ export function Message({ role, content, isStreaming, toolsUsed, structuredResul
             >
               <span aria-hidden>🔊</span> Speak
             </button>
+            )}
           </div>
         )}
         {showToolsUsed && (

@@ -301,6 +301,7 @@ export async function POST(req: NextRequest) {
             'Content-Type': 'text/event-stream',
             'Cache-Control': 'no-cache',
             Connection: 'keep-alive',
+            'X-Backend': 'edge',
           },
         });
       }
@@ -331,7 +332,7 @@ export async function POST(req: NextRequest) {
         if (Object.keys(body.meta).length === 0) delete body.meta;
       }
       return NextResponse.json(body, {
-        headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
+        headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'X-Backend': 'edge' },
       });
     }
 

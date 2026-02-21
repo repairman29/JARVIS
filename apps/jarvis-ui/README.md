@@ -2,6 +2,8 @@
 
 Developer-grade chat UI for JARVIS. Talks to the Clawdbot gateway; implements the [JARVIS UI Developer Spec](../../docs/JARVIS_UI_DEVELOPER_SPEC.md) and [roadmap](../../docs/JARVIS_UI_ROADMAP.md).
 
+**How to use it best:** [docs/JARVIS_UI_GETTING_STARTED.md](../../docs/JARVIS_UI_GETTING_STARTED.md) — first steps, slash commands, sessions, Farm vs Edge, and tips. In the app, click **Help** in the header for a quick reference.
+
 ## Prerequisites
 
 - **Clawdbot gateway** running (e.g. `clawdbot gateway run` or `node scripts/start-gateway-with-vault.js` from repo root; or `node scripts/start-gateway-background.js` to start in background). After adding or changing skills, restart the gateway so it picks them up.
@@ -67,6 +69,19 @@ If the UI is using the **Edge** backend (`NEXT_PUBLIC_JARVIS_EDGE_URL` set) and 
 
 **Alternative:** To use the **local gateway** instead of Edge, remove or comment out `NEXT_PUBLIC_JARVIS_EDGE_URL` in `.env`. The UI will then use `NEXT_PUBLIC_GATEWAY_URL` (default `http://127.0.0.1:18789`). Make sure the gateway is running locally.
 
+## Password protection (deployed UI)
+
+To restrict the deployed app (e.g. https://jarvis-ui-xi.vercel.app) so only you can access it, set these **server** env vars (e.g. in Vercel → Project → Settings → Environment Variables):
+
+- **`JARVIS_UI_PASSWORD`** — The password you’ll enter on the login page. Avoid `$` in the password on Vercel (it can be stripped by the runtime).
+- **`JARVIS_UI_AUTH_SECRET`** — A long random string (e.g. 32+ chars) used to sign session cookies. Generate one with `openssl rand -base64 32`.
+
+If both are set, all routes (chat, dashboard, API) require login. Session lasts 30 days. Use the **Logout** link in the header to sign out. If only one is set, auth is disabled.
+
+**One-command setup (env vars + redeploy + wait):** From repo root, run `node apps/jarvis-ui/scripts/vercel-ui-auth-full.js [password] [auth-secret]` (or set `JARVIS_UI_PASSWORD` and `JARVIS_UI_AUTH_SECRET` in `.env.local` and run with no args). Requires `VERCEL_TOKEN` in env or `~/.clawdbot/.env`. State is logged to `~/.jarvis/logs/vercel-ui-auth-setup.log` (one JSON object per line).
+
+**No login in incognito / auth not enforced:** Auth runs in Edge middleware and needs the env vars at **build time**. In Vercel → Project → Settings → Environment Variables, ensure **`JARVIS_UI_PASSWORD`** and **`JARVIS_UI_AUTH_SECRET`** are set for **Production** (and Preview if you want auth on preview URLs). Then **redeploy** (Deployments → … → Redeploy, or push a commit) so the new build picks them up. In incognito you should then be redirected to `/login`. If you only added the vars after the last deploy, a redeploy is required.
+
 ## No response from Clawdbot
 
 If you send a message and see **"No response from Clawdbot"** (or the UI shows that text in the assistant bubble), the request reached the gateway but the response had no usable content. Check:
@@ -98,6 +113,7 @@ Open **http://localhost:3001**. The UI uses a stable session (stored in `localSt
 | `NEXT_PUBLIC_JARVIS_EDGE_URL` | Optional. When set, chat and health use the JARVIS Edge Function (hosted JARVIS) instead of the gateway. |
 | `JARVIS_AUTH_TOKEN` | Optional. Bearer token for Edge Function when using `NEXT_PUBLIC_JARVIS_EDGE_URL`. |
 | `JARVIS_FARM_URL` or `FARM_URL` | Optional. When set **with** `NEXT_PUBLIC_JARVIS_EDGE_URL`, enables **hybrid** mode: health and chat try the farm first (e.g. `http://<pixel-ip>:18789`); if unreachable, use Edge. Session is always persisted to Edge so the same thread is available on farm or away. See [JARVIS_EDGE_AND_PIXEL_FARM.md](../../docs/JARVIS_EDGE_AND_PIXEL_FARM.md) § Hybrid app. |
+| `NEXT_PUBLIC_JARVIS_CHAT_TIMEOUT_MS` | Optional. Chat request timeout in ms (default 90000). Use 90000 for farm/Nano so the UI doesn’t give up before the farm replies. |
 
 ## Features (roadmap)
 

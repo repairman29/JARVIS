@@ -62,6 +62,8 @@ So in the **typical** setup:
 
 **To connect Edge to the Pixel farm:** Put the Pixel’s gateway behind a **public URL** (tunnel or port forward), then set the Edge secret **`JARVIS_GATEWAY_URL`** to that URL. Otherwise Edge and Pixel/iPhone farm stay separate.
 
+**We use Tailscale.** To make the **deployed** app (e.g. https://jarvis-ui-xi.vercel.app) use the farm: (1) Install Tailscale on the Pixel and sign in; (2) Note the Pixel's Tailscale IP (e.g. 100.x.x.x); (3) Ensure the JARVIS stack is running and the gateway binds so it's reachable on that IP (e.g. 0.0.0.0); (4) In Supabase → Edge Functions → jarvis → Secrets, set **`JARVIS_GATEWAY_URL`** to **`http://<pixel-tailscale-ip>:18789`**. Then the deployed site will use your farm. See [docs/notes/edge-farm-hybrid-mac.md](./notes/edge-farm-hybrid-mac.md) § Deployed site using the farm (Tailscale) and [PIXEL_OPTIONAL_STEPS.md §2 Tailscale](./PIXEL_OPTIONAL_STEPS.md#2-tailscale-remote-access-to-jarvis).
+
 ---
 
 ## Running JARVIS in both places and having them coordinate
@@ -167,5 +169,5 @@ Use the same Pixel IP workflow as the rest of JARVIS so you don’t have to hard
 
 - **Edge gateway URL:** Supabase Dashboard → Edge Functions → jarvis → Secrets → `JARVIS_GATEWAY_URL`.
 - **Pixel gateway:** `http://<pixel-ip>:18789` (same machine as the farm).
-- **Expose Pixel to the internet:** Use ngrok, Tailscale, or similar; point `JARVIS_GATEWAY_URL` at the resulting URL.
+- **Expose Pixel:** We use **Tailscale**. Set Edge secret `JARVIS_GATEWAY_URL` to `http://<pixel-tailscale-ip>:18789` so the deployed site uses the farm (see § above and [notes/edge-farm-hybrid-mac.md](./notes/edge-farm-hybrid-mac.md)).
 - **Session memory:** Edge already uses `session_messages` / `session_summaries`; see [JARVIS_MEMORY_WIRING.md](./JARVIS_MEMORY_WIRING.md). For Pixel to share that thread, add Supabase read/write there.
