@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Outfit } from 'next/font/google';
 import { AuthGuard } from '@/components/AuthGuard';
 import './globals.css';
@@ -13,6 +13,17 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: 'JARVIS',
   description: 'Developer-grade chat UI for JARVIS — Clawdbot gateway',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: 'cover',
+  themeColor: [
+    { media: '(prefers-color-scheme: dark)', color: '#0c0c0f' },
+    { media: '(prefers-color-scheme: light)', color: '#f8fafc' },
+  ],
 };
 
 export default function RootLayout({

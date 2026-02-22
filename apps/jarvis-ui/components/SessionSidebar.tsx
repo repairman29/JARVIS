@@ -105,7 +105,9 @@ export function SessionSidebar({
               onClick={onClose}
               aria-label="Close sidebar"
               style={{
-                padding: '0.35rem',
+                padding: '0.5rem',
+                minWidth: 44,
+                minHeight: 44,
                 background: 'transparent',
                 border: '1px solid var(--border)',
                 borderRadius: 'var(--radius-sm)',
@@ -125,6 +127,7 @@ export function SessionSidebar({
           style={{
             margin: '0.75rem 1rem',
             padding: '0.5rem 0.75rem',
+            minHeight: isMobile ? 44 : undefined,
             fontSize: '13px',
             background: 'var(--accent)',
             color: 'var(--bg)',
@@ -146,12 +149,13 @@ export function SessionSidebar({
                 role="option"
                 aria-selected={isActive}
                 onClick={() => onSwitchSession(id)}
-                className="btn-surface"
+                className="btn-surface session-item"
                 style={{
                   display: 'block',
                   width: '100%',
                   padding: '0.5rem 0.75rem',
                   marginBottom: '0.25rem',
+                  minHeight: isMobile ? 44 : undefined,
                   fontSize: '12px',
                   textAlign: 'left',
                   background: isActive ? 'var(--border)' : 'transparent',

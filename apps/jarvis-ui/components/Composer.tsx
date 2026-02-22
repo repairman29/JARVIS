@@ -444,8 +444,12 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
 
   return (
     <div
+      className="composer-wrap"
       style={{
         padding: '0.75rem 1rem',
+        paddingLeft: 'max(1rem, env(safe-area-inset-left))',
+        paddingRight: 'max(1rem, env(safe-area-inset-right))',
+        paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))',
         borderTop: '1px solid var(--border)',
         backgroundColor: 'var(--bg-elevated)',
       }}
@@ -595,7 +599,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
           🎤 {voiceError}
         </p>
       )}
-      <p style={{ margin: '0.5rem 0 0', fontSize: '12px', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+      <p className="composer-hint" style={{ margin: '0.5rem 0 0', fontSize: '12px', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
         <span>
           Enter to send · Shift+Enter new line · Esc clear · Cmd+J focus
           {speechSupported && ' · 🎤 Voice'}

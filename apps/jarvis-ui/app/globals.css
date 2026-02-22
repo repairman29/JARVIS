@@ -282,3 +282,49 @@ html, body {
 .session-sidebar.mobile-hidden {
   transform: translateX(-100%);
 }
+
+/* Mobile: safe-area insets (notch, home indicator) */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .composer-wrap {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+@supports (padding: env(safe-area-inset-top)) {
+  .header-wrap {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* Mobile: comfortable touch targets and tap feedback */
+@media (max-width: 767px) {
+  .btn-surface {
+    -webkit-tap-highlight-color: transparent;
+    tap-highlight-color: transparent;
+  }
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .empty-state-card {
+    min-height: 56px;
+  }
+  .more-menu-mobile [role="menuitem"],
+  .more-menu-mobile button,
+  .more-menu-mobile a {
+    min-height: 44px;
+    padding: 0.5rem 0.75rem;
+    display: flex;
+    align-items: center;
+  }
+  /* Avoid iOS zoom on composer focus */
+  .composer-input {
+    font-size: 16px !important;
+  }
+  /* Shorter hint line on small screens */
+  .composer-hint {
+    font-size: 11px;
+  }
+}

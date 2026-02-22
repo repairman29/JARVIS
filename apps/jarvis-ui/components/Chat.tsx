@@ -701,7 +701,8 @@ export function Chat() {
   }, [messages, sendMessage]);
 
   const headerBtn = {
-    padding: '0.35rem 0.65rem',
+    padding: isMobile ? '0.5rem 0.75rem' : '0.35rem 0.65rem',
+    minHeight: isMobile ? 44 : undefined,
     fontSize: '13px',
     background: 'transparent',
     color: 'var(--text-muted)',
@@ -726,8 +727,11 @@ export function Chat() {
       />
       <div className={`chat-main ${!isMobile ? 'with-sidebar' : ''}`} style={{ maxWidth: 800, margin: '0 auto', width: '100%' }}>
       <header
+        className="header-wrap"
         style={{
           padding: '0.75rem 1rem',
+          paddingLeft: 'max(1rem, env(safe-area-inset-left))',
+          paddingRight: 'max(1rem, env(safe-area-inset-right))',
           borderBottom: '1px solid var(--border)',
           backgroundColor: 'var(--bg-elevated)',
           display: 'flex',
@@ -742,10 +746,10 @@ export function Chat() {
           {isMobile && (
             <button
               type="button"
-              className="btn-surface"
+              className="btn-surface touch-target"
               onClick={() => setSidebarOpen(true)}
               aria-label="Open sessions"
-              style={{ ...headerBtn, padding: '0.4rem 0.5rem' }}
+              style={{ ...headerBtn, padding: isMobile ? '0.5rem 0.65rem' : '0.4rem 0.5rem', minWidth: 44, minHeight: 44 }}
             >
               ☰
             </button>
@@ -787,12 +791,13 @@ export function Chat() {
             {moreMenuOpen && (
               <div
                 role="menu"
+                className={isMobile ? 'more-menu-mobile' : ''}
                 style={{
                   position: 'absolute',
                   top: '100%',
                   right: 0,
                   marginTop: '2px',
-                  minWidth: '180px',
+                  minWidth: isMobile ? '220px' : '180px',
                   background: 'var(--bg-elevated)',
                   border: '1px solid var(--border)',
                   borderRadius: 'var(--radius-md)',
@@ -892,10 +897,13 @@ export function Chat() {
 
       <div
         ref={scrollRef}
+        className="messages-scroll"
         style={{
           flex: 1,
           overflow: 'auto',
           padding: '1rem',
+          paddingLeft: 'max(1rem, env(safe-area-inset-left))',
+          paddingRight: 'max(1rem, env(safe-area-inset-right))',
           display: 'flex',
           flexDirection: 'column',
         }}
