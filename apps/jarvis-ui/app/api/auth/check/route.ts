@@ -40,22 +40,23 @@ function verifySession(cookieValue: string, secret: string): boolean {
   return diff === 0;
 }
 
-/** GET: returns 200 if session cookie is valid, 401 otherwise. Used by AuthGuard when middleware env vars are not available on Edge. */
 export async function GET(req: NextRequest) {
   const password = (process.env.JARVIS_UI_PASSWORD ?? '').replace(/\r\n?|\n/g, '').trim();
   if (!password) {
     return NextResponse.json({ ok: true }, { status: 200 });
   }
-  const secret = (process.env.JARVIS_UI_AUTH_SECRET ?? '').replace(/\r\n?|\n/g, '').trim();
+  // Use same secret logic as login route: AUTH_SECRET || PASSWORD
+  const authSecret = (process.env.JARVIS_UI_AUTH_SECRET ?? '').replace(/\r\n?|\n/g, '').trim();
+  const secret = authSecret || password;
   if (!secret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   const cookie = req.cookies.get(COOKIE_NAME)?.value;
   if (!cookie) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized', reason: 'no_cookie' }, { status: 401 });
   }
   if (!verifySession(cookie, secret)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized', reason: 'invalid_cookie' }, { status: 401 });
   }
   return NextResponse.json({ ok: true }, { status: 200 });
 }

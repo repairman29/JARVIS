@@ -73,7 +73,7 @@ If the UI is using the **Edge** backend (`NEXT_PUBLIC_JARVIS_EDGE_URL` set) and 
 
 To restrict the deployed app (e.g. https://jarvis-ui-xi.vercel.app) so only you can access it, set these **server** env vars (e.g. in Vercel → Project → Settings → Environment Variables):
 
-- **`JARVIS_UI_PASSWORD`** — The password you’ll enter on the login page. Avoid `$` in the password on Vercel (it can be stripped by the runtime).
+- **`JARVIS_UI_PASSWORD`** — The password you’ll enter on the login page (e.g. `jarvis2025`). Avoid `$` in the password on Vercel (it can be stripped by the runtime).
 - **`JARVIS_UI_AUTH_SECRET`** — A long random string (e.g. 32+ chars) used to sign session cookies. Generate one with `openssl rand -base64 32`.
 
 If both are set, all routes (chat, dashboard, API) require login. Session lasts 30 days. Use the **Logout** link in the header to sign out. If only one is set, auth is disabled.

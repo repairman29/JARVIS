@@ -3,6 +3,137 @@
 import { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 
+interface FarmNodeData {
+  name: string;
+  tier: string;
+  healthy: boolean;
+  busy: number;
+  parallel: number;
+  models: string[];
+  requests: number;
+  errors: number;
+  avgMs: number;
+  uptimeMs: number;
+  uptimeFormatted: string;
+  successRate: number;
+}
+
+interface FarmData {
+  available: boolean;
+  status?: string;
+  healthy?: number;
+  total?: number;
+  uptimeFormatted?: string;
+  nodes?: FarmNodeData[];
+  error?: string;
+}
+
+function FarmMonitor({ data, loading }: { data: FarmData | null; loading: boolean }) {
+  if (loading && !data) return <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Loading farm status...</p>;
+  if (!data || !data.available) {
+    return (
+      <div style={{ padding: '1rem', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+        <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '13px' }}>
+          {data?.error || 'Neural Farm not available'}
+        </p>
+      </div>
+    );
+  }
+
+  const statusColor = data.status === 'ok' ? '#22c55e' : '#f59e0b';
+  const nodes = data.nodes || [];
+  const totalReqs = nodes.reduce((s, n) => s + n.requests, 0);
+  const totalErrs = nodes.reduce((s, n) => s + n.errors, 0);
+
+  return (
+    <div style={{ display: 'grid', gap: '0.75rem' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          padding: '0.75rem 1rem',
+          background: `${statusColor}11`,
+          border: `1px solid ${statusColor}44`,
+          borderRadius: 'var(--radius-md)',
+        }}
+      >
+        <span style={{ width: 10, height: 10, borderRadius: '50%', background: statusColor, flexShrink: 0 }} />
+        <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>
+          {data.healthy}/{data.total} nodes healthy
+        </span>
+        <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: 'auto' }}>
+          uptime: {data.uptimeFormatted}
+        </span>
+      </div>
+
+      {nodes.map((node) => {
+        const nodeColor = node.healthy ? '#22c55e' : '#ef4444';
+        return (
+          <div
+            key={node.name}
+            style={{
+              background: 'var(--bg-elevated)',
+              border: `1px solid ${node.healthy ? 'var(--border)' : '#ef444444'}`,
+              borderRadius: 'var(--radius-md)',
+              padding: '0.75rem 1rem',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: nodeColor, flexShrink: 0 }} />
+              <span style={{ fontWeight: 600, fontSize: '0.85rem', textTransform: 'capitalize' }}>{node.name}</span>
+              {node.tier && (
+                <span style={{
+                  fontSize: '10px', padding: '0.1rem 0.4rem',
+                  background: node.tier === 'primary' ? '#3b82f6' : node.tier === 'smart' ? '#8b5cf6' : 'var(--border)',
+                  color: node.tier === 'secondary' ? 'var(--text-muted)' : '#fff',
+                  borderRadius: 'var(--radius-sm)',
+                }}>
+                  {node.tier}
+                </span>
+              )}
+              {node.busy > 0 && (
+                <span style={{ fontSize: '10px', padding: '0.1rem 0.4rem', background: '#f59e0b', color: '#000', borderRadius: 'var(--radius-sm)' }}>
+                  {node.busy}/{node.parallel || 1} busy
+                </span>
+              )}
+              <span style={{ marginLeft: 'auto', fontSize: '12px', color: 'var(--text-muted)' }}>
+                {node.uptimeFormatted}
+              </span>
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
+              {node.models.length > 0 ? node.models.join(', ') : 'no models'}
+            </div>
+            <div style={{ display: 'flex', gap: '1rem', fontSize: '12px', flexWrap: 'wrap' }}>
+              <span title="Parallel slots">
+                <strong>{node.parallel || 1}</strong> slots
+              </span>
+              <span title="Total requests">
+                <strong>{node.requests}</strong> reqs
+              </span>
+              <span title="Errors" style={{ color: node.errors > 0 ? '#ef4444' : 'inherit' }}>
+                <strong>{node.errors}</strong> errs
+              </span>
+              <span title="Average latency">
+                <strong>{node.avgMs}</strong>ms avg
+              </span>
+              <span title="Success rate">
+                <strong>{node.successRate}%</strong> ok
+              </span>
+            </div>
+          </div>
+        );
+      })}
+
+      <div style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', gap: '1.5rem' }}>
+        <span>Total: <strong>{totalReqs}</strong> requests</span>
+        <span>Errors: <strong>{totalErrs}</strong></span>
+        {totalReqs > 0 && <span>Cluster success: <strong>{Math.round(((totalReqs - totalErrs) / totalReqs) * 100)}%</strong></span>}
+      </div>
+    </div>
+  );
+}
+
 type BackendKey = 'farm' | 'edge' | 'local';
 
 interface BackendInfo {
@@ -88,9 +219,24 @@ function StatusCard({
 
 export default function DashboardPage() {
   const [data, setData] = useState<StatusData | null>(null);
+  const [farmData, setFarmData] = useState<FarmData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [farmLoading, setFarmLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [rechecking, setRechecking] = useState(false);
+
+  const fetchFarm = useCallback(async () => {
+    try {
+      setFarmLoading(true);
+      const res = await fetch('/api/farm', { cache: 'no-store' });
+      const json = await res.json();
+      setFarmData(json as FarmData);
+    } catch {
+      setFarmData(null);
+    } finally {
+      setFarmLoading(false);
+    }
+  }, []);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -110,13 +256,15 @@ export default function DashboardPage() {
 
   useEffect(() => {
     void fetchStatus();
-    const t = setInterval(fetchStatus, 60000);
+    void fetchFarm();
+    const t = setInterval(() => { void fetchStatus(); void fetchFarm(); }, 30000);
     return () => clearInterval(t);
-  }, [fetchStatus]);
+  }, [fetchStatus, fetchFarm]);
 
   const recheck = () => {
     setRechecking(true);
     void fetchStatus();
+    void fetchFarm();
   };
 
   return (
@@ -255,8 +403,18 @@ export default function DashboardPage() {
             ))}
           </div>
 
+          <div style={{ marginTop: '2rem' }}>
+            <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              Neural Farm
+              <span style={{ fontSize: '11px', fontWeight: 400, color: 'var(--text-muted)', background: 'var(--border)', padding: '0.15rem 0.4rem', borderRadius: 'var(--radius-sm)' }}>
+                free tier
+              </span>
+            </h2>
+            <FarmMonitor data={farmData} loading={farmLoading} />
+          </div>
+
           <p style={{ marginTop: '1.5rem', fontSize: '12px', color: 'var(--text-muted)' }}>
-            Status refreshes every 60s. Use Recheck to update now. From the web, chat uses Farm when the relay/Pixel is reachable; otherwise Edge.
+            Status refreshes every 30s. Use Recheck to update now. Chat uses Farm (free) when model hint is &quot;fast&quot; or &quot;free&quot;; otherwise Edge/Railway.
           </p>
         </>
       )}

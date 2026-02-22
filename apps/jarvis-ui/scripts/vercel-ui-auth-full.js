@@ -196,16 +196,13 @@ async function main() {
   out('Latest production deployment', { uid: previousDeploymentId });
   logState({ step: 'latest_deployment_found', previousDeploymentId });
 
-  // --- Step 4: Trigger redeploy (preserve monorepo root so Next.js is found) ---
+  // --- Step 4: Trigger redeploy (do not override projectSettings; use project's existing root/config) ---
   const deployQuery = TEAM_SLUG ? `?slug=${encodeURIComponent(TEAM_SLUG)}` : '';
   const createBody = {
     name: PROJECT_NAME,
     project: PROJECT_NAME,
     deploymentId: previousDeploymentId,
     target: 'production',
-    projectSettings: {
-      rootDirectory: 'apps/jarvis-ui',
-    },
   };
   const create = await api('POST', `/v13/deployments${deployQuery}`, createBody, token);
   if (!create.ok) {

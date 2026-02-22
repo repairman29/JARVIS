@@ -21,31 +21,46 @@ export default function Error({
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '2rem',
-        background: '#0f0f12',
-        color: '#e4e4e7',
-        fontFamily: 'ui-sans-serif, system-ui, sans-serif',
+        padding: '1.5rem',
+        background: 'var(--bg, #0f0f12)',
+        color: 'var(--text, #e4e4e7)',
+        fontFamily: 'system-ui, sans-serif',
       }}
     >
       <h1 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>Something went wrong</h1>
-      <p style={{ color: '#a1a1aa', marginBottom: '1.5rem', maxWidth: '400px', textAlign: 'center' }}>
-        {error.message}
+      <p style={{ fontSize: '14px', color: 'var(--text-muted, #71717a)', marginBottom: '1.5rem', textAlign: 'center' }}>
+        Try signing in again. If it keeps happening, check the browser console for details.
       </p>
-      <button
-        type="button"
-        onClick={reset}
-        style={{
-          padding: '0.5rem 1rem',
-          fontSize: '14px',
-          background: '#3b82f6',
-          color: '#fff',
-          border: 'none',
-          borderRadius: '8px',
-          cursor: 'pointer',
-        }}
-      >
-        Try again
-      </button>
+      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+        <a
+          href="/login"
+          style={{
+            padding: '0.5rem 1rem',
+            background: 'var(--accent, #a78bfa)',
+            color: 'var(--bg)',
+            borderRadius: '6px',
+            textDecoration: 'none',
+            fontSize: '14px',
+          }}
+        >
+          Back to sign in
+        </a>
+        <button
+          type="button"
+          onClick={reset}
+          style={{
+            padding: '0.5rem 1rem',
+            background: 'var(--bg-elevated, #27272a)',
+            color: 'var(--text)',
+            border: '1px solid var(--border, #3f3f46)',
+            borderRadius: '6px',
+            fontSize: '14px',
+            cursor: 'pointer',
+          }}
+        >
+          Try again
+        </button>
+      </div>
     </div>
   );
 }

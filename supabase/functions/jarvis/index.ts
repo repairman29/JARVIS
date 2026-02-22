@@ -2,7 +2,7 @@
 // REST: POST / with body { "message": "...", "session_id?": "..." } → { "content": "..." }
 // MCP: POST / with body JSON-RPC 2.0 (initialize, tools/list, tools/call) → JSON-RPC response
 // Convenience: body.action "web_search" | "current_time" with query/timezone
-// Secrets: JARVIS_GATEWAY_URL, CLAWDBOT_GATEWAY_TOKEN; optional JARVIS_AUTH_TOKEN
+// Secrets: JARVIS_GATEWAY_URL, CLAWDBOT_GATEWAY_TOKEN; optional JARVIS_AUTH_TOKEN, NEURAL_FARM_BASE_URL
 // Memory: SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY → load/append session_messages (see JARVIS_MEMORY_WIRING.md)
 
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
@@ -301,6 +301,36 @@ async function callGateway(
   return { content: content || "No response from gateway.", meta: meta ?? undefined };
 }
 
+async function callFarm(
+  farmUrl: string,
+  messages: { role: string; content: string | unknown[] }[],
+  stream: boolean,
+): Promise<{ content?: string; meta?: Record<string, unknown>; res?: Response; err?: string }> {
+  const chatUrl = `${farmUrl.replace(/\/$/, "")}/v1/chat/completions`;
+  const body = {
+    model: "gemma-3-4b-it",
+    messages,
+    max_tokens: 1024,
+    stream,
+  };
+  const res = await fetch(chatUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(60000),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    return { err: text || res.statusText };
+  }
+  if (stream && res.body) return { res };
+  const text = await res.text();
+  let data: unknown;
+  try { data = text ? JSON.parse(text) : null; } catch { data = null; }
+  const content = extractContent(data);
+  return { content: content || "No response from farm." };
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -336,6 +366,7 @@ Deno.serve(async (req: Request) => {
 
   const gatewayUrl = Deno.env.get("JARVIS_GATEWAY_URL") || "http://127.0.0.1:18789";
   const gatewayToken = Deno.env.get("CLAWDBOT_GATEWAY_TOKEN") || "";
+  const farmUrl = (Deno.env.get("NEURAL_FARM_BASE_URL") ?? "").trim();
   const wantStream = req.headers.get("x-stream") === "true";
 
   let body: Record<string, unknown>;
@@ -552,6 +583,43 @@ Deno.serve(async (req: Request) => {
     if (prefs) systemContent += "\n\n" + prefs;
   }
   const modelHint = body.model_hint as string | undefined;
+  const useFarm = farmUrl && (modelHint === "fast" || modelHint === "free");
+
+  if (useFarm) {
+    const farmSystemPrompt = "You are JARVIS, a helpful AI assistant. Be concise and friendly.";
+    const farmMessages = hasSystem
+      ? messages
+      : [{ role: "system" as const, content: farmSystemPrompt }, ...messages];
+    const result = await callFarm(farmUrl, farmMessages, wantStream);
+    if (result.err) {
+      // Farm failed — fall through to main gateway
+    } else {
+      const supabase = getSupabase();
+      if (supabase && userMessagesThisTurn.length > 0 && !wantStream && result.content) {
+        await appendSessionMessages(supabase, sessionId, [
+          ...userMessagesThisTurn,
+          { role: "assistant", content: result.content },
+        ]);
+      }
+      if (result.res && result.res.body) {
+        return new Response(result.res.body, {
+          status: 200,
+          headers: {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+            ...corsHeaders,
+          },
+        });
+      }
+      const payload: { content: string; meta?: Record<string, unknown> } = {
+        content: result.content || "No response from farm.",
+      };
+      if (result.meta && Object.keys(result.meta).length > 0) payload.meta = result.meta;
+      return jsonResponse({ ...payload, tier: "free" });
+    }
+  }
+
   if (modelHint === "fast") systemContent += "\n\nUser requested: use the fast/cheap model for this turn (quick answers).";
   if (modelHint === "best") systemContent += "\n\nUser requested: use the best/strong model for this turn (deep work, complex reasoning).";
   const messagesWithSystem = hasSystem
@@ -562,7 +630,6 @@ Deno.serve(async (req: Request) => {
     ? body.image_data_url.trim()
     : undefined;
 
-  // Vision: merge image into last user message as multimodal content (OpenAI-style) so vision-capable models receive it.
   let messagesToSend: { role: string; content: string | unknown[] }[] = messagesWithSystem;
   if (imageDataUrl) {
     const lastUserIdx = messagesWithSystem.map((m) => m.role).lastIndexOf("user");
@@ -583,7 +650,7 @@ Deno.serve(async (req: Request) => {
     messagesToSend,
     sessionId,
     wantStream,
-    undefined // already merged into messages when imageDataUrl was set
+    undefined
   );
 
   if (result.err) {

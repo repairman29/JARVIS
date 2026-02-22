@@ -3,33 +3,27 @@
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
-/**
- * When auth is enabled, redirects to /login if the session cookie is invalid.
- * Runs in the browser so it uses the Node API route (/api/auth/check) where env vars are available.
- * This fixes auth on Vercel where Edge middleware may not receive env vars at build time.
- */
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [allowed, setAllowed] = useState(false);
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    if (pathname === '/login') {
+    if (pathname === '/login' || pathname === '/welcome') {
       setAllowed(true);
       setChecking(false);
       return;
     }
     let cancelled = false;
     setChecking(true);
-    fetch('/api/auth/check', { credentials: 'same-origin', cache: 'no-store' })
+    fetch('/api/auth/check', { credentials: 'include', cache: 'no-store' })
       .then((res) => {
         if (cancelled) return;
-        if (res.status === 401) {
-          const from = encodeURIComponent(pathname || '/');
-          window.location.href = `/login?from=${from}`;
-          return;
+        if (res.ok) {
+          setAllowed(true);
+        } else {
+          window.location.href = '/login';
         }
-        setAllowed(true);
       })
       .catch(() => {
         if (!cancelled) setAllowed(true);
@@ -37,12 +31,10 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       .finally(() => {
         if (!cancelled) setChecking(false);
       });
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [pathname]);
 
-  if (checking && pathname !== '/login') {
+  if (checking && pathname !== '/login' && pathname !== '/welcome') {
     return (
       <div
         style={{
