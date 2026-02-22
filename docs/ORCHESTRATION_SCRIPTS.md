@@ -12,6 +12,10 @@ Index of scripts and patterns for **orchestrating JARVIS's team** and running ba
 | **team-status.js** | Check which team CLIs are on PATH; write `~/.jarvis/team-status.json`. | After installing CLIs or editing config/team-agents.json. |
 | **run-team-pipeline.js** | Safety net → BEAST MODE quality → Code Roach health → Echeo bounties. Skips missing CLIs. | On-demand or scheduled (cron). Use `--webhook` to post summary to Discord. |
 | **run-team-quality.js** | BEAST MODE quality only for focus repo (products.json first or `JARVIS_FOCUS_REPO` or arg). | Before ship, or after implement. |
+| **run-beast-mode-tick.js** | JARVIS drives BEAST MODE: run one heartbeat tick (task gen, reset stale, QA/Integration/etc). Set `BEAST_MODE_SCRIPTS` if BEAST-MODE is not a sibling repo. | Cron or agent loop (e.g. every 2 min) so BEAST MODE keeps running when Mac is on; when Mac is off, use BEAST MODE cloud runner on Railway. See BEAST-MODE/docs/JARVIS_DRIVES_BEAST_MODE.md. |
+| **set-focus-repo.js** | Set JARVIS focus repo: move a product to the top of products.json so plan-execute, heartbeat, run-team-quality use it. No args = show current focus. | When done with current focus (e.g. BEAST MODE): run `node scripts/set-focus-repo.js <repo>` (e.g. olive, JARVIS). See RUNBOOK § "When done with BEAST MODE". |
+| **add-repo-and-focus.js** | Add a repo to repos.json (via `gh repo view` if needed), products.json, index it (index-repos --repo), and set as focus. Use so JARVIS can work on any repo when you ask. | "Work on X", "focus on X" when X is not yet in products.json. Run `node scripts/add-repo-and-focus.js <repo> [description]` or `--no-index` to skip indexing. |
+| **create-new-repo.js** | Create GitHub repo (repairman29/name) with `gh repo create`, then run add-repo-and-focus. | "Create a new repo for product Y", "new product Z". Run `node scripts/create-new-repo.js <name> [description] [--private]`. |
 | **heartbeat-brief.js** | Safety net + optional open PRs/issues count; posts short brief to webhook. | Scheduled (cron) or on-demand. See jarvis/HEARTBEAT.md. |
 | **prune-jarvis-memory.js** | Cap session_messages per session (keep last N), remove stale session_summaries. | On-demand or weekly cron. See docs/JARVIS_MEMORY_CONSOLIDATION.md. Use `--dry-run` first. |
 | **archive-jarvis-sessions.js** | Turn conversations into embeddings + structured versions (topics, decisions, entities) for bot memory search. | On-demand or after prune (run archivist before prune). See docs/JARVIS_ARCHIVIST.md. Needs Ollama nomic-embed-text. |
@@ -31,9 +35,21 @@ node scripts/run-team-pipeline.js --webhook
 # BEAST MODE quality for first product in products.json
 node scripts/run-team-quality.js
 
+# Switch focus when done with BEAST MODE (next repo becomes first in products.json)
+node scripts/set-focus-repo.js olive
+node scripts/set-focus-repo.js          # show current focus
+
 # BEAST MODE quality for a specific repo
 node scripts/run-team-quality.js BEAST-MODE
 JARVIS_FOCUS_REPO=olive node scripts/run-team-quality.js
+
+# Work on any repo (add to repos + products, index, set focus)
+node scripts/add-repo-and-focus.js acme "Acme app"
+node scripts/add-repo-and-focus.js some-repo --no-index
+
+# Create a new repo and add it to JARVIS
+node scripts/create-new-repo.js my-new-product "Net new product"
+node scripts/create-new-repo.js AcmeCorp "Acme app" --private
 ```
 
 ---

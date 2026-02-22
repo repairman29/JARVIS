@@ -201,7 +201,7 @@ Workspace: `~/jarvis`
 
 **If JARVIS says "restriction on restarting":** The restart command requires **elevated** access. Add your Discord user ID to the elevated allowlist: **`node scripts/enable-gateway-restart.js YOUR_DISCORD_USER_ID`** (get your ID: Discord → Developer Mode → right-click your name in the DM → Copy User ID). Or run **`node scripts/setup-jarvis-vault-and-access.js`** with `JARVIS_DISCORD_USER_ID` in Vault/.env so it merges into `tools.elevated.allowFrom.discord`. Then restart the gateway once manually.
 
-**Exec from web UI (beast-mode, code-roach, etc.):** The gateway allows exec per **channel**. Web requests use the **webchat** channel. If `tools.elevated.allowFrom.webchat` is missing or empty, exec is blocked from the web. Run **`node scripts/enable-web-exec.js`** to set `allowFrom.webchat = ["*"]`; restart the gateway. See **docs/JARVIS_WEB_EXEC.md** for why and for local vs cloud gateway.
+**Exec from web UI (beast-mode, set-focus-repo, etc.):** The gateway allows exec per **channel**. Web requests use **webchat**. Run **`node scripts/enable-web-exec.js`** to set `allowFrom.webchat = ["*"]` in **local** (`~/.clawdbot/clawdbot.json`) and **cloud** (`config/railway-openclaw.json`). Restart the local gateway; redeploy Railway so the cloud gateway gets it. See **docs/JARVIS_WEB_EXEC.md**.
 
 **403 OAuth / "not allowed for this organization":** Switch the gateway's primary model to a key-based provider: **`node scripts/set-primary-groq.js`** (need `GROQ_API_KEY` in `~/.clawdbot/.env`), then restart the gateway. Or **`node scripts/set-primary-openai.js`** if you use OpenAI. See DISCORD_SETUP.md § 403 OAuth.
 
@@ -254,6 +254,16 @@ clawdbot status | grep -A10 Sessions
 ## Orchestration scripts and background agents
 
 **Pipeline:** `node scripts/run-team-pipeline.js` — safety net → BEAST MODE quality → Code Roach health → Echeo. Use `--quality-only` or `--no-safety-net`; `--webhook` posts summary to Discord. **Quality only:** `node scripts/run-team-quality.js` [repo]. **Index:** **docs/ORCHESTRATION_SCRIPTS.md** — pipeline scripts, scheduled agents (watchdog, heartbeat, autonomous build, repo index), and scheduling.
+
+**JARVIS drives BEAST MODE:** Run `node scripts/run-beast-mode-tick.js` from this repo (one BEAST MODE heartbeat tick). Add to cron or agent loop so BEAST MODE keeps running when the Mac is on. When the Mac is off, deploy BEAST MODE’s **cloud runner** to Railway (`node scripts/beast-mode-cloud-runner.js`); see **BEAST-MODE/docs/JARVIS_DRIVES_BEAST_MODE.md**.
+
+**Talk to JARVIS about BEAST MODE in the UI:** In chat ask *"How's BEAST MODE?"*, *"BEAST MODE status"*, or *"run a BEAST MODE tick"* — JARVIS runs the status script or triggers a tick. For web UI exec: `node scripts/enable-web-exec.js` then restart gateway (docs/JARVIS_WEB_EXEC.md).
+
+**When done with BEAST MODE — switch to next repo:** Focus = first active product in **products.json**. To make JARVIS work on its next repo: run **`node scripts/set-focus-repo.js <repo>`** (e.g. `olive`, `JARVIS`). That moves that repo to the top of products.json; plan-execute, heartbeat, and "work top down" then use it. In chat you can say *"We're done with BEAST MODE, focus on Olive"* and JARVIS will run the script. Show current focus: `node scripts/set-focus-repo.js` (no args).
+
+**Work on any repo:** To have JARVIS work on a repo that isn’t in products.json yet, run **`node scripts/add-repo-and-focus.js <repo> [description]`**. This adds the repo to **repos.json** (using `gh repo view repairman29/repo` if needed), adds it to **products.json**, runs **index-repos --repo** so repo_summary/repo_search work, and sets it as focus. In chat you can say *"Work on acme"* or *"Focus on some-repo"* and JARVIS will run the script (with exec enabled).
+
+**Create a new repo for a net-new product:** Run **`node scripts/create-new-repo.js <name> [description] [--private]`**. This creates the GitHub repo (repairman29/name), then runs add-repo-and-focus so JARVIS can work on it immediately. In chat: *"Create a new repo for product X"* or *"New product Y"*. Requires **gh** CLI and repo create scope.
 
 ### Cron Jobs (Mac)
 

@@ -9,10 +9,10 @@ Heartbeat should **drive production**: check queues, launch subagents, and advan
 
 **Plan and execute (no human in loop):** Run `node scripts/jarvis-autonomous-plan-execute.js`. JARVIS creates a plan and runs it with tools; when done replies with AUTONOMOUS_DONE and a summary. Schedule daily (e.g. 8 AM) or on-demand.
 
-## Today (Production Mode — Beast-Mode focus)
+## Today (Production Mode)
 - [ ] Check if user needs anything (if no action items, continue checklist)
-- [ ] **Product order:** Use **products.json** (master list, top-down). Focus repo = first active product unless user says otherwise; then work down the list.
-- [ ] Focus repo: **BEAST-MODE** (primary) or next product from list. Defer other repos unless asked.
+- [ ] **Product order:** Use **products.json** (master list, top-down). Focus repo = **first active product** in the list; then work down.
+- [ ] **When done with current focus (e.g. BEAST MODE):** Run `node scripts/set-focus-repo.js <next-repo>` (e.g. `olive`, `JARVIS`) so the next repo becomes first in products.json. Plan-execute, heartbeat, and "work top down" will then use that repo.
 - [ ] Scan for pending tasks: focus-repo issues/PRs, recent failures, blocked threads
 - [ ] If GitHub is available: run `github_status`; if OK, pick 1 BEAST-MODE action (issue, PR, workflow_dispatch)
 - [ ] If background work is needed: spawn subagents with clear deliverables and ETA

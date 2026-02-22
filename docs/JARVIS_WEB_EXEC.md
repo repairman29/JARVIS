@@ -54,7 +54,12 @@ From the repo root:
 node scripts/enable-web-exec.js
 ```
 
-This script sets `tools.elevated.enabled = true` and `tools.elevated.allowFrom.webchat = ["*"]` in `~/.clawdbot/clawdbot.json` (and leaves existing `discord` / other entries intact). Restart the gateway after running it.
+This script sets `tools.elevated.enabled = true` and `tools.elevated.allowFrom.webchat = ["*"]` in **both**:
+
+- **Local:** `~/.clawdbot/clawdbot.json` — restart the gateway after running.
+- **Cloud:** `config/railway-openclaw.json` — redeploy Railway (e.g. `railway up` or push to main) so the cloud gateway gets the change.
+
+So one run keeps local and cloud in sync. Restart the local gateway; redeploy if you use the cloud gateway.
 
 ### 3. Where the gateway runs (local vs cloud)
 
@@ -72,7 +77,7 @@ This script sets `tools.elevated.enabled = true` and `tools.elevated.allowFrom.w
 
 | Cause | Fix |
 |-------|-----|
-| webchat not in elevated allowlist | Add `allowFrom.webchat: ["*"]` (or specific session ids) in gateway config; or run `node scripts/enable-web-exec.js` and restart the gateway. |
+| webchat not in elevated allowlist | Run `node scripts/enable-web-exec.js` (sets local + cloud config); restart local gateway; redeploy Railway for cloud. |
 | Gateway in cloud, no CLIs | Install CLIs on the cloud image or use workflow_dispatch / GitHub Actions for those steps. |
 
 After the fix, use the same web UI; no need to change the UI or Edge. The gateway will allow exec for webchat-originated requests and JARVIS can run tools when the model asks for them.

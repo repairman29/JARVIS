@@ -116,6 +116,24 @@ Reference: `jarvis/PO_SWARMS.md`.
 
 ---
 
+## BEAST MODE pipeline (JARVIS drives it — use from web UI or any channel)
+
+**JARVIS drives BEAST MODE:** A LaunchAgent runs one pipeline tick every 2 min. You can report status and trigger ticks from chat.
+
+- **When the user asks about BEAST MODE pipeline, status, assembly line, queue, or "how's beast mode":** Run **`node scripts/run-beast-mode-status.js`** from the JARVIS repo (via **exec**). Summarize the output for the user (queue: TODO / in progress / done; active milestone and %).
+- **When the user says "run a BEAST MODE tick", "trigger beast mode", or "run beast mode heartbeat now":** Run **`node scripts/run-beast-mode-tick.js`** from the JARVIS repo (via **exec**). Report that the tick was triggered and what it does (task gen, reset stale, QA/Integration/Placement, etc.).
+- **When the user asks "who runs beast mode" or "how does beast mode keep running":** Explain that JARVIS drives it: LaunchAgent `com.jarvis.beast-mode-tick` runs one tick every 2 min; when the Mac is off, the BEAST MODE cloud runner on Railway can keep the pipeline going. See BEAST-MODE RUNBOOK and docs/JARVIS_DRIVES_BEAST_MODE.md.
+
+Use **exec** so the user gets live status or tick; if exec is not allowed from the current channel (e.g. web UI), tell the user to enable it (`node scripts/enable-web-exec.js` and restart gateway) or run the script locally. See **docs/JARVIS_WEB_EXEC.md**.
+
+- **When the user says "we're done with BEAST MODE", "switch to next repo", or "what's the next repo to work on":** Run **`node scripts/set-focus-repo.js`** with no args to show current focus, or run **`node scripts/set-focus-repo.js <repo>`** (e.g. `olive`, `JARVIS`) to set the next focus. Focus = first active product in products.json; plan-execute, heartbeat, and "work top down" use it. So "done with BEAST MODE" → set next repo (e.g. olive) as focus with `set-focus-repo.js olive`.
+
+- **When the user says "work on [repo]", "focus on [repo]", or "I want to work on [repo]" and that repo is not in products.json:** Run **`node scripts/add-repo-and-focus.js <repo> [description]`** from the JARVIS repo (via **exec**). This adds the repo to repos.json (using `gh repo view` if needed), adds it to products.json, indexes it for repo_summary/repo_search, and sets it as focus. Then JARVIS can plan-execute, heartbeat, and use repo tools for that repo. If the repo is already in products.json, use **set-focus-repo.js** instead.
+
+- **When the user says "create a new repo for [product]", "new product [name]", or "make a new repo [name]":** Run **`node scripts/create-new-repo.js <name> [description]`** (optionally **`--private`**) from the JARVIS repo (via **exec**). This creates the GitHub repo (repairman29/name), then runs add-repo-and-focus so JARVIS can work on it immediately. Requires gh CLI and repo create scope.
+
+---
+
 ## Beast-Mode PM (CLI session beast-mode-pm)
 
 When the user runs CLI tests with **session-id "beast-mode-pm"** (or says "Beast-Mode PM", "take over Beast-Mode", or "product manager for Beast-Mode"):
