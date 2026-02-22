@@ -23,6 +23,8 @@
 | **Lint** | ESLint + typescript-eslint + React (jarvis-ui), next/core-web-vitals–style rules | Catch bugs and style issues before merge. |
 | **Orchestration** | workflow_dispatch, sessions_spawn, PREBUILT_WORKFLOWS | JARVIS runs quality and deploy; less manual handoff. |
 | **Knip bot** | `.github/workflows/knip-bot.yml` | On PRs that touch `apps/jarvis-ui`, runs Knip and posts/updates a single comment with unused files, deps, exports. No merge block; report only. |
+| **CodeQL** | `.github/workflows/codeql.yml` | Security/code scanning on push/PR + weekly; results in Security tab. |
+| **E2E on preview** | `.github/workflows/jarvis-ui-e2e-preview.yml` | On jarvis-ui PRs: build → Vercel preview deploy → Playwright. Needs VERCEL_TOKEN. |
 
 ---
 
@@ -76,9 +78,17 @@
 |----------|--------|--------|--------|
 | **1** | Add **GitHub Actions workflow for jarvis-ui**: lint + build on push/PR to `apps/jarvis-ui` (and root if it affects the app). | Catch breaks before merge; no manual “did you run lint?” | Low |
 | **2** | ~~Run Knip in CI~~ **Done:** Knip in jarvis-ui CI + **Knip bot** posts report on PRs (`.github/workflows/knip-bot.yml`). Optionally run `knip --fix` locally or add a JARVIS-invokable “knip report” workflow. | Visibility on PRs; optional auto-fix later. | — |
-| **3** | Ensure **Vercel previews** are on for jarvis-ui and link in PRs. Optionally add E2E that runs against Vercel preview URL (with polling) so we don’t block on “deploy not ready.” | Faster feedback; fewer “works on my machine” issues. | Low–medium |
+| **3** | **Done:** Vercel previews when project connected. **E2E on preview:** `.github/workflows/jarvis-ui-e2e-preview.yml` (build → deploy → Playwright). Requires **VERCEL_TOKEN**. See § 4b. | Faster feedback. | — |
 | **4** | Consider **Turborepo** at repo root if we add more apps or CI time grows: cache `build`/`lint`/`test` per package. | Faster CI and local runs. | Medium |
-| **5** | Optional: **SonarCloud** or **CodeQL** for quality/security gates and PR badges. | One number for “quality” and security visibility. | Medium |
+| **5** | **Done:** **CodeQL** (`.github/workflows/codeql.yml`) on push/PR + weekly. Results in Security → Code scanning. SonarCloud still optional. | Security visibility. | — |
+
+---
+
+
+## 4b. Vercel previews and E2E on preview
+
+- **Preview URLs:** Connect the Vercel project for jarvis-ui to this repo (Vercel → Project → Settings → Git). Each PR gets a preview deployment; Vercel posts the URL in the PR or deployment status.
+- **E2E against preview:** Workflow **jarvis-ui E2E (preview)** runs on PRs that change `apps/jarvis-ui`: build → `vercel deploy --prebuilt` → Playwright with `PLAYWRIGHT_BASE_URL` set to that URL. Add **VERCEL_TOKEN** to repo secrets to enable. Optionally **VERCEL_ORG_ID** and **VERCEL_PROJECT_ID** if the project is not linked. Without the token, the deploy step fails; disable or add the token as needed.
 
 ---
 
@@ -104,4 +114,4 @@
 
 ---
 
-**TL;DR:** We migrated jarvis-ui to Next 16 proxy and fixed lint; added jarvis-ui CI (lint + build) in GitHub Actions. Next: run Knip for dead code/deps, rely on Vercel previews (and optional E2E against them). Consider Turborepo if CI or local builds get slow. Keep BEAST MODE and the build server as the main quality path; use tools to catch issues earlier and automate cleanup.
+**TL;DR:** jarvis-ui: proxy, lint, CI (lint + build + Knip). Knip bot comments on PRs; CodeQL runs on push/PR + weekly; E2E-on-preview workflow (needs VERCEL_TOKEN). Next: Turborepo if CI gets slow. Keep BEAST MODE and build server as main quality path.
