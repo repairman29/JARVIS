@@ -50,7 +50,26 @@ JARVIS is the **conductor**: he runs these gates and does not skip them when shi
 When **you** (or Cursor) edit code in JARVIS or BEAST-MODE:
 
 - Run **`npm run lint`** and **`npm test`** (or the repo’s scripts) before committing.
-- Consider adding a **Cursor rule** (e.g. in `.cursor/rules/`) that says: run lint and test before marking done; follow CODE_QUALITY.md. See **.cursor/skills/create-rule/SKILL.md** if you use it.
+- A **Cursor rule** at `.cursor/rules/code-quality.mdc` enforces: run lint and test before marking done; follow this doc. See **.cursor/skills/create-rule/SKILL.md** if you add more rules.
+
+---
+
+## 6. Writing and shipping checklist (JARVIS / BEAST MODE)
+
+Use this when **you are writing or shipping code** (as JARVIS, BEAST MODE, or a subagent):
+
+**Before marking implementation done:**
+- [ ] Run `npm run lint` (or repo equivalent); fix all errors.
+- [ ] Run `npm test` or build_server_pipeline(repo); fix all failures.
+- [ ] Add or update tests for new behavior.
+- [ ] No secrets in code; errors handled explicitly.
+
+**Before deploy (ship):**
+- [ ] Lint and test are green (run again if unsure).
+- [ ] Run BEAST MODE quality (e.g. `beast-mode quality score` or workflow_dispatch for BEAST-MODE repo); fix issues or get user confirmation.
+- [ ] Deploy (workflow_dispatch or platform CLI); do not skip the quality step.
+
+**Style:** Clear names, small functions, comment *why* when non-obvious, types for new code (no `any` unless necessary).
 
 ---
 

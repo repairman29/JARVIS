@@ -18,7 +18,7 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:auth-setup": "playwright test e2e/auth.setup.ts",
     "test:chat": "node scripts/test-chat.js http://localhost:3001",
-    "knip": "knip --no-exit-code",
+    "knip": "npx knip --no-exit-code",
     "deploy": "vercel",
     "deploy:prod": "vercel --prod"
   },

@@ -1,0 +1,15 @@
+---
+description: Code quality and shipping — lint, test, BEAST MODE before ship. Follow CODE_QUALITY.md.
+alwaysApply: true
+---
+
+# Code quality (JARVIS / BEAST MODE / Cursor)
+
+When **writing or changing code** in this repo (or any product repo JARVIS works on):
+
+1. **Before marking implementation done:** Run the repo’s **lint** and **test** (e.g. `npm run lint`, `npm test`, or `build_server_pipeline(repo)`). Fix all failures.
+2. **New behavior:** Add or update tests for new code paths or user-facing behavior.
+3. **Style:** Clear names, small functions, explicit errors, no secrets in code. See **jarvis/CODE_QUALITY.md** § Code style.
+4. **Before ship:** Run **build + test**, then **BEAST MODE** quality (e.g. `beast-mode quality score` or workflow_dispatch), then deploy. Do not skip the quality step.
+
+**Reference:** **jarvis/CODE_QUALITY.md** (gates, when implementing, quality stack). **jarvis/AGENTS.md** (JARVIS owns shipping; code quality bullet).

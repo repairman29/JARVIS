@@ -378,6 +378,8 @@ If a link 404s: Supabase may have moved Edge logs under **Logs → Edge Logs** i
 
 **Deployment failures / permission issues:** User must be logged into Vercel (same team as project) and have repo access for GitHub Actions. For Supabase Edge logs via API, set `SUPABASE_ACCESS_TOKEN` (PAT from https://supabase.com/dashboard/account/tokens) and run `bash apps/jarvis-ui/scripts/check-deployment.sh`.
 
+**E2E on preview (GitHub Actions):** The workflow `jarvis-ui E2E (preview)` deploys jarvis-ui to a Vercel preview and runs Playwright. To enable it, add **VERCEL_TOKEN** to the repo’s GitHub Actions secrets. One-time setup: (1) Create a token at https://vercel.com/account/tokens (e.g. “GitHub E2E”); (2) From repo root run `bash scripts/set-github-vercel-secret.sh` (requires `gh` CLI and `gh auth login`). Or manually: GitHub repo → Settings → Secrets and variables → Actions → New repository secret → name `VERCEL_TOKEN`, value = your Vercel token. Optional: **VERCEL_ORG_ID** and **VERCEL_PROJECT_ID** if the project isn’t linked (get from Vercel project settings or `.vercel/project.json`).
+
 ## Agentic security (permissions, audit, mitigations)
 
 JARVIS and the gateway have "spicy" access (filesystem, terminal, exec, workflow_dispatch). Follow these practices so high-impact actions are scoped, audited, and resistant to prompt-injection and memory-poisoning.
