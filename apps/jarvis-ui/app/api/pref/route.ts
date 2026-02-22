@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireSession } from '@/lib/auth';
 
 const EDGE_URL = (process.env.NEXT_PUBLIC_JARVIS_EDGE_URL || '').trim();
 const EDGE_TOKEN = (process.env.JARVIS_AUTH_TOKEN || '').trim();
 
 /** POST /api/pref — Set a JARVIS preference via Edge (persists to jarvis_prefs). Only works when using Edge backend. */
 export async function POST(req: NextRequest) {
+  const unauth = requireSession(req);
+  if (unauth) return unauth;
+
   if (!EDGE_URL) {
     return NextResponse.json(
       { error: 'Prefs require Edge backend (NEXT_PUBLIC_JARVIS_EDGE_URL)' },

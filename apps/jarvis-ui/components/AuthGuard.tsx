@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { authHeaders, clearSessionToken } from '@/lib/auth-client';
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -16,12 +17,13 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     // Auth check on route change: set checking state to drive loading UI
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional sync state for auth flow
     setChecking(true);
-    fetch('/api/auth/check', { credentials: 'include', cache: 'no-store' })
+    fetch('/api/auth/check', { credentials: 'include', headers: authHeaders(), cache: 'no-store' })
       .then((res) => {
         if (cancelled) return;
         if (res.ok) {
           setChecking(false);
         } else {
+          clearSessionToken();
           window.location.href = '/login';
         }
       })

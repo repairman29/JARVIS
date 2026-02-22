@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireSession } from '@/lib/auth';
 
 const EDGE_URL = (process.env.NEXT_PUBLIC_JARVIS_EDGE_URL || '').trim();
 const EDGE_TOKEN = (process.env.JARVIS_AUTH_TOKEN || '').trim();
 
 /** GET /api/agent-log?limit=30 — Recent proactive loop / audit log entries from Edge. */
 export async function GET(req: NextRequest) {
+  const unauth = requireSession(req);
+  if (unauth) return unauth;
+
   const limitParam = req.nextUrl.searchParams.get('limit');
   const limit = limitParam ? Math.min(100, Math.max(1, parseInt(limitParam, 10) || 30)) : 30;
   if (!EDGE_URL) {

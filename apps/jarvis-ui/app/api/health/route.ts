@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireSession } from '@/lib/auth';
 
 const GATEWAY_URL = (process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://127.0.0.1:18789').trim();
 const EDGE_URL = (process.env.NEXT_PUBLIC_JARVIS_EDGE_URL || '').trim();
@@ -53,7 +54,10 @@ async function pingEdge(
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const unauth = requireSession(req);
+  if (unauth) return unauth;
+
   const hint = EDGE_URL
     ? FARM_URL
       ? 'Hybrid: Farm when reachable, else Edge.'

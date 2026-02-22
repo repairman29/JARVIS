@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireSession } from '@/lib/auth';
 
 const EDGE_URL = (process.env.NEXT_PUBLIC_JARVIS_EDGE_URL || '').trim();
 const EDGE_TOKEN = (process.env.JARVIS_AUTH_TOKEN || '').trim();
 
 /** GET /api/memory?q=...&limit=10&session_id=... — Search past memories via Edge (match_jarvis_memory_chunks). */
 export async function GET(req: NextRequest) {
+  const unauth = requireSession(req);
+  if (unauth) return unauth;
+
   const q = req.nextUrl.searchParams.get('q')?.trim();
   const limit = req.nextUrl.searchParams.get('limit');
   const sessionId = req.nextUrl.searchParams.get('session_id')?.trim() || undefined;

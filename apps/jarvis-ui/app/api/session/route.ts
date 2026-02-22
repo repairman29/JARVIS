@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireSession } from '@/lib/auth';
 
 const EDGE_URL = (process.env.NEXT_PUBLIC_JARVIS_EDGE_URL || '').trim();
 const EDGE_TOKEN = (process.env.JARVIS_AUTH_TOKEN || '').trim();
 
 /** GET /api/session?sessionId=xxx — Load session history from Edge (when using Edge backend). */
 export async function GET(req: NextRequest) {
+  const unauth = requireSession(req);
+  if (unauth) return unauth;
+
   const sessionId = req.nextUrl.searchParams.get('sessionId')?.trim();
   if (!sessionId) {
     return NextResponse.json({ error: 'sessionId required' }, { status: 400 });

@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireSession } from '@/lib/auth';
 
 const GATEWAY_URL = (process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://127.0.0.1:18789').trim();
 const EDGE_URL = (process.env.NEXT_PUBLIC_JARVIS_EDGE_URL || '').trim();
@@ -9,7 +10,10 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 10;
 
 /** Probes Edge and/or gateway and returns detailed results (no secrets). Use for debugging "offline" UI. */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const unauth = requireSession(req);
+  if (unauth) return unauth;
+
   const results: Record<string, { status?: number; ok?: boolean; error?: string; bodyPreview?: string }> = {};
 
   if (EDGE_URL) {

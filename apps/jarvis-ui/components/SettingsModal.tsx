@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { speak as speakTTS } from '@/lib/voice';
+import { authHeaders } from '@/lib/auth-client';
 
 export interface ConfigInfo {
   mode: 'edge' | 'local' | 'hybrid';
@@ -226,7 +227,8 @@ export function SettingsModal({
                       try {
                         const res = await fetch('/api/pref', {
                           method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
+                          credentials: 'include',
+                          headers: { 'Content-Type': 'application/json', ...authHeaders() },
                           body: JSON.stringify({ key: prefKey.trim(), value: prefValue.trim() }),
                         });
                         const data = await res.json().catch(() => ({}));

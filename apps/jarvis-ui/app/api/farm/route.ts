@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireSession } from '@/lib/auth';
 
 const FARM_URL = (process.env.JARVIS_FARM_URL || process.env.FARM_URL || '').trim();
 const EDGE_URL = (process.env.NEXT_PUBLIC_JARVIS_EDGE_URL || '').trim();
@@ -70,7 +71,10 @@ function formatUptime(ms: number): string {
   return `${d}d ${h % 24}h`;
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const unauth = requireSession(req);
+  if (unauth) return unauth;
+
   const farm = await fetchFarmHealth();
 
   if (!farm) {

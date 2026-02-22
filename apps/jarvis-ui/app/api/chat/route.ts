@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireSession } from '@/lib/auth';
 
 const GATEWAY_URL = (process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://127.0.0.1:18789').trim();
 const EDGE_URL = (process.env.NEXT_PUBLIC_JARVIS_EDGE_URL || '').trim();
@@ -113,6 +114,9 @@ export interface ChatRequestBody {
 }
 
 export async function POST(req: NextRequest) {
+  const unauth = requireSession(req);
+  if (unauth) return unauth;
+
   try {
     let body: ChatRequestBody;
     try {

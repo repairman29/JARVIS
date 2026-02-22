@@ -76,11 +76,15 @@ To restrict the deployed app (e.g. https://jarvis-ui-xi.vercel.app) so only you 
 - **`JARVIS_UI_PASSWORD`** — The password you’ll enter on the login page (e.g. `jarvis2025`). Avoid `$` in the password on Vercel (it can be stripped by the runtime).
 - **`JARVIS_UI_AUTH_SECRET`** — A long random string (e.g. 32+ chars) used to sign session cookies. Generate one with `openssl rand -base64 32`.
 
-If both are set, all routes (chat, dashboard, API) require login. Session lasts 30 days. Use the **Logout** link in the header to sign out. If only one is set, auth is disabled.
+Set **`JARVIS_UI_PASSWORD`** to enable login; **`JARVIS_UI_AUTH_SECRET`** is optional (used for signing cookies). When a password is set, all app routes (chat, dashboard, API) require login. Session lasts 30 days. Use the **Logout** link in the header to sign out.
 
 **One-command setup (env vars + redeploy + wait):** From repo root, run `node apps/jarvis-ui/scripts/vercel-ui-auth-full.js [password] [auth-secret]` (or set `JARVIS_UI_PASSWORD` and `JARVIS_UI_AUTH_SECRET` in `.env.local` and run with no args). Requires `VERCEL_TOKEN` in env or `~/.clawdbot/.env`. State is logged to `~/.jarvis/logs/vercel-ui-auth-setup.log` (one JSON object per line).
 
-**No login in incognito / auth not enforced:** Auth runs in Edge middleware and needs the env vars at **build time**. In Vercel → Project → Settings → Environment Variables, ensure **`JARVIS_UI_PASSWORD`** and **`JARVIS_UI_AUTH_SECRET`** are set for **Production** (and Preview if you want auth on preview URLs). Then **redeploy** (Deployments → … → Redeploy, or push a commit) so the new build picks them up. In incognito you should then be redirected to `/login`. If you only added the vars after the last deploy, a redeploy is required.
+**No login in incognito / auth not enforced:** In Vercel → Project → Settings → Environment Variables, set **`JARVIS_UI_PASSWORD`** for **Production** (and Preview if needed). Optionally set **`JARVIS_UI_AUTH_SECRET`**. Then **redeploy** so the build has the vars. If you still get **Unauthorized in chat** after logging in:
+
+1. **Clear cookies** for your Vercel URL (e.g. jarvis-ui-xi.vercel.app), then open the app and log in again.
+2. **Turn off Vercel Deployment Protection** (Settings → Deployment Protection). Use only the app’s login; having both can cause 401s.
+3. **Check auth state:** Open `/api/auth/debug` in the same browser (while logged in or on the same tab as the app). It shows `hasCookie`, `cookieValid`, and a hint.
 
 ## No response from Clawdbot
 

@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireSession } from '@/lib/auth';
 
 const GATEWAY_URL = (process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://127.0.0.1:18789').trim();
 const EDGE_URL = (process.env.NEXT_PUBLIC_JARVIS_EDGE_URL || '').trim();
@@ -53,11 +54,14 @@ async function pingEdge(url: string): Promise<{ ok: boolean; error?: string; sta
 }
 
 /** Returns aggregated status for the monitoring dashboard: health outcome + per-backend probes (no secrets). */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const unauth = requireSession(req);
+  if (unauth) return unauth;
+
   const checkedAt = new Date().toISOString();
 
   type Backend = 'farm' | 'edge' | 'local';
-  const backends: Record<string, { label: string; configured: boolean; ok?: boolean; error?: string; urlHint?: string }> = {
+  const backends: Record<string, { label: string; configured: boolean; ok?: boolean; error?: string; urlHint?: string; hintWhenDown?: string }> = {
     farm: {
       label: 'Farm (Pixel / relay)',
       configured: Boolean(FARM_URL),
@@ -76,6 +80,9 @@ export async function GET() {
       label: 'Local gateway',
       configured: true,
       urlHint: GATEWAY_URL.startsWith('http') ? GATEWAY_URL : undefined,
+      hintWhenDown: (GATEWAY_URL.includes('127.0.0.1') || GATEWAY_URL.includes('localhost'))
+        ? 'Expected when the app is deployed (e.g. Vercel): the server cannot reach your local machine. Chat still works if Farm or Edge is in use.'
+        : undefined,
     },
   };
 

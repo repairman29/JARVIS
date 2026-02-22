@@ -9,6 +9,7 @@ import { SkillsPanel } from './SkillsPanel';
 import { HelpModal } from './HelpModal';
 import { SessionSidebar } from './SessionSidebar';
 import { speak as speakTTS, stopSpeaking, isTTSSupported } from '@/lib/voice';
+import { authHeaders, clearSessionToken } from '@/lib/auth-client';
 import type { MessageRole } from './Message';
 import type { ConfigInfo } from './SettingsModal';
 
@@ -152,7 +153,7 @@ export function Chat() {
       return;
     }
     let cancelled = false;
-    fetch('/api/farm', { cache: 'no-store' })
+    fetch('/api/farm', { credentials: 'include', headers: authHeaders(), cache: 'no-store' })
       .then((r) => r.json())
       .then((data: { healthy?: number }) => {
         if (!cancelled && mountedRef.current && typeof data.healthy === 'number') {
@@ -207,7 +208,7 @@ export function Chat() {
   useEffect(() => {
     if (!sessionId || !hasMounted || hydratedForSessionRef.current === sessionId || messages.length > 0) return;
     let cancelled = false;
-    fetch(`/api/session?sessionId=${encodeURIComponent(sessionId)}`, { cache: 'no-store' })
+    fetch(`/api/session?sessionId=${encodeURIComponent(sessionId)}`, { credentials: 'include', headers: authHeaders(), cache: 'no-store' })
       .then((r) => r.json())
       .then((data: { messages?: { role?: string; content?: string }[] }) => {
         if (cancelled || !mountedRef.current) return;
@@ -311,10 +312,21 @@ export function Chat() {
           ? `${window.location.origin}/api/health?t=${Date.now()}`
           : `/api/health?t=${Date.now()}`;
       const res = await fetch(url, {
+        credentials: 'include',
+        headers: authHeaders(),
         signal: controller.signal,
         cache: 'no-store',
       });
       window.clearTimeout(timeoutId);
+      if (res.status === 401) {
+        clearSessionToken();
+        if (mountedRef.current) {
+          setStatus('error');
+          setErrorMessage('Session expired. Please log in again.');
+        }
+        window.location.href = '/login?session_expired=1';
+        return;
+      }
       const data = await res.json().catch(() => null);
       if (!mountedRef.current) return;
       const ok = res.ok && data != null && data.ok === true;
@@ -366,7 +378,7 @@ export function Chat() {
   // Fetch public config when Settings opens (no secrets)
   useEffect(() => {
     if (!settingsOpen) return;
-    fetch('/api/config', { cache: 'no-store' })
+    fetch('/api/config', { credentials: 'include', headers: authHeaders(), cache: 'no-store' })
       .then((r) => r.json())
       .then((d) => mountedRef.current && setConfig(d))
       .catch(() => mountedRef.current && setConfig({ mode: 'local', gatewayDisplay: '—' }));
@@ -455,7 +467,8 @@ export function Chat() {
       }));
       const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           messages: messageHistory,
           sessionId: sessionId || 'jarvis-ui',
@@ -465,6 +478,12 @@ export function Chat() {
         signal: AbortSignal.timeout(60000),
       });
       if (!res.ok) {
+        if (res.status === 401) {
+          clearSessionToken();
+          if (mountedRef.current) setErrorMessage('Session expired. Please log in again.');
+          window.location.href = '/login?session_expired=1';
+          return;
+        }
         const err = await res.json().catch(() => ({}));
         if (mountedRef.current) setErrorMessage((err?.error?.message as string) || res.statusText);
         return;
@@ -517,7 +536,8 @@ export function Chat() {
       try {
         const res = await fetch('/api/chat', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
           body: JSON.stringify({
             messages: messageHistory,
             sessionId: sessionId || 'jarvis-ui',
@@ -531,6 +551,12 @@ export function Chat() {
         window.clearTimeout(timeoutId);
 
         if (!res.ok) {
+          if (res.status === 401) {
+            clearSessionToken();
+            if (mountedRef.current) setErrorMessage('Session expired. Please log in again.');
+            window.location.href = '/login?session_expired=1';
+            return;
+          }
           const errText = await res.text();
           let msg = res.statusText;
           try {
@@ -821,7 +847,7 @@ export function Chat() {
                   <button type="button" role="menuitem" onClick={() => { toggleVoiceMode(); setMoreMenuOpen(false); }} className="btn-surface" style={{ display: 'block', width: '100%', ...headerBtn, border: 'none', borderRadius: 0, textAlign: 'left' }}>🔊 {speakReplies ? 'Voice on' : 'Voice'}</button>
                 )}
                 <button type="button" role="menuitem" onClick={() => { setHelpOpen(true); setMoreMenuOpen(false); }} data-testid="header-help" className="btn-surface" style={{ display: 'block', width: '100%', ...headerBtn, border: 'none', borderRadius: 0, textAlign: 'left' }}>Help</button>
-                <a href="/api/auth/logout" className="btn-surface" style={{ display: 'block', width: '100%', ...headerBtn, border: 'none', borderRadius: 0, textAlign: 'left' }}>Logout</a>
+                <button type="button" role="menuitem" className="btn-surface" style={{ display: 'block', width: '100%', ...headerBtn, border: 'none', borderRadius: 0, textAlign: 'left' }} onClick={() => { clearSessionToken(); window.location.href = '/api/auth/logout'; }}>Logout</button>
               </div>
             )}
           </div>

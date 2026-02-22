@@ -25,6 +25,8 @@ function createSessionCookie(): string {
   return `${payload}.${sig}`;
 }
 
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/auth/login — always returns JSON. Cookie is set on the response.
  * The login page calls this with fetch() + credentials:'include' so the
@@ -34,12 +36,7 @@ export async function POST(req: NextRequest) {
   if (!PASSWORD) {
     return NextResponse.json({ error: 'Auth not configured' }, { status: 503 });
   }
-  if (!AUTH_SECRET) {
-    return NextResponse.json(
-      { error: 'JARVIS_UI_AUTH_SECRET must be set when using password protection' },
-      { status: 500 },
-    );
-  }
+  // Cookie is signed with AUTH_SECRET || PASSWORD so verification (requireSession) matches
 
   let password = '';
   try {
@@ -64,8 +61,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Cannot create session' }, { status: 500 });
   }
 
-  const res = NextResponse.json({ ok: true });
-  res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  // Return token so client can send Authorization: Bearer <token> when cookie isn't sent (incognito / Vercel)
+  const res = NextResponse.json({ ok: true, token: value });
+  res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  res.headers.set('Pragma', 'no-cache');
+  // Don't set domain so the cookie is host-only (required for Vercel / multiple domains)
   res.cookies.set(COOKIE_NAME, value, {
     httpOnly: true,
     secure: true,

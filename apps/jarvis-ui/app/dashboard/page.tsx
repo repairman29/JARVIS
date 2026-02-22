@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
+import { authHeaders, clearSessionToken } from '@/lib/auth-client';
 
 interface FarmNodeData {
   name: string;
@@ -36,6 +37,11 @@ function FarmMonitor({ data, loading }: { data: FarmData | null; loading: boolea
         <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '13px' }}>
           {data?.error || 'Neural Farm not available'}
         </p>
+        {data?.error === 'Farm unreachable' && (
+          <p style={{ margin: '0.5rem 0 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+            Chat can still use Farm for completions. This section needs <code style={{ fontSize: '11px' }}>GET FARM_URL/health</code> with node stats (neural-farm balancer). A relay or gateway without that endpoint will show unreachable here.
+          </p>
+        )}
       </div>
     );
   }
@@ -142,6 +148,7 @@ interface BackendInfo {
   ok?: boolean;
   error?: string;
   urlHint?: string;
+  hintWhenDown?: string;
 }
 
 interface StatusData {
@@ -213,6 +220,11 @@ function StatusCard({
           <span style={{ color: 'var(--error-text)' }}>{info.error || 'Unreachable'}</span>
         )}
       </div>
+      {status === 'down' && info.hintWhenDown && (
+        <p style={{ margin: '0.5rem 0 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+          {info.hintWhenDown}
+        </p>
+      )}
     </div>
   );
 }
@@ -256,7 +268,7 @@ export default function DashboardPage() {
   const fetchFarm = useCallback(async () => {
     try {
       setFarmLoading(true);
-      const res = await fetch('/api/farm', { cache: 'no-store' });
+      const res = await fetch('/api/farm', { credentials: 'include', headers: authHeaders(), cache: 'no-store' });
       const json = await res.json();
       setFarmData(json as FarmData);
     } catch {
@@ -269,8 +281,12 @@ export default function DashboardPage() {
   const fetchStatus = useCallback(async () => {
     try {
       setError(null);
-      const res = await fetch('/api/status', { cache: 'no-store' });
+      const res = await fetch('/api/status', { credentials: 'include', headers: authHeaders(), cache: 'no-store' });
       const json = await res.json();
+      if (res.status === 401) {
+        window.location.href = '/login?session_expired=1';
+        return;
+      }
       if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
       setData(json as StatusData);
     } catch (e) {
@@ -284,7 +300,7 @@ export default function DashboardPage() {
 
   const fetchSessions = useCallback(async () => {
     try {
-      const res = await fetch('/api/sessions?limit=15', { cache: 'no-store' });
+      const res = await fetch('/api/sessions?limit=15', { credentials: 'include', headers: authHeaders(), cache: 'no-store' });
       const json = await res.json();
       setSessions(Array.isArray(json.sessions) ? json.sessions : []);
     } catch {
@@ -294,7 +310,7 @@ export default function DashboardPage() {
 
   const fetchAgentLog = useCallback(async () => {
     try {
-      const res = await fetch('/api/agent-log?limit=20', { cache: 'no-store' });
+      const res = await fetch('/api/agent-log?limit=20', { credentials: 'include', headers: authHeaders(), cache: 'no-store' });
       const json = await res.json();
       setAgentLog(Array.isArray(json.entries) ? json.entries : []);
     } catch {
@@ -307,7 +323,7 @@ export default function DashboardPage() {
     if (!q) return;
     setMemoryLoading(true);
     try {
-      const res = await fetch(`/api/memory?q=${encodeURIComponent(q)}&limit=8`, { cache: 'no-store' });
+      const res = await fetch(`/api/memory?q=${encodeURIComponent(q)}&limit=8`, { credentials: 'include', headers: authHeaders(), cache: 'no-store' });
       const json = await res.json();
       setMemoryResults(Array.isArray(json.results) ? json.results : []);
     } catch {
@@ -403,6 +419,7 @@ export default function DashboardPage() {
           </Link>
           <a
             href="/api/auth/logout"
+            onClick={(e) => { e.preventDefault(); clearSessionToken(); window.location.href = '/api/auth/logout'; }}
             className="btn-surface"
             style={{
               padding: '0.35rem 0.75rem',
