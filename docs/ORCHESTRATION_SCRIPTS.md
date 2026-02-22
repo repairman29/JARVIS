@@ -79,6 +79,7 @@ When you talk to JARVIS (Discord, UI, CLI), he **orchestrates** by invoking:
 - **Echeo** — exec (bounties, "what should I work on?").
 - **sessions_spawn** — background subagent for long implementation.
 - **workflow_dispatch** — trigger deploy/quality workflows in any repo.
+- **Knip bot** — On PRs that touch jarvis-ui, workflow runs Knip and comments with the report. Also **workflow_dispatch** (Actions → Knip Bot) for on-demand report (output in job logs). See **docs/DEV_DELIVERY_TOOLS.md**.
 
 So **orchestration scripts** above are for **scheduled or one-shot** runs; **in-chat** JARVIS uses the same agents via tools. See **docs/JARVIS_AGENT_ORCHESTRATION.md** and **docs/JARVIS_TEAM_DEPLOY_AND_RUN.md**.
 

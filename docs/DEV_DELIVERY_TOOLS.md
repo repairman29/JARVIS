@@ -22,6 +22,7 @@
 | **Deploy** | Vercel (jarvis-ui), Railway (gateway), GitHub Actions (Pages, skills tests) | Preview URLs, one-command deploy, path-based CI. |
 | **Lint** | ESLint + typescript-eslint + React (jarvis-ui), next/core-web-vitals–style rules | Catch bugs and style issues before merge. |
 | **Orchestration** | workflow_dispatch, sessions_spawn, PREBUILT_WORKFLOWS | JARVIS runs quality and deploy; less manual handoff. |
+| **Knip bot** | `.github/workflows/knip-bot.yml` | On PRs that touch `apps/jarvis-ui`, runs Knip and posts/updates a single comment with unused files, deps, exports. No merge block; report only. |
 
 ---
 
@@ -74,7 +75,7 @@
 | Priority | Action | Impact | Effort |
 |----------|--------|--------|--------|
 | **1** | Add **GitHub Actions workflow for jarvis-ui**: lint + build on push/PR to `apps/jarvis-ui` (and root if it affects the app). | Catch breaks before merge; no manual “did you run lint?” | Low |
-| **2** | Run **Knip** in jarvis-ui (and optionally root) in CI or pre-ship: `npx knip`. | Remove unused deps/exports; faster installs and clearer tree. | Low |
+| **2** | ~~Run Knip in CI~~ **Done:** Knip in jarvis-ui CI + **Knip bot** posts report on PRs (`.github/workflows/knip-bot.yml`). Optionally run `knip --fix` locally or add a JARVIS-invokable “knip report” workflow. | Visibility on PRs; optional auto-fix later. | — |
 | **3** | Ensure **Vercel previews** are on for jarvis-ui and link in PRs. Optionally add E2E that runs against Vercel preview URL (with polling) so we don’t block on “deploy not ready.” | Faster feedback; fewer “works on my machine” issues. | Low–medium |
 | **4** | Consider **Turborepo** at repo root if we add more apps or CI time grows: cache `build`/`lint`/`test` per package. | Faster CI and local runs. | Medium |
 | **5** | Optional: **SonarCloud** or **CodeQL** for quality/security gates and PR badges. | One number for “quality” and security visibility. | Medium |

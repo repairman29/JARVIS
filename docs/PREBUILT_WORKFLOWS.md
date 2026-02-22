@@ -135,6 +135,7 @@ One-phrase triggers so JARVIS runs the **right agent sequence** without you spec
 | **"Deep work on [product]"** | Full cycle: plan (PRD, roadmap, milestones) → develop (issues, PRs, implementation) → execute (ship, deploy). Scoped to one product; uses **repo_summary** first. See **jarvis/DEEP_WORK_PRODUCT.md**. |
 | **"What should I work on?"** | Uses **Echeo** (bounty/capability matching) and optionally repo-knowledge; suggests prioritized work. See **JARVIS_AGENT_ORCHESTRATION.md** § When-to-invoke. |
 | **"Health check [repo]"** | Runs **Code Roach** (`code-roach health`, `code-roach analyze pr` if PR exists) and optionally **BEAST MODE** quality; reports status. |
+| **"Run knip report"** / **"Knip report for jarvis-ui"** | Triggers **github_workflow_dispatch** for the Knip Bot workflow (JARVIS repo). Report appears in the workflow run logs. On PRs that touch jarvis-ui, the bot also comments with the report. See **docs/DEV_DELIVERY_TOOLS.md**. |
 
 **Ref:** [JARVIS_AGENT_ORCHESTRATION.md](JARVIS_AGENT_ORCHESTRATION.md), [jarvis/AGENTS.md](../jarvis/AGENTS.md) (Deep work, Product Owner Orchestration).
 

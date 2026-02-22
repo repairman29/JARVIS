@@ -432,6 +432,7 @@ When building out products (deep work, full product cycle), JARVIS should **orch
 | **Code Roach** | Exec: `code-roach analyze pr`, `code-roach health`, `code-roach crawl`. Or workflow_dispatch if repo has it. | PR review, codebase health. |
 | **Echeo** | Exec: `echeo --path ...`, `echeo --scrape-github ...`, `echeo --match-needs ...`. | "What should I work on?", bounty matching. |
 | **workflow_dispatch** | GitHub skill: `github_workflow_dispatch(owner, repo, workflow_id, ref)`. | Deploy (trigger deploy workflow); quality (trigger BEAST/Code Roach workflows). |
+| **Knip report (jarvis-ui)** | **github_workflow_dispatch**(owner, JARVIS, workflow_id for `knip-bot`, ref). Or Actions → "Knip Bot (jarvis-ui)" → Run workflow. | "Run knip report", "unused deps report for jarvis-ui". Report in PR comment (on PR) or in job logs (manual run). See **docs/DEV_DELIVERY_TOOLS.md**. |
 | **sessions_spawn** | Spawn subagent with task + deliverables + ETA. | Long implementation runs. |
 | **JARVIS autonomous build** | `node scripts/jarvis-autonomous-build.js`. | After push to JARVIS repo; or scheduled. |
 | **Team status** | **get_team_status** (team-status skill). Reads `~/.jarvis/team-status.json` (refresh with `node scripts/team-status.js`). | "Who's on the team?", "Is BEAST MODE available?", "team status". |
