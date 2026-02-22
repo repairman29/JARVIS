@@ -36,6 +36,9 @@ Thumbs.db
 *.swo
 *~
 
+# CI artifacts (Knip bot writes this in Actions)
+apps/knip-report.txt
+
 # Node
 node_modules/
 npm-debug.log*
