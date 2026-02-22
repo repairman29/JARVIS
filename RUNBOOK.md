@@ -55,7 +55,7 @@ launchctl list | grep clawdbot
 - **Apply migrations (session_messages, jarvis_audit_log, etc.):** `supabase db push` from repo root, or run the migration SQL in Supabase Dashboard → SQL. See [docs/JARVIS_MEMORY_WIRING.md](docs/JARVIS_MEMORY_WIRING.md), [docs/JARVIS_AUDIT_LOG.md](docs/JARVIS_AUDIT_LOG.md).
 - **Log an audit event from scripts:** `node scripts/audit-log.js <event_action> [details] [--channel CH] [--actor WHO]`. Requires `JARVIS_EDGE_URL` and optional `JARVIS_AUTH_TOKEN` in `~/.clawdbot/.env`. Example: `node scripts/audit-log.js exec "npm run build" --channel cron --actor deploy`.
 - **Prune JARVIS memory (session_messages + session_summaries):** `node scripts/prune-jarvis-memory.js [--dry-run] [--max-messages-per-session 100] [--session-max-age-days 30]`. Needs `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in `~/.clawdbot/.env`. Run `--dry-run` first. Schedule weekly if desired (e.g. cron `0 2 * * 0` = Sun 2 AM). See [docs/JARVIS_MEMORY_CONSOLIDATION.md](docs/JARVIS_MEMORY_CONSOLIDATION.md).
-- **Edge secrets:** Set `JARVIS_GATEWAY_URL`, `CLAWDBOT_GATEWAY_TOKEN`, optional `JARVIS_AUTH_TOKEN` in Dashboard → Edge Functions → jarvis → Secrets (or `supabase secrets set`). When the gateway (e.g. farm or relay) requires auth, set **`CLAWDBOT_GATEWAY_TOKEN`** in Edge secrets to the same value the gateway expects. **Edge vs Pixel farm:** See [docs/JARVIS_EDGE_AND_PIXEL_FARM.md](docs/JARVIS_EDGE_AND_PIXEL_FARM.md) and [docs/notes/edge-farm-hybrid-mac.md](docs/notes/edge-farm-hybrid-mac.md) — deployed site uses farm only when Edge can reach the gateway (e.g. relay or Tailscale Funnel).
+- **Edge secrets:** Set `JARVIS_GATEWAY_URL`, `CLAWDBOT_GATEWAY_TOKEN`, optional `JARVIS_AUTH_TOKEN` and **`JARVIS_GATEWAY_URL_AUX`** (fallback gateway when primary is unreachable; see § Auxiliary mode) in Dashboard → Edge Functions → jarvis → Secrets (or `supabase secrets set`). When the gateway (e.g. farm or relay) requires auth, set **`CLAWDBOT_GATEWAY_TOKEN`** in Edge secrets to the same value the gateway expects. **Edge vs Pixel farm:** See [docs/JARVIS_EDGE_AND_PIXEL_FARM.md](docs/JARVIS_EDGE_AND_PIXEL_FARM.md) and [docs/notes/edge-farm-hybrid-mac.md](docs/notes/edge-farm-hybrid-mac.md) — deployed site uses farm only when Edge can reach the gateway (e.g. relay or Tailscale Funnel).
 - **Brain migrations (archive queue, recent sessions):** After `supabase db push`, you get `jarvis_archive_queue`, `get_sessions_to_archive()`, and `get_recent_sessions()`. Used by dashboard and auto-archive.
 
 ## JARVIS Brain (gateway, memory, agent loop, dashboard)
@@ -66,6 +66,55 @@ launchctl list | grep clawdbot
 - **Auto-archive:** POST to Edge with `action: "archive"` (optional `session_id`) to enqueue sessions for archiving. Process queue: `node scripts/archive-jarvis-sessions.js --from-queue` (e.g. from cron or launchd). Manual one session: `node scripts/archive-jarvis-sessions.js --session-id <id>`. Env: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OLLAMA_BASE_URL` (for embeddings).
 - **Proactive agent loop:** `node ~/jarvis-agent-loop.js` runs every 5 min (farm/gateway/GitHub/Vercel checks) and logs alerts to `jarvis_audit_log`. One-shot: `node ~/jarvis-agent-loop.js --once`. Auto-start on login: `launchctl load ~/Library/LaunchAgents/com.jarvis.agent-loop.plist` (logs: `~/tmp/jarvis-agent-loop.log`). Unload: `launchctl unload ~/Library/LaunchAgents/com.jarvis.agent-loop.plist`.
 - **Dashboard:** `/dashboard` — system health, farm nodes, active sessions, memory search, agent activity, quick actions. APIs: `/api/sessions`, `/api/memory`, `/api/agent-log`.
+
+### Auxiliary mode (run without the Mac)
+
+When the Mac is off, asleep, or away, chat can still work by using a **cloud gateway** as a fallback.
+
+1. **Deploy a gateway to the cloud** (e.g. Railway) so it’s always on. From repo root: use `railway.json` and `config/railway-openclaw.json`; set Railway vars (Supabase, keys, etc.) and deploy. The Edge function will call this URL when the primary (Mac) is unreachable.
+2. **Supabase Edge secrets:** Set **`JARVIS_GATEWAY_URL`** to your **primary** gateway (e.g. Mac Tailscale funnel: `https://...ts.net` or `http://...`). Set **`JARVIS_GATEWAY_URL_AUX`** to your **cloud gateway** URL (e.g. Railway: `https://your-app.railway.app`). Edge tries the primary first; if that fails (timeout, connection error), it automatically uses the aux gateway. No app changes needed.
+3. **Optional — app hybrid:** In Vercel env for jarvis-ui, set **`JARVIS_FARM_URL`** to the Mac funnel URL. The app will try the farm first; when unreachable it uses Edge (which then tries primary → aux). So: Mac on and reachable → chat to Mac; Mac off/away → Edge → aux (Railway).
+
+**Summary:** Primary = Mac (or Pixel); aux = Railway (or any always-on gateway). Set both Edge secrets; when the Mac is unreachable, Edge uses the aux so the deployed site keeps working.
+
+**Farm uses all models when Mac is offline:** The aux gateway (Railway) must have (1) **API keys** for every provider you use: store them in **Supabase Vault** as `env/clawdbot/<KEY>` (e.g. `GROQ_API_KEY`, `CEREBRAS_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`, `TOGETHER_API_KEY`, etc.) so `start-gateway-with-vault.js` can pull them; or set any missing keys in **Railway project variables**. See [docs/JARVIS_OFFLINE_FARM_KEYS.md](docs/JARVIS_OFFLINE_FARM_KEYS.md) for a checklist. (2) **Same config:** Railway uses `config/railway-openclaw.json`, which includes all provider blocks and the same primary + fallbacks as the optimized order (Groq → Cerebras → Gemini → DeepSeek → Cohere → OpenRouter → Together → Mistral → Hugging Face → OpenAI). Redeploy after changing that file. No need to run add-provider scripts on Railway; the config is in the repo.
+
+### How to use Railway (step-by-step)
+
+You already have a Railway project and the repo is set up (`railway.json`, `config/railway-openclaw.json`, `scripts/start-gateway-with-vault.js`). Do this from the **JARVIS repo root**:
+
+1. **Install Railway CLI** (if needed): `npm i -g @railway/cli` or [railway.app](https://railway.app) → Docs → CLI.
+
+2. **Log in and link the project:**
+   ```bash
+   railway login
+   railway link
+   ```
+   If you don’t have a project yet: **Railway Dashboard** → New Project → **Deploy from GitHub** → select the JARVIS repo (or “Empty project” then connect repo). Then in the repo run `railway link` and pick that project. Create one **service** (e.g. “jarvis-gateway”) and set **Root Directory** = repo root, **Start Command** = `node scripts/start-gateway-with-vault.js`. Railway will use `railway.json` if the repo is the root.
+
+3. **Set variables** (so the gateway can pull API keys from Supabase Vault):
+   ```bash
+   railway variables --set "VAULT_SUPABASE_URL=https://rbfzlqmkwhbvrrfdcain.supabase.co" --set "VAULT_SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY" --set "PORT=3000"
+   ```
+   Get the service role key from **Supabase Dashboard** → Settings → API → `service_role` (secret). Use your actual Supabase project URL if different. For the farm to use all models when the Mac is offline, ensure every provider key (Groq, Cerebras, Gemini, OpenRouter, Together, etc.) is stored in Vault as `env/clawdbot/<KEY>` or set in Railway → your service → **Variables** (e.g. `GROQ_API_KEY`, `OPENROUTER_API_KEY`).
+
+4. **Generate a public URL** (if the service doesn’t have one): Railway Dashboard → your service → **Settings** → **Networking** → **Generate Domain**. You’ll get something like `https://jarvis-gateway-production.up.railway.app`. Note the port: the start script runs a proxy on `PORT` (3000) that forwards to the gateway; ensure the domain is tied to that service (Railway usually does this).
+
+5. **Deploy:**
+   ```bash
+   railway up
+   ```
+   Watch **Railway Dashboard** → Deployments → Logs. You should see “Proxy listening on 3000” then “Gateway ready on port 18789”. If you get 502, wait a minute (cold start) or check logs for Vault/config errors.
+
+6. **Point Edge at Railway:** Supabase Dashboard → **Edge Functions** → **jarvis** → **Secrets**:
+   - **`JARVIS_GATEWAY_URL`** = your **Mac funnel URL** (primary).
+   - **`JARVIS_GATEWAY_URL_AUX`** = your **Railway URL** (e.g. `https://jarvis-gateway-production.up.railway.app`, no trailing slash).
+
+7. **Verify:** From the JARVIS UI (Vercel), send a message. With Mac off or unreachable, Edge will use the aux (Railway) and chat should still work.
+
+**More detail:** [docs/JARVIS_RAILWAY.md](docs/JARVIS_RAILWAY.md), [docs/JARVIS_LIFT_TO_RAILWAY.md](docs/JARVIS_LIFT_TO_RAILWAY.md).
+
+**Note:** The built-in "Clawdbot Control" UI at `https://jarvis-gateway-production.up.railway.app/chat` may show "Disconnected from gateway" / "Health Offline" because the in-browser app does not send the gateway token; the gateway is still running and chat works via Edge (set `JARVIS_GATEWAY_URL_AUX` to the Railway URL) or via `curl` with `Authorization: Bearer <CLAWDBOT_GATEWAY_TOKEN>`.
 
 ## JARVIS UI
 
@@ -156,7 +205,7 @@ Workspace: `~/jarvis`
 
 **403 OAuth / "not allowed for this organization":** Switch the gateway's primary model to a key-based provider: **`node scripts/set-primary-groq.js`** (need `GROQ_API_KEY` in `~/.clawdbot/.env`), then restart the gateway. Or **`node scripts/set-primary-openai.js`** if you use OpenAI. See DISCORD_SETUP.md § 403 OAuth.
 
-**Context overflow (team execution / long threads):** If the primary model (e.g. Groq 8B) returns "context overflow" or "prompt too large", run **`node scripts/fix-context-overflow.js`** (sets `bootstrapMaxChars` and Groq `contextWindow: 131072`). If overflow persists with 8B, switch to a larger-context primary: **`node scripts/set-primary-groq-70b.js`** (sets `groq/llama-3.3-70b-versatile`). Restart the gateway. Use **`node scripts/set-primary-groq.js`** to switch back to 8B for faster chat. Optional: add fallbacks per **scripts/FREE_TIER_FALLBACKS.md**.
+**Context overflow (team execution / long threads):** If the primary model (e.g. Groq 8B) returns "context overflow" or "prompt too large", run **`node scripts/fix-context-overflow.js`** (sets `bootstrapMaxChars` and Groq `contextWindow: 131072`). If overflow persists with 8B, switch to a larger-context primary: **`node scripts/set-primary-groq-70b.js`** (sets `groq/llama-3.3-70b-versatile`). Restart the gateway. Use **`node scripts/set-primary-groq.js`** to switch back to 8B for faster chat. **Optimized free-tier order:** **`node scripts/optimize-llm-fallbacks.js`** sets primary + fallbacks by limits (Groq 8B → Groq 70B → Cerebras → Gemini → DeepSeek → Cohere → OpenRouter → Mistral → HF); see [docs/JARVIS_LLM_OPTIMIZED_ORDER.md](docs/JARVIS_LLM_OPTIMIZED_ORDER.md).
 
 **"Failed to call a function" / failed_generation:** The model tried to use a tool but the call failed or was invalid. Ensure (1) **workspace** points at the repo's `jarvis` folder so skills (e.g. clock) load — **`node scripts/start-gateway-with-vault.js`** sets this locally when run from repo root; (2) `~/.clawdbot/clawdbot.json` has `agents.defaults.workspace` set to your JARVIS repo path (e.g. `/path/to/JARVIS/jarvis`). Restart the gateway. For simple "what time is it?" the agent can also answer in plain text if the tool fails (see jarvis/AGENTS.md).
 

@@ -29,6 +29,11 @@ const GATEWAY_KEYS = [
   'TOGETHER_API_KEY',
   'TOGETHER_USER_KEY',
   'GEMINI_API_KEY',
+  'CEREBRAS_API_KEY',
+  'MISTRAL_API_KEY',
+  'COHERE_API_KEY',
+  'DEEPSEEK_API_KEY',
+  'HUGGINGFACE_API_KEY',
   'GITHUB_TOKEN',
   'SUPABASE_URL',
   'SUPABASE_SERVICE_ROLE_KEY',
@@ -138,19 +143,22 @@ async function main() {
     const repoClawdbot = path.join(repoRoot, '.clawdbot');
     if (!fs.existsSync(repoClawdbot)) fs.mkdirSync(repoClawdbot, { recursive: true });
     fs.copyFileSync(configPath, path.join(repoClawdbot, 'clawdbot.json'));
-    // Force agent to use OpenAI primary (overrides any persisted agent models.json)
+    // Force agent to use primary + fallbacks from railway-openclaw.json (same farm as Mac when offline)
+    const railwayConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    const primaryModel = railwayConfig.agents?.defaults?.model?.primary || 'groq/llama-3.1-8b-instant';
+    const fallbacks = railwayConfig.agents?.defaults?.model?.fallbacks;
     const agentDir = path.join(repoClawdbot, 'agents', 'main', 'agent');
     if (!fs.existsSync(agentDir)) fs.mkdirSync(agentDir, { recursive: true });
     const agentModelsPath = path.join(agentDir, 'models.json');
-    const primaryModel = 'openai/gpt-4o-mini';
     try {
       const existing = fs.existsSync(agentModelsPath)
         ? JSON.parse(fs.readFileSync(agentModelsPath, 'utf8'))
         : {};
       const updated = { ...existing, primary: primaryModel };
+      if (Array.isArray(fallbacks) && fallbacks.length) updated.fallbacks = fallbacks;
       fs.writeFileSync(agentModelsPath, JSON.stringify(updated, null, 2), 'utf8');
     } catch (_) {
-      fs.writeFileSync(agentModelsPath, JSON.stringify({ primary: primaryModel }, null, 2), 'utf8');
+      fs.writeFileSync(agentModelsPath, JSON.stringify({ primary: primaryModel, ...(fallbacks?.length && { fallbacks }) }, null, 2), 'utf8');
     }
   }
 

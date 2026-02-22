@@ -11,6 +11,16 @@ const path = require('path');
 const os = require('os');
 const { loadEnvFile, getVaultConfig } = require('./vault.js');
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function findUuidIn(obj) {
+  if (typeof obj === 'string' && UUID_RE.test(obj)) return obj;
+  if (Array.isArray(obj)) { for (const x of obj) { const u = findUuidIn(x); if (u) return u; } return null; }
+  if (obj && typeof obj === 'object') {
+    for (const v of Object.values(obj)) { const u = findUuidIn(v); if (u) return u; }
+  }
+  return null;
+}
+
 function dollarQuote(value) {
   const base = 'vault';
   let tag = base;
@@ -103,8 +113,10 @@ async function main() {
     const row = Array.isArray(createResult) ? createResult[0] : createResult;
     const err = row?.result?.error;
     if (err) throw new Error(err);
-    const id = row && (row.id ?? row.ID ?? row.secret_id);
-    if (!id) throw new Error('create_secret did not return id. Result: ' + JSON.stringify(createResult).slice(0, 200));
+    let id = row && (row.id ?? row.ID ?? row.secret_id ?? row.result?.id ?? (typeof row.result === 'object' && row.result !== null ? row.result.id : null));
+    if (!id && typeof row?.result === 'string' && /^[0-9a-f-]{36}$/i.test(row.result)) id = row.result;
+    if (!id) id = findUuidIn(createResult);
+    if (!id) throw new Error('create_secret did not return id. Store this key in Railway Variables instead, or check exec_sql / Vault RPC response. Result: ' + JSON.stringify(createResult).slice(0, 300));
     await restPatch('app_secrets', { name: `eq.${name}` }, { secret_id: id, notes, source: 'env' }, vaultConfig);
     console.log(JSON.stringify({ name, updated: true }, null, 2));
   } else {

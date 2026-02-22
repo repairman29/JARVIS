@@ -2,7 +2,7 @@
 // REST: POST / with body { "message": "...", "session_id?": "..." } → { "content": "..." }
 // MCP: POST / with body JSON-RPC 2.0 (initialize, tools/list, tools/call) → JSON-RPC response
 // Convenience: body.action "web_search" | "current_time" with query/timezone
-// Secrets: JARVIS_GATEWAY_URL (or NEURAL_FARM_BASE_URL set to same gateway/funnel URL), CLAWDBOT_GATEWAY_TOKEN; optional JARVIS_AUTH_TOKEN
+// Secrets: JARVIS_GATEWAY_URL (or NEURAL_FARM_BASE_URL set to same gateway/funnel URL), CLAWDBOT_GATEWAY_TOKEN; optional JARVIS_AUTH_TOKEN, JARVIS_GATEWAY_URL_AUX (fallback when primary unreachable)
 // Memory: SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY → load/append session_messages; optional JARVIS_EMBEDDING_URL for semantic recall (match_jarvis_memory_chunks)
 
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
@@ -312,12 +312,17 @@ async function callGateway(
   if (imageDataUrl && typeof imageDataUrl === "string") body.imageDataUrl = imageDataUrl;
   if (modelHint && typeof modelHint === "string") body.model_hint = modelHint;
 
-  const res = await fetch(chatUrl, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(120000),
-  });
+  let res: Response;
+  try {
+    res = await fetch(chatUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(120000),
+    });
+  } catch (e) {
+    return { err: e instanceof Error ? e.message : "Gateway unreachable" };
+  }
 
   if (!res.ok) {
     const text = await res.text();
@@ -345,6 +350,25 @@ async function callGateway(
   const content = extractContent(data);
   const meta = extractMeta(data);
   return { content: content || "No response from gateway.", meta: meta ?? undefined };
+}
+
+/** Try primary gateway; if it returns an error and JARVIS_GATEWAY_URL_AUX is set, try aux (e.g. Railway) so chat works when Mac is off. */
+async function callGatewayWithFallback(
+  primaryUrl: string,
+  auxUrl: string | undefined,
+  gatewayToken: string,
+  messages: { role: string; content: string | unknown[] }[],
+  sessionId: string,
+  stream: boolean,
+  imageDataUrl?: string,
+  modelHint?: string
+): Promise<{ content?: string; meta?: Record<string, unknown>; res?: Response; err?: string; usedUrl: string }> {
+  const result = await callGateway(primaryUrl, gatewayToken, messages, sessionId, stream, imageDataUrl, modelHint);
+  if (result.err && auxUrl) {
+    const auxResult = await callGateway(auxUrl, gatewayToken, messages, sessionId, stream, imageDataUrl, modelHint);
+    return { ...auxResult, usedUrl: auxUrl };
+  }
+  return { ...result, usedUrl: primaryUrl };
 }
 
 Deno.serve(async (req: Request) => {
@@ -380,8 +404,9 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  // Single front door: gateway (funnel URL in prod). Gateway routes to farm or Groq internally.
+  // Single front door: gateway (funnel URL in prod). Optional aux = fallback when primary (e.g. Mac) is unreachable.
   const gatewayUrl = Deno.env.get("JARVIS_GATEWAY_URL") || Deno.env.get("NEURAL_FARM_BASE_URL") || "http://127.0.0.1:18789";
+  const gatewayUrlAux = (Deno.env.get("JARVIS_GATEWAY_URL_AUX") ?? "").trim() || undefined;
   const gatewayToken = Deno.env.get("CLAWDBOT_GATEWAY_TOKEN") || "";
   const wantStream = req.headers.get("x-stream") === "true";
 
@@ -550,8 +575,9 @@ Deno.serve(async (req: Request) => {
         const context = await loadSessionContext(supabase, mcpSessionId);
         mcpMessages = context.length ? [...context, { role: "user", content: userContent }] : [{ role: "user", content: userContent }];
       }
-      const result = await callGateway(
+      const result = await callGatewayWithFallback(
         gatewayUrl,
+        gatewayUrlAux,
         gatewayToken,
         mcpMessages,
         mcpSessionId,
@@ -567,12 +593,13 @@ Deno.serve(async (req: Request) => {
           },
         });
       }
+      const effectiveGateway = result.usedUrl ?? gatewayUrl;
       if (supabase && result.content) {
         await appendSessionMessages(supabase, mcpSessionId, [
           { role: "user", content: userContent },
           { role: "assistant", content: result.content },
         ]);
-        void maybeUpdateSessionSummary(supabase, gatewayUrl, gatewayToken, mcpSessionId);
+        void maybeUpdateSessionSummary(supabase, effectiveGateway, gatewayToken, mcpSessionId);
       }
       return jsonResponse({
         jsonrpc: "2.0",
@@ -595,7 +622,7 @@ Deno.serve(async (req: Request) => {
   const action = body.action as string | undefined;
   if (action === "web_search" && typeof body.query === "string") {
     const messages = [{ role: "user" as const, content: `Use web search to find: ${body.query.trim()}` }];
-    const result = await callGateway(gatewayUrl, gatewayToken, messages, "jarvis-edge", false);
+    const result = await callGatewayWithFallback(gatewayUrl, gatewayUrlAux, gatewayToken, messages, "jarvis-edge", false);
     if (result.err) return jsonResponse({ error: result.err }, 502);
     return jsonResponse({ content: result.content, results: [] });
   }
@@ -636,8 +663,9 @@ Deno.serve(async (req: Request) => {
     const content = tz
       ? `What is the current date and time in ${tz}?`
       : "What is the current date and time right now?";
-    const result = await callGateway(
+    const result = await callGatewayWithFallback(
       gatewayUrl,
+      gatewayUrlAux,
       gatewayToken,
       [{ role: "user", content }],
       "jarvis-edge",
@@ -716,8 +744,9 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  const result = await callGateway(
+  const result = await callGatewayWithFallback(
     gatewayUrl,
+    gatewayUrlAux,
     gatewayToken,
     messagesToSend,
     sessionId,
@@ -731,16 +760,17 @@ Deno.serve(async (req: Request) => {
   }
 
   const supabase = getSupabase();
+  const effectiveGateway = result.usedUrl ?? gatewayUrl;
   if (supabase && userMessagesThisTurn.length > 0) {
     if (wantStream && result.res) {
       await appendSessionMessages(supabase, sessionId, userMessagesThisTurn);
-      void maybeUpdateSessionSummary(supabase, gatewayUrl, gatewayToken, sessionId);
+      void maybeUpdateSessionSummary(supabase, effectiveGateway, gatewayToken, sessionId);
     } else if (!wantStream && result.content) {
       await appendSessionMessages(supabase, sessionId, [
         ...userMessagesThisTurn,
         { role: "assistant", content: result.content },
       ]);
-      void maybeUpdateSessionSummary(supabase, gatewayUrl, gatewayToken, sessionId);
+      void maybeUpdateSessionSummary(supabase, effectiveGateway, gatewayToken, sessionId);
     }
   }
 
