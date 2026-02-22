@@ -105,6 +105,8 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
 
   useEffect(() => {
     const C = getSpeechRecognition();
+    // Sync capability from browser API on mount; setState here is intentional.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- capability detection on mount
     setSpeechSupported(!!C);
     if (!C) return;
     const rec = new C();
@@ -194,7 +196,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
     setIsListening(true);
     try {
       rec.start();
-    } catch (e) {
+    } catch {
       setIsListening(false);
       setVoiceError(
         'Could not start microphone. Use Chrome or Edge, allow mic when prompted, and try again.'
@@ -360,7 +362,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
     setAttachedImageDataUrl(null);
     setComposerValue('');
     setShowSlashSuggestions(false);
-  }, [onSubmit, disabled, attachedImageDataUrl, onSlashClear, onSlashTools, onSlashSession]);
+  }, [onSubmit, disabled, attachedImageDataUrl, onSlashClear, onSlashTools, onSlashSession, onSlashFast, onSlashBest, onSlashModelClear]);
 
   // Focus composer on load so developer can type immediately (Phase 1.1)
   useEffect(() => {

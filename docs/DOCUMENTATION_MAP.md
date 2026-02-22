@@ -20,6 +20,7 @@
 | **Before public push (strip internal refs)** | [docs/PUBLIC_REPO_CHECKLIST.md](./PUBLIC_REPO_CHECKLIST.md) |
 | **Modes, premium skills, Yellow/Hot Rod** | [docs/PREMIUM_CLARITY.md](./PREMIUM_CLARITY.md) |
 | **Success metrics (north star, KPIs)** | [docs/METRICS.md](./METRICS.md) |
+| **Dev and delivery: go faster (tools, CI, cache)** | [docs/DEV_DELIVERY_TOOLS.md](./DEV_DELIVERY_TOOLS.md) |
 
 ---
 
@@ -66,6 +67,8 @@ Code: **supabase/functions/jarvis/** (Edge Function), **apps/jarvis-ui/** (UI; `
 | [ZENDESK_SIDEKICK_PLAYBOOK.md](./ZENDESK_SIDEKICK_PLAYBOOK.md) | Zendesk Sidekick: step-by-step flows (tickets by entity/product, by tag/keyword, by form/field, VoC, account view, scripts). |
 | [ZENDESK_BOTS_AND_WORKFLOWS.md](./ZENDESK_BOTS_AND_WORKFLOWS.md) | Zendesk triggers, automations, macros (read-only); how they relate to bots and AI workflows; what the Sidekick can manage. |
 | [jarvis/AGENTS.md](../jarvis/AGENTS.md) | How JARVIS behaves by context (Discord, PM, deep work, etc.). |
+| [jarvis/CODE_QUALITY.md](../jarvis/CODE_QUALITY.md) | **Code quality for the ops team:** lint/test before ship, BEAST MODE gate, style, no secrets. |
+| [DEV_DELIVERY_TOOLS.md](./DEV_DELIVERY_TOOLS.md) | **Dev/delivery tooling:** CI for jarvis-ui, Knip, Turborepo, Sonar/CodeQL, preview deploys; prioritized next steps. |
 | [JARVIS_CUTTING_EDGE.md](./JARVIS_CUTTING_EDGE.md) | Prioritized improvements to make JARVIS best-in-class (memory, long context, orchestration, UI). |
 | [JARVIS_MEMORY_CONSOLIDATION.md](./JARVIS_MEMORY_CONSOLIDATION.md) | Memory consolidation/decay: pruning messages, stale summaries, prefs dedup; script outline. |
 | [JARVIS_ARCHIVIST.md](./JARVIS_ARCHIVIST.md) | Archivist: embeddings + structured "versions" of conversations (topics, decisions, entities) so bots can search and query long-term memory. |

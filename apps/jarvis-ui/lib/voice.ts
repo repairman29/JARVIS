@@ -6,7 +6,7 @@
 /** Strip markdown to plain text suitable for TTS (no code blocks, links as text). */
 export function markdownToPlainText(md: string): string {
   if (!md || typeof md !== 'string') return '';
-  let s = md
+  const s = md
     .replace(/```[\s\S]*?```/g, ' ')
     .replace(/`[^`]+`/g, ' ')
     .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')

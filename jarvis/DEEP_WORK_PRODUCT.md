@@ -43,7 +43,7 @@ When the user names a product, run **repo_summary(product.repo)** first; use the
 ### 2. Development phase
 
 - **Break work down:** Map roadmap/milestones to **issues** and **PRs**. Use **GitHub** tools: create issues, open PRs, comment. Prefer **triad/swarm** when the user wants parallel roles (PM, Eng, QA, UX, Ops) — see **PO_SWARMS.md**.
-- **Implementation:** Use **repo-knowledge** (repo_search, repo_summary, repo_file) for context; use **exec** (when elevated) for running tests, linters, builds. For long implementation runs, **spawn a subagent** with clear deliverables and ETA; checkpoint and summarize when it finishes.
+- **Implementation:** Use **repo-knowledge** (repo_search, repo_summary, repo_file) for context; use **exec** (when elevated) for running tests, linters, builds. **Before marking implementation done:** run **build_server_pipeline(repo)** or at least `npm run lint` and `npm test`; fix any failures. Add or update tests for new behavior. For long implementation runs, **spawn a subagent** with clear deliverables and ETA; checkpoint and summarize when it finishes. See **jarvis/CODE_QUALITY.md**.
 - **Output:** Issues/PRs created or updated; code or docs changed; test/build status. End with **next action** (e.g. “Merge PR #5 then run deploy,” “Add acceptance tests for feature X”).
 
 ### 3. Execution phase

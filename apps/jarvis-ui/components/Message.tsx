@@ -86,6 +86,7 @@ const blockStyle: React.CSSProperties = {
 };
 
 function StructuredResultView({ data }: { data: unknown }) {
+  const [expanded, setExpanded] = useState(false);
   if (data == null || typeof data !== 'object') return null;
   const obj = data as Record<string, unknown>;
   const type = typeof obj.type === 'string' ? obj.type : null;
@@ -164,7 +165,6 @@ function StructuredResultView({ data }: { data: unknown }) {
   }
 
   // Fallback: expandable JSON (guard against circular refs)
-  const [expanded, setExpanded] = useState(false);
   let json = '';
   try {
     json = JSON.stringify(obj, null, 2);

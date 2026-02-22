@@ -7,7 +7,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execSync, spawn } = require('child_process');
 const https = require('https');
 const { loadEnvFile: loadVaultEnv, resolveEnv } = require('./vault.js');
 
@@ -135,6 +135,17 @@ async function emitAlert(snapshot, env) {
     await postWebhook(webhookUrl, { content });
   } catch (error) {
     writeLog(ALERT_LOG, `ALERT webhook failed: ${error.message}`);
+  }
+
+  // Capture in audit log so Discord errors are recorded and queryable (see RUNBOOK § Discord errors).
+  const auditScript = path.join(__dirname, 'audit-log.js');
+  if (fs.existsSync(auditScript)) {
+    const child = spawn(process.execPath, [auditScript, 'safety_net_alert', content.slice(0, 500), '--channel', 'cron', '--actor', 'safety-net'], {
+      cwd: path.resolve(__dirname, '..'),
+      stdio: 'ignore',
+      detached: true,
+    });
+    child.unref();
   }
 }
 

@@ -7,7 +7,7 @@ import { Composer, type ComposerHandle } from './Composer';
 import { SettingsModal } from './SettingsModal';
 import { SkillsPanel } from './SkillsPanel';
 import { HelpModal } from './HelpModal';
-import { SessionSidebar, SIDEBAR_WIDTH } from './SessionSidebar';
+import { SessionSidebar } from './SessionSidebar';
 import { speak as speakTTS, stopSpeaking, isTTSSupported } from '@/lib/voice';
 import type { MessageRole } from './Message';
 import type { ConfigInfo } from './SettingsModal';
@@ -113,7 +113,7 @@ export function Chat() {
   const [gatewayMode, setGatewayMode] = useState<'local' | 'edge' | 'farm'>('local');
   const [sessionId, setSessionId] = useState<string>('');
   const [sessionList, setSessionList] = useState<string[]>([]);
-  const [sessionDropdownOpen, setSessionDropdownOpen] = useState(false);
+  const [, setSessionDropdownOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [skillsOpen, setSkillsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -293,7 +293,6 @@ export function Chat() {
   }, [messages, streamingContent, isLoading, scrollToBottom]);
 
   const HEALTH_CHECK_TIMEOUT_MS = 5000;
-  const HEALTH_RETRY_MS = 3000;
 
   const checkHealth = useCallback(async () => {
     if (!mountedRef.current) return;
@@ -687,7 +686,7 @@ export function Chat() {
         if (mountedRef.current) setIsLoading(false);
       }
     },
-    [messages, sessionId, modelHint, speakReplies, speakReplyAndMaybeListen]
+    [messages, sessionId, modelHint, speakReplies, speakReplyAndMaybeListen, CHAT_TIMEOUT_MS]
   );
 
   const handleRetry = useCallback((messageId: string) => {
@@ -816,7 +815,7 @@ export function Chat() {
                 {runAndCopyFeedback && <span style={{ padding: '0.35rem 0.65rem', fontSize: '12px', color: 'var(--accent)' }}>{runAndCopyFeedback}</span>}
                 <button type="button" role="menuitem" onClick={() => { setSkillsOpen(true); setMoreMenuOpen(false); }} data-testid="header-skills" className="btn-surface" style={{ display: 'block', width: '100%', ...headerBtn, border: 'none', borderRadius: 0, textAlign: 'left' }}>Skills</button>
                 {(['dark', 'light', 'system'] as const).map((opt) => (
-                  <button key={opt} type="button" role="menuitem" onClick={() => { setTheme(opt); setMoreMenuOpen(false); }} className="btn-surface" style={{ display: 'block', width: '100%', ...headerBtn, border: 'none', borderRadius: 0, textAlign: 'left' }}>{opt === 'dark' ? '🌙 Dark' : opt === 'light' ? '☀️ Light' : '💻 System'}</button>
+                  <button key={opt} type="button" role="menuitem" onClick={() => { setTheme(opt); setMoreMenuOpen(false); }} className="btn-surface" style={{ display: 'block', width: '100%', ...headerBtn, border: 'none', borderRadius: 0, textAlign: 'left', fontWeight: opt === theme ? 600 : undefined }}>{opt === 'dark' ? '🌙 Dark' : opt === 'light' ? '☀️ Light' : '💻 System'}</button>
                 ))}
                 {hasMounted && ttsSupported && (
                   <button type="button" role="menuitem" onClick={() => { toggleVoiceMode(); setMoreMenuOpen(false); }} className="btn-surface" style={{ display: 'block', width: '100%', ...headerBtn, border: 'none', borderRadius: 0, textAlign: 'left' }}>🔊 {speakReplies ? 'Voice on' : 'Voice'}</button>

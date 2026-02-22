@@ -253,7 +253,7 @@ clawdbot status | grep -A10 Sessions
 
 ## Orchestration scripts and background agents
 
-**Pipeline:** `node scripts/run-team-pipeline.js` — safety net → BEAST MODE quality → Code Roach health → Echeo. Use `--quality-only` or `--no-safety-net`; `--webhook` posts summary to Discord. **Quality only:** `node scripts/run-team-quality.js` [repo]. **Index:** **docs/ORCHESTRATION_SCRIPTS.md** — pipeline scripts, scheduled agents (watchdog, heartbeat, autonomous build, repo index), and scheduling.
+**Pipeline:** `node scripts/run-team-pipeline.js` — safety net → BEAST MODE quality → Code Roach health → Echeo. Use `--quality-only` or `--no-safety-net`; `--webhook` posts summary to Discord. **Quality only:** `node scripts/run-team-quality.js` [repo]. **Index:** **docs/ORCHESTRATION_SCRIPTS.md** — pipeline scripts, scheduled agents (watchdog, heartbeat, autonomous build, repo index), and scheduling. **Is the work production-grade?** Build must pass + QA score ≥ 70 on completed tasks; see **BEAST-MODE/docs/PRODUCTION_GRADE_QUALITY.md** for the quality bar and how to check.
 
 **JARVIS drives BEAST MODE:** Run `node scripts/run-beast-mode-tick.js` from this repo (one BEAST MODE heartbeat tick). Add to cron or agent loop so BEAST MODE keeps running when the Mac is on. When the Mac is off, deploy BEAST MODE’s **cloud runner** to Railway (`node scripts/beast-mode-cloud-runner.js`); see **BEAST-MODE/docs/JARVIS_DRIVES_BEAST_MODE.md**.
 
@@ -581,6 +581,23 @@ The agent loop can send Discord alerts when critical issues (farm or gateway dow
    ```
 
 Alerts are sent only for critical issues (farm or gateway down), not for informational items like GitHub notifications.
+
+### Discord errors: captured and reworked
+
+Errors and alerts that get posted to Discord are **captured** and (where implemented) **reworked into fix tasks** as follows.
+
+| Source | Posted to Discord | Captured (where) | Rework / fix |
+|--------|-------------------|------------------|--------------|
+| **JARVIS safety net** | Yes (webhook when score &lt; 100) | Yes — `jarvis_audit_log` (event `safety_net_alert`) + `~/.jarvis/health/alerts.log` | Manual or ask JARVIS to triage from brief. |
+| **JARVIS heartbeat-brief** | Yes (if webhook set) | No — Discord only | Brief suggests "Next: fix first failing check" / "triage N issues"; JARVIS can act when you ask. |
+| **JARVIS plan-execute** | Optional (webhook summary) | Yes — `jarvis_audit_log` (start/done) | Plan summary in audit; triage from report. |
+| **JARVIS pipeline** `--webhook` | Yes (summary) | No — Discord only | Run pipeline again after fixes; optional: add audit-log.js call for failures. |
+| **BEAST MODE build-verification** | Yes (on failure) | Yes — `beast_mode_audit_log` | Optional **`--create-task`** creates a **[FIX] Build broken** task in BEAST MODE. |
+| **BEAST MODE QA agent** | Yes (digest) | Yes — `beast_mode_audit_log` | Failed QA **creates [REWORK] task** automatically (same milestone). |
+| **BEAST MODE integration / code-placement / milestone** | Yes (when configured) | Yes — `beast_mode_audit_log` | Review audit log; fix from queue or dashboard. |
+| **BEAST MODE health-reporter** | Digest (queue, milestone, QA) | Reads from `beast_mode_audit_log` | Digest is informational; fix via BEAST MODE tasks. |
+
+**How to use it:** Query `jarvis_audit_log` (JARVIS) or `beast_mode_audit_log` (BEAST MODE) for recent errors; run build-verification with **`--create-task`** so build failures create a fix task; in BEAST MODE, QA failures already create rework tasks. For JARVIS-only alerts (heartbeat, pipeline), either ask JARVIS to "triage what failed from the last brief" or add `audit-log.js` to those scripts (same pattern as safety net).
 
 ---
 

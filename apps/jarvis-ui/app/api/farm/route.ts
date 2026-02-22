@@ -38,7 +38,7 @@ async function fetchFarmHealth(): Promise<FarmHealth | null> {
   }
 }
 
-async function fetchEdgeFarmHealth(): Promise<FarmHealth | null> {
+async function _fetchEdgeFarmHealth(): Promise<FarmHealth | null> {
   if (!EDGE_URL) return null;
   try {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };

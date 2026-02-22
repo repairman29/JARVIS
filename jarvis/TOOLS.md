@@ -412,7 +412,7 @@ When JARVIS runs on a Pixel (or Android) in Termux, these skills provide device 
 | **Build only** | **build_server_build(repo, command: "build")**. Test only: command `"test"`. | When user asks only for build or only for test. |
 | **Deploy** | **github_workflow_dispatch**(owner, repo, workflow_id) if repo has a deploy workflow; else **exec** (vercel deploy, railway up, etc.). | After build+test pass or when user asks to deploy. |
 
-**Flow:** 1) build_server_pipeline(repo) → 2) if success, deploy via workflow_dispatch or exec. If build_server_health() fails, tell user: start build server with `node scripts/build-server.js`. Config: **build-server-repos.json**. See **docs/JARVIS_BUILD_SERVER.md**.
+**Flow:** 1) build_server_pipeline(repo) → 2) if success, deploy via workflow_dispatch or exec. If build_server_health() fails, tell user: start build server with `node scripts/build-server.js`. Config: **build-server-repos.json**. See **docs/JARVIS_BUILD_SERVER.md**. **Code quality:** Run lint and test before marking implementation done; do not skip BEAST MODE quality before deploy. See **jarvis/CODE_QUALITY.md**.
 
 ---
 

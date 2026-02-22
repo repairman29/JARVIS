@@ -153,7 +153,7 @@ interface StatusData {
 }
 
 function StatusCard({
-  id,
+  id: _id,
   info,
   isActive,
 }: {

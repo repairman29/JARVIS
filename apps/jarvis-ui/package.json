@@ -2,20 +2,23 @@
   "name": "jarvis-ui",
   "version": "0.1.0",
   "private": true,
-  "engines": { "node": "22.x" },
+  "engines": {
+    "node": "22.x"
+  },
   "description": "Developer-grade JARVIS chat UI — talks to Clawdbot gateway",
   "scripts": {
     "dev": "next dev --webpack -p 3001",
     "dev:fresh": "rm -rf .next && next dev -p 3001",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "e2e": "bash scripts/e2e.sh http://localhost:3001",
     "test:edge": "bash scripts/test-edge.sh http://localhost:3001",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:auth-setup": "playwright test e2e/auth.setup.ts",
     "test:chat": "node scripts/test-chat.js http://localhost:3001",
+    "knip": "knip --no-exit-code",
     "deploy": "vercel",
     "deploy:prod": "vercel --prod"
   },
@@ -29,10 +32,14 @@
     "remark-gfm": "^4.0.0"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.3",
     "@playwright/test": "^1.58.1",
     "@types/node": "^25.2.0",
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.3",
+    "eslint-config-next": "^16.1.6",
+    "knip": "^5.85.0",
     "typescript": "^5.0.0"
   }
 }

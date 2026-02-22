@@ -1,0 +1,48 @@
+# Lint and build jarvis-ui on push/PR (apps/jarvis-ui or root config that affects it)
+name: jarvis-ui CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'apps/jarvis-ui/**'
+      - 'package.json'
+      - 'package-lock.json'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/jarvis-ui/**'
+      - 'package.json'
+      - 'package-lock.json'
+
+jobs:
+  lint-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: apps/jarvis-ui/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: apps/jarvis-ui
+
+      - name: Lint
+        run: npm run lint
+        working-directory: apps/jarvis-ui
+
+      - name: Build
+        run: npm run build
+        working-directory: apps/jarvis-ui
+        env:
+          NODE_ENV: production
+
+      - name: Knip (unused deps/files/exports)
+        run: npm run knip
+        working-directory: apps/jarvis-ui

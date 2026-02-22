@@ -43,7 +43,7 @@ function LoginForm() {
         } else {
           setError(data?.error ?? `Login failed (${res.status})`);
         }
-      } catch (err) {
+      } catch {
         setError('Network error — check your connection');
       } finally {
         setBusy(false);
