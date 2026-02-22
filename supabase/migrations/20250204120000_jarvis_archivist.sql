@@ -95,8 +95,10 @@ COMMENT ON FUNCTION get_jarvis_archive_recent IS 'Recent jarvis_archive rows for
 ALTER TABLE jarvis_archive ENABLE ROW LEVEL SECURITY;
 ALTER TABLE jarvis_memory_chunks ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Allow all for jarvis_archive" ON jarvis_archive;
 CREATE POLICY "Allow all for jarvis_archive" ON jarvis_archive
   FOR ALL USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Allow all for jarvis_memory_chunks" ON jarvis_memory_chunks;
 CREATE POLICY "Allow all for jarvis_memory_chunks" ON jarvis_memory_chunks
   FOR ALL USING (true) WITH CHECK (true);

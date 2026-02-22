@@ -1,7 +1,7 @@
 #!/bin/bash
 # Neural Farm v4 Manager — keeps the 4-node cluster alive from Mac
 # Architecture: Mac (MLX Qwen3-8B) + Pixel (llama.cpp) + 2x iPhone (InferrLM)
-#               → balancer → Tailscale Funnel → Supabase → JARVIS UI
+#               → balancer (:8899) → gateway (:18789) → Tailscale Funnel → Supabase → JARVIS UI
 # Managed by launchd: com.jarvis.pixel-farm
 # Docs: /Users/jeffadkins/NEURAL-FARM.md
 
@@ -10,6 +10,7 @@ IPHONE_IP="100.102.220.122"
 IPHONE16_IP="100.91.240.55"
 PIXEL_SSH_PORT=8022
 BALANCER_PORT=8899
+GATEWAY_PORT=18789
 BALANCER_SCRIPT="/Users/jeffadkins/farm-balancer.js"
 FUNNEL_URL="https://jeffs-macbook-air.tail047a68.ts.net"
 MLX_ENV="/Users/jeffadkins/mlx-env"
@@ -27,7 +28,9 @@ check_balancer() {
 }
 
 check_funnel() {
-  curl -s --max-time 5 "$FUNNEL_URL/health" 2>/dev/null | grep -q '"status"'
+  # Gateway (clawdbot) exposes /v1/models; farm had /health
+  code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$FUNNEL_URL/v1/models" 2>/dev/null)
+  [ "$code" = "200" ]
 }
 
 start_balancer() {
@@ -44,13 +47,13 @@ start_balancer() {
 }
 
 start_funnel() {
-  log "Starting Tailscale Funnel..."
-  tailscale serve --bg http://localhost:$BALANCER_PORT 2>/dev/null
+  log "Starting Tailscale Funnel (gateway :$GATEWAY_PORT)..."
+  tailscale serve --bg http://localhost:$GATEWAY_PORT 2>/dev/null
   sleep 1
-  tailscale funnel --bg --https=443 http://localhost:$BALANCER_PORT 2>/dev/null
+  tailscale funnel --bg --https=443 http://localhost:$GATEWAY_PORT 2>/dev/null
   sleep 2
   if check_funnel; then
-    log "Funnel active at $FUNNEL_URL"
+    log "Funnel active at $FUNNEL_URL (gateway)"
   else
     log "Funnel may need a moment to propagate"
   fi

@@ -19,6 +19,12 @@ export interface MessageProps {
   role: MessageRole;
   content: string;
   isStreaming?: boolean;
+  /** Show animated dots instead of content (thinking indicator). */
+  isThinking?: boolean;
+  /** When the message was added (for relative timestamp). */
+  timestamp?: number;
+  /** For retry button (user messages). */
+  messageId?: string;
   /** When gateway/edge sends meta.tools_used (roadmap 2.6). */
   toolsUsed?: string[];
   /** When gateway/edge sends meta.structured_result (roadmap 2.7). */
@@ -27,6 +33,20 @@ export interface MessageProps {
   backendUsed?: string;
   /** Assistant only: called when user clicks "Speak" to hear this message (TTS). */
   onSpeak?: (text: string) => void;
+  /** User only: called when user clicks "Retry" to resend. */
+  onRetry?: (messageId: string) => void;
+}
+
+function formatRelativeTime(ms: number): string {
+  const sec = Math.floor((Date.now() - ms) / 1000);
+  if (sec < 10) return 'just now';
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  return `${day}d ago`;
 }
 
 function PreWithCopy({ children }: { children: React.ReactNode }) {
@@ -180,129 +200,143 @@ function StructuredResultView({ data }: { data: unknown }) {
   );
 }
 
-export function Message({ role, content, isStreaming, toolsUsed, structuredResult, backendUsed, onSpeak }: MessageProps) {
+function ThinkingDots() {
+  return (
+    <div className="message-thinking-dots" style={{ display: 'flex', gap: 4, alignItems: 'center', padding: '0.25rem 0' }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', animation: 'thinking-dot 0.6s ease-in-out infinite' }} />
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', animation: 'thinking-dot 0.6s ease-in-out 0.2s infinite' }} />
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', animation: 'thinking-dot 0.6s ease-in-out 0.4s infinite' }} />
+    </div>
+  );
+}
+
+export function Message({ role, content, isStreaming, isThinking, timestamp, messageId, toolsUsed, structuredResult, backendUsed, onSpeak, onRetry }: MessageProps) {
   const safeContent = typeof content === 'string' ? content : '';
   const isUser = role === 'user';
+  const [hover, setHover] = useState(false);
+  const [copied, setCopied] = useState(false);
   const showToolsUsed = !isUser && Array.isArray(toolsUsed) && toolsUsed.length > 0;
   const showStructured = !isUser && structuredResult != null && typeof structuredResult === 'object';
   const showBackendUsed = !isUser && typeof backendUsed === 'string' && backendUsed.length > 0;
   const showSpeak = !isUser && typeof onSpeak === 'function' && safeContent.length > 0 && !isStreaming;
+  const showRetry = isUser && typeof onRetry === 'function' && typeof messageId === 'string';
+
+  const handleCopy = () => {
+    if (safeContent) {
+      navigator.clipboard.writeText(safeContent).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      });
+    }
+  };
+
+  const borderColor = isUser ? 'var(--accent)' : 'var(--border)';
 
   return (
     <div
-      className="message"
+      className="message message-fade-in"
       data-role={role}
       style={{
         display: 'flex',
         justifyContent: isUser ? 'flex-end' : 'flex-start',
         marginBottom: '1rem',
+        alignItems: 'flex-start',
+        gap: '0.5rem',
       }}
     >
+      {!isUser && (
+        <div
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            background: 'var(--accent)',
+            color: 'var(--bg)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '14px',
+            fontWeight: 700,
+            flexShrink: 0,
+          }}
+          aria-hidden
+        >
+          J
+        </div>
+      )}
       <div
         style={{
           maxWidth: '85%',
+          minWidth: 0,
           padding: '0.75rem 1rem',
           borderRadius: '12px',
           backgroundColor: isUser ? 'var(--user-bubble)' : 'var(--assistant-bubble)',
           border: '1px solid var(--border)',
+          borderLeft: `3px solid ${borderColor}`,
         }}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
       >
-        {(showBackendUsed || showSpeak) && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem', gap: '0.5rem', flexWrap: 'wrap' }}>
-            {showBackendUsed && (
-              <span
-                style={{
-                  fontSize: '11px',
-                  color: 'var(--text-muted)',
-                  textTransform: 'capitalize',
-                }}
-                title="Backend that answered this turn"
-              >
-                Used: {backendUsed}
-              </span>
-            )}
-            {showSpeak && (
-            <button
-              type="button"
-              onClick={() => onSpeak?.(safeContent)}
-              aria-label="Speak this message"
-              title="Speak (JARVIS reads aloud)"
-              style={{
-                padding: '0.2rem 0.5rem',
-                fontSize: '12px',
-                background: 'var(--bg-elevated)',
-                color: 'var(--text-muted)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-sm)',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.25rem',
-              }}
-            >
-              <span aria-hidden>🔊</span> Speak
-            </button>
-            )}
-          </div>
-        )}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500 }}>
+            {isUser ? 'You' : 'JARVIS'}
+          </span>
+          {timestamp != null && (
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{formatRelativeTime(timestamp)}</span>
+          )}
+          {showBackendUsed && (
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'capitalize' }} title="Backend">Used: {backendUsed}</span>
+          )}
+        </div>
         {showToolsUsed && (
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '0.35rem',
-              marginBottom: '0.5rem',
-            }}
-            aria-label="Skills used"
-          >
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: '0.5rem' }} aria-label="Skills used">
             {(toolsUsed as string[]).map((name) => (
-              <span
-                key={name}
-                style={{
-                  fontSize: '11px',
-                  padding: '0.15rem 0.5rem',
-                  borderRadius: 'var(--radius-sm, 4px)',
-                  backgroundColor: 'var(--bg-elevated, rgba(0,0,0,0.06))',
-                  color: 'var(--text-muted)',
-                  border: '1px solid var(--border)',
-                }}
-              >
+              <span key={name} style={{ fontSize: '11px', padding: '0.15rem 0.5rem', borderRadius: 'var(--radius-sm, 4px)', backgroundColor: 'var(--bg-elevated)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
                 Used: {name}
               </span>
             ))}
           </div>
         )}
         {showStructured && <StructuredResultView data={structuredResult} />}
-        {isUser ? (
+        {isThinking ? (
+          <ThinkingDots />
+        ) : isUser ? (
           <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{safeContent}</div>
         ) : (
           <div className="markdown-body" style={{ fontSize: '0.95em' }}>
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeHighlight]}
-              components={{
-                pre: ({ children }) => <PreWithCopy>{children}</PreWithCopy>,
-              }}
-            >
+            <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]} components={{ pre: ({ children }) => <PreWithCopy>{children}</PreWithCopy> }}>
               {safeContent}
             </ReactMarkdown>
             {isStreaming && (
-              <span
-                style={{
-                  display: 'inline-block',
-                  width: '8px',
-                  height: '1em',
-                  backgroundColor: 'var(--accent)',
-                  marginLeft: '2px',
-                  animation: 'blink 0.8s ease-in-out infinite',
-                  verticalAlign: 'text-bottom',
-                }}
-                aria-hidden
-              />
+              <span style={{ display: 'inline-block', width: 8, height: '1em', backgroundColor: 'var(--accent)', marginLeft: 2, animation: 'blink 0.8s ease-in-out infinite', verticalAlign: 'text-bottom' }} aria-hidden />
+            )}
+          </div>
+        )}
+        {(hover || copied) && (showSpeak || showRetry || safeContent.length > 0) && (
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+            {safeContent.length > 0 && (
+              <button type="button" onClick={handleCopy} className="btn-surface" style={{ padding: '0.2rem 0.5rem', fontSize: '11px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                {copied ? 'Copied' : 'Copy'}
+              </button>
+            )}
+            {showSpeak && (
+              <button type="button" onClick={() => onSpeak?.(safeContent)} aria-label="Speak" className="btn-surface" style={{ padding: '0.2rem 0.5rem', fontSize: '11px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                Speak
+              </button>
+            )}
+            {showRetry && messageId && (
+              <button type="button" onClick={() => onRetry?.(messageId)} className="btn-surface" style={{ padding: '0.2rem 0.5rem', fontSize: '11px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                Retry
+              </button>
             )}
           </div>
         )}
       </div>
+      {isUser && (
+        <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--user-bubble)', color: 'var(--text)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 600, flexShrink: 0 }} aria-hidden>
+          Y
+        </div>
+      )}
     </div>
   );
 }

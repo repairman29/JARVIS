@@ -7,6 +7,7 @@ import { Composer, type ComposerHandle } from './Composer';
 import { SettingsModal } from './SettingsModal';
 import { SkillsPanel } from './SkillsPanel';
 import { HelpModal } from './HelpModal';
+import { SessionSidebar, SIDEBAR_WIDTH } from './SessionSidebar';
 import { speak as speakTTS, stopSpeaking, isTTSSupported } from '@/lib/voice';
 import type { MessageRole } from './Message';
 import type { ConfigInfo } from './SettingsModal';
@@ -33,11 +34,39 @@ export interface ChatMessage {
   content: string;
   /** When gateway/edge sends meta for this turn (roadmap 2.6 tools_used, 2.7 structured_result, backend used). */
   meta?: { tools_used?: string[]; structured_result?: unknown; backendUsed?: string };
+  /** When the message was added (for relative timestamp). */
+  createdAt?: number;
 }
 
 const SESSION_KEY = 'jarvis-ui-session';
 const SESSION_LIST_KEY = 'jarvis-ui-session-list';
+const SESSION_PREVIEWS_KEY = 'jarvis-ui-session-previews';
 const SESSION_LIST_MAX = 20;
+const PREVIEW_MAX_LEN = 60;
+
+function getSessionPreviews(): Record<string, string> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(SESSION_PREVIEWS_KEY);
+    const obj = raw ? (JSON.parse(raw) as Record<string, string>) : {};
+    return typeof obj === 'object' && obj !== null ? obj : {};
+  } catch {
+    return {};
+  }
+}
+
+function setSessionPreview(sessionId: string, text: string): void {
+  if (typeof window === 'undefined' || !sessionId) return;
+  const list = getSessionList();
+  const map = getSessionPreviews();
+  const trimmed = text.slice(0, PREVIEW_MAX_LEN).trim();
+  if (trimmed) map[sessionId] = trimmed;
+  const filtered: Record<string, string> = {};
+  for (const id of list) {
+    if (map[id]) filtered[id] = map[id];
+  }
+  localStorage.setItem(SESSION_PREVIEWS_KEY, JSON.stringify(filtered));
+}
 
 function getSessionId(): string {
   if (typeof window === 'undefined') return '';
@@ -96,11 +125,14 @@ export function Chat() {
   const [ttsSupported, setTtsSupported] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
   const [theme, setThemeState] = useState<ThemeValue>('dark');
-  const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
   const [modelHint, setModelHint] = useState<'fast' | 'best' | null>(null);
-  const themeDropdownRef = useRef<HTMLDivElement>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [farmHealthy, setFarmHealthy] = useState<number | null>(null);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [sessionPreviews, setSessionPreviews] = useState<Record<string, string>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
-  const sessionDropdownRef = useRef<HTMLDivElement>(null);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<ComposerHandle>(null);
   const mountedRef = useRef(true);
   const statusRef = useRef(status);
@@ -108,15 +140,48 @@ export function Chat() {
   statusRef.current = status;
 
   useEffect(() => {
-    if (!sessionDropdownOpen) return;
+    const check = () => setIsMobile(typeof window !== 'undefined' && window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  useEffect(() => {
+    if (status !== 'ok' || gatewayMode !== 'farm') {
+      setFarmHealthy(null);
+      return;
+    }
+    let cancelled = false;
+    fetch('/api/farm', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((data: { healthy?: number }) => {
+        if (!cancelled && mountedRef.current && typeof data.healthy === 'number') {
+          setFarmHealthy(data.healthy);
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [status, gatewayMode]);
+
+  useEffect(() => {
+    if (!moreMenuOpen) return;
     const onDocClick = (e: MouseEvent) => {
-      if (sessionDropdownRef.current && !sessionDropdownRef.current.contains(e.target as Node)) {
-        setSessionDropdownOpen(false);
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+        setMoreMenuOpen(false);
       }
     };
     document.addEventListener('click', onDocClick);
     return () => document.removeEventListener('click', onDocClick);
-  }, [sessionDropdownOpen]);
+  }, [moreMenuOpen]);
+
+  useEffect(() => {
+    if (!sessionId || messages.length === 0) return;
+    const firstUser = messages.find((m) => m.role === 'user');
+    if (firstUser?.content) {
+      setSessionPreview(sessionId, firstUser.content);
+      setSessionPreviews(getSessionPreviews());
+    }
+  }, [sessionId, messages]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -125,6 +190,7 @@ export function Chat() {
     setSessionId(id);
     addToSessionList(id);
     setSessionList(getSessionList());
+    setSessionPreviews(getSessionPreviews());
     setTtsSupported(isTTSSupported());
     setSpeakRepliesState(localStorage.getItem(VOICE_SPEAK_REPLIES_KEY) !== 'false');
     setConversationModeState(localStorage.getItem(VOICE_CONVERSATION_MODE_KEY) !== 'false');
@@ -167,22 +233,10 @@ export function Chat() {
     };
   }, [sessionId, hasMounted, messages.length]);
 
-  useEffect(() => {
-    if (!themeDropdownOpen) return;
-    const onDocClick = (e: MouseEvent) => {
-      if (themeDropdownRef.current && !themeDropdownRef.current.contains(e.target as Node)) {
-        setThemeDropdownOpen(false);
-      }
-    };
-    document.addEventListener('click', onDocClick);
-    return () => document.removeEventListener('click', onDocClick);
-  }, [themeDropdownOpen]);
-
   const setTheme = useCallback((value: ThemeValue) => {
     setThemeState(value);
     localStorage.setItem(THEME_KEY, value);
     applyTheme(value);
-    setThemeDropdownOpen(false);
   }, []);
 
   const setSpeakReplies = useCallback((value: boolean) => {
@@ -354,6 +408,7 @@ export function Chat() {
   }, [exportAsMarkdown, sessionId]);
 
   const clearMessages = useCallback(() => setMessages([]), []);
+
   const handleSessionChange = useCallback((name: string) => {
     setSessionIdStorage(name.trim() || `jarvis-ui-${Date.now().toString(36)}`);
     const id = getSessionId();
@@ -436,23 +491,26 @@ export function Chat() {
   }, [messages, sessionId, modelHint]);
 
   const sendMessage = useCallback(
-    async (text: string, opts?: { imageDataUrl?: string }) => {
+    async (text: string, opts?: { imageDataUrl?: string; replaceHistory?: ChatMessage[] }) => {
       stopSpeaking(); // cancel any in-progress TTS when user sends (interrupt)
+      const isRetry = Array.isArray(opts?.replaceHistory) && opts.replaceHistory.length > 0;
       const userMsg: ChatMessage = {
         id: `u-${Date.now()}`,
         role: 'user',
         content: text,
+        createdAt: Date.now(),
       };
-      setMessages((prev) => [...prev, userMsg]);
+      if (!isRetry) {
+        setMessages((prev) => [...prev, userMsg]);
+      }
       setStreamingContent('');
       setErrorMessage(null);
       setPromptTrimmedTo(null);
       setIsLoading(true);
 
-      const messageHistory = [...messages, userMsg].map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
+      const messageHistory = isRetry
+        ? (opts!.replaceHistory!.map((m) => ({ role: m.role, content: m.content })) as { role: string; content: string }[])
+        : [...messages, userMsg].map((m) => ({ role: m.role, content: m.content }));
 
       const controller = new AbortController();
       const timeoutId = window.setTimeout(() => controller.abort(), CHAT_TIMEOUT_MS);
@@ -490,6 +548,7 @@ export function Chat() {
                 id: `a-${Date.now()}`,
                 role: 'assistant',
                 content: `Error (${res.status}): ${msg}`,
+                createdAt: Date.now(),
               },
             ]);
             setIsLoading(false);
@@ -548,6 +607,7 @@ export function Chat() {
                 id: `a-${Date.now()}`,
                 role: 'assistant',
                 content: replyContent || 'No response.',
+                createdAt: Date.now(),
                 ...((streamToolsUsed?.length || streamStructuredResult != null || backendUsed)
                   ? {
                       meta: {
@@ -600,6 +660,7 @@ export function Chat() {
                 id: `a-${Date.now()}`,
                 role: 'assistant',
                 content: safeContent,
+                createdAt: Date.now(),
                 ...((toolsUsed?.length || structuredResult != null || backendUsed)
                   ? { meta: { ...(toolsUsed?.length ? { tools_used: toolsUsed } : {}), ...(structuredResult != null ? { structured_result: structuredResult } : {}), ...(backendUsed ? { backendUsed } : {}) } }
                   : {}),
@@ -629,17 +690,41 @@ export function Chat() {
     [messages, sessionId, modelHint, speakReplies, speakReplyAndMaybeListen]
   );
 
+  const handleRetry = useCallback((messageId: string) => {
+    const idx = messages.findIndex((m) => m.id === messageId);
+    if (idx < 0) return;
+    const msg = messages[idx];
+    if (msg.role !== 'user') return;
+    const truncated = messages.slice(0, idx + 1);
+    setMessages(truncated);
+    sendMessage(msg.content, { replaceHistory: truncated });
+  }, [messages, sendMessage]);
+
+  const headerBtn = {
+    padding: '0.35rem 0.65rem',
+    fontSize: '13px',
+    background: 'transparent',
+    color: 'var(--text-muted)',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-sm)',
+    cursor: 'pointer',
+    textDecoration: 'none' as const,
+  };
+
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        maxWidth: '800px',
-        margin: '0 auto',
-        width: '100%',
-      }}
-    >
+    <div className="chat-with-sidebar" style={{ height: '100%', maxWidth: 800, margin: '0 auto', width: '100%' }}>
+      <SessionSidebar
+        sessionId={sessionId}
+        sessionList={sessionList}
+        onNewSession={startNewSession}
+        onSwitchSession={switchSession}
+        onRefreshList={() => { setSessionList(getSessionList()); setSessionPreviews(getSessionPreviews()); }}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        isMobile={isMobile}
+        sessionPreviews={sessionPreviews}
+      />
+      <div className={`chat-main ${!isMobile ? 'with-sidebar' : ''}`} style={{ maxWidth: 800, margin: '0 auto', width: '100%' }}>
       <header
         style={{
           padding: '0.75rem 1rem',
@@ -654,211 +739,60 @@ export function Chat() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <h1 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>JARVIS</h1>
-          <div ref={sessionDropdownRef} style={{ position: 'relative' }}>
+          {isMobile && (
             <button
               type="button"
               className="btn-surface"
-              onClick={() => {
-                setSessionList(getSessionList());
-                setSessionDropdownOpen((o) => !o);
-              }}
-              style={{
-                padding: '0.2rem 0.5rem',
-                fontSize: '12px',
-                background: 'transparent',
-                color: 'var(--text-muted)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-sm)',
-                cursor: 'pointer',
-              }}
-              aria-expanded={sessionDropdownOpen}
-              aria-haspopup="listbox"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open sessions"
+              style={{ ...headerBtn, padding: '0.4rem 0.5rem' }}
             >
-              Session: {sessionId ? sessionId.slice(0, 12) + (sessionId.length > 12 ? '…' : '') : '—'} ▼
+              ☰
             </button>
-            {modelHint && (
-              <span
-                title="Model hint: use /model to clear"
-                style={{
-                  padding: '0.2rem 0.4rem',
-                  fontSize: '11px',
-                  background: 'var(--border)',
-                  color: 'var(--text-muted)',
-                  borderRadius: 'var(--radius-sm)',
-                }}
-              >
-                {modelHint === 'fast' ? 'Fast' : 'Best'}
-              </span>
-            )}
-            {sessionDropdownOpen && (
-              <div
-                role="listbox"
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  marginTop: '2px',
-                  minWidth: '160px',
-                  maxHeight: '240px',
-                  overflow: 'auto',
-                  background: 'var(--bg-elevated)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-                  zIndex: 100,
-                }}
-              >
-                <button
-                  type="button"
-                  role="option"
-                  onClick={startNewSession}
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    padding: '0.4rem 0.75rem',
-                    fontSize: '12px',
-                    textAlign: 'left',
-                    background: 'transparent',
-                    color: 'var(--accent)',
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
-                >
-                  + New session
-                </button>
-                {sessionList.map((id) => (
-                  <button
-                    key={id}
-                    type="button"
-                    role="option"
-                    aria-selected={id === sessionId}
-                    onClick={() => switchSession(id)}
-                    style={{
-                      display: 'block',
-                      width: '100%',
-                      padding: '0.4rem 0.75rem',
-                      fontSize: '12px',
-                      textAlign: 'left',
-                      background: id === sessionId ? 'var(--border)' : 'transparent',
-                      color: 'var(--text)',
-                      border: 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {id.slice(0, 16)}{id.length > 16 ? '…' : ''}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          )}
+          <h1 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>JARVIS</h1>
+          {modelHint && (
+            <span
+              title="Model hint: use /model to clear"
+              style={{
+                padding: '0.2rem 0.4rem',
+                fontSize: '11px',
+                background: 'var(--border)',
+                color: 'var(--text-muted)',
+                borderRadius: 'var(--radius-sm)',
+              }}
+            >
+              {modelHint === 'fast' ? 'Fast' : 'Best'}
+            </span>
+          )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', fontSize: '13px', color: 'var(--text-muted)' }}>
-          {messages.length > 0 && (
-            <>
-              <button
-                type="button"
-                className="btn-surface"
-                onClick={copyThread}
-                style={{
-                  padding: '0.2rem 0.5rem',
-                  fontSize: '12px',
-                  background: 'transparent',
-                  color: 'var(--text-muted)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-sm)',
-                  cursor: 'pointer',
-                }}
-              >
-                Copy thread
-              </button>
-              <button
-                type="button"
-                className="btn-surface"
-                onClick={saveTranscript}
-                style={{
-                  padding: '0.2rem 0.5rem',
-                  fontSize: '12px',
-                  background: 'transparent',
-                  color: 'var(--text-muted)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-sm)',
-                  cursor: 'pointer',
-                }}
-              >
-                Save transcript
-              </button>
-            </>
-          )}
-          <button
-            type="button"
-            className="btn-surface"
-            onClick={() => void runAndCopyResult()}
-            disabled={isLoading}
-            title="Send composer (or last message) once and copy response to clipboard"
-            data-testid="run-and-copy"
-            style={{
-              padding: '0.2rem 0.5rem',
-              fontSize: '12px',
-              background: 'transparent',
-              color: 'var(--text-muted)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-sm)',
-              cursor: isLoading ? 'not-allowed' : 'pointer',
-            }}
-          >
-            Run and copy result
+          <Link href="/dashboard" className="btn-surface" data-testid="header-dashboard" style={headerBtn}>
+            Dashboard
+          </Link>
+          <button type="button" className="btn-surface" onClick={() => setSettingsOpen(true)} data-testid="header-settings" style={headerBtn}>
+            Settings
           </button>
-          {runAndCopyFeedback && (
-            <span style={{ fontSize: '12px', color: 'var(--accent)' }}>{runAndCopyFeedback}</span>
-          )}
-          <button
-            type="button"
-            className="btn-surface"
-            onClick={() => setSkillsOpen(true)}
-            data-testid="header-skills"
-            style={{
-              padding: '0.2rem 0.5rem',
-              fontSize: '12px',
-              background: 'transparent',
-              color: 'var(--text-muted)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-sm)',
-              cursor: 'pointer',
-            }}
-          >
-            Skills
-          </button>
-          <div ref={themeDropdownRef} style={{ position: 'relative' }}>
+          <div ref={moreMenuRef} style={{ position: 'relative' }}>
             <button
               type="button"
               className="btn-surface"
-              onClick={() => setThemeDropdownOpen((o) => !o)}
-              title="Theme: Dark / Light / System"
-              aria-expanded={themeDropdownOpen}
-              aria-haspopup="listbox"
-              style={{
-                padding: '0.2rem 0.5rem',
-                fontSize: '12px',
-                background: 'transparent',
-                color: 'var(--text-muted)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-sm)',
-                cursor: 'pointer',
-              }}
+              onClick={() => setMoreMenuOpen((o) => !o)}
+              aria-expanded={moreMenuOpen}
+              aria-haspopup="menu"
+              style={headerBtn}
             >
-              {theme === 'dark' ? '🌙' : theme === 'light' ? '☀️' : '💻'} Theme ▼
+              More ▼
             </button>
-            {themeDropdownOpen && (
+            {moreMenuOpen && (
               <div
-                role="listbox"
-                aria-label="Theme"
+                role="menu"
                 style={{
                   position: 'absolute',
                   top: '100%',
                   right: 0,
                   marginTop: '2px',
-                  minWidth: '120px',
+                  minWidth: '180px',
                   background: 'var(--bg-elevated)',
                   border: '1px solid var(--border)',
                   borderRadius: 'var(--radius-md)',
@@ -867,150 +801,49 @@ export function Chat() {
                   overflow: 'hidden',
                 }}
               >
+                {messages.length > 0 && (
+                  <>
+                    <button type="button" role="menuitem" onClick={() => { copyThread(); setMoreMenuOpen(false); }} className="btn-surface" style={{ display: 'block', width: '100%', ...headerBtn, border: 'none', borderRadius: 0, textAlign: 'left' }}>Copy thread</button>
+                    <button type="button" role="menuitem" onClick={() => { saveTranscript(); setMoreMenuOpen(false); }} className="btn-surface" style={{ display: 'block', width: '100%', ...headerBtn, border: 'none', borderRadius: 0, textAlign: 'left' }}>Save transcript</button>
+                  </>
+                )}
+                <button type="button" role="menuitem" disabled={isLoading} onClick={() => { void runAndCopyResult(); setMoreMenuOpen(false); }} data-testid="run-and-copy" className="btn-surface" style={{ display: 'block', width: '100%', ...headerBtn, border: 'none', borderRadius: 0, textAlign: 'left' }}>Run and copy result</button>
+                {runAndCopyFeedback && <span style={{ padding: '0.35rem 0.65rem', fontSize: '12px', color: 'var(--accent)' }}>{runAndCopyFeedback}</span>}
+                <button type="button" role="menuitem" onClick={() => { setSkillsOpen(true); setMoreMenuOpen(false); }} data-testid="header-skills" className="btn-surface" style={{ display: 'block', width: '100%', ...headerBtn, border: 'none', borderRadius: 0, textAlign: 'left' }}>Skills</button>
                 {(['dark', 'light', 'system'] as const).map((opt) => (
-                  <button
-                    key={opt}
-                    type="button"
-                    role="option"
-                    aria-selected={theme === opt}
-                    onClick={() => setTheme(opt)}
-                    style={{
-                      display: 'block',
-                      width: '100%',
-                      padding: '0.4rem 0.75rem',
-                      fontSize: '12px',
-                      textAlign: 'left',
-                      background: theme === opt ? 'var(--border)' : 'transparent',
-                      color: 'var(--text)',
-                      border: 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {opt === 'dark' ? '🌙 Dark' : opt === 'light' ? '☀️ Light' : '💻 System'}
-                  </button>
+                  <button key={opt} type="button" role="menuitem" onClick={() => { setTheme(opt); setMoreMenuOpen(false); }} className="btn-surface" style={{ display: 'block', width: '100%', ...headerBtn, border: 'none', borderRadius: 0, textAlign: 'left' }}>{opt === 'dark' ? '🌙 Dark' : opt === 'light' ? '☀️ Light' : '💻 System'}</button>
                 ))}
+                {hasMounted && ttsSupported && (
+                  <button type="button" role="menuitem" onClick={() => { toggleVoiceMode(); setMoreMenuOpen(false); }} className="btn-surface" style={{ display: 'block', width: '100%', ...headerBtn, border: 'none', borderRadius: 0, textAlign: 'left' }}>🔊 {speakReplies ? 'Voice on' : 'Voice'}</button>
+                )}
+                <button type="button" role="menuitem" onClick={() => { setHelpOpen(true); setMoreMenuOpen(false); }} data-testid="header-help" className="btn-surface" style={{ display: 'block', width: '100%', ...headerBtn, border: 'none', borderRadius: 0, textAlign: 'left' }}>Help</button>
+                <a href="/api/auth/logout" className="btn-surface" style={{ display: 'block', width: '100%', ...headerBtn, border: 'none', borderRadius: 0, textAlign: 'left' }}>Logout</a>
               </div>
             )}
           </div>
-          {hasMounted && ttsSupported && (
-            <button
-              type="button"
-              className="btn-surface"
-              onClick={toggleVoiceMode}
-              title={speakReplies ? 'Voice conversation on (JARVIS speaks and listens)' : 'Turn on voice conversation'}
-              aria-pressed={speakReplies}
-              style={{
-                padding: '0.2rem 0.5rem',
-                fontSize: '12px',
-                background: speakReplies ? 'var(--accent)' : 'transparent',
-                color: speakReplies ? 'var(--bg)' : 'var(--text-muted)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-sm)',
-                cursor: 'pointer',
-              }}
-            >
-              🔊 {speakReplies ? 'Voice on' : 'Voice'}
-            </button>
-          )}
-          <button
-            type="button"
-            className="btn-surface"
-            onClick={() => setHelpOpen(true)}
-            data-testid="header-help"
-            style={{
-              padding: '0.2rem 0.5rem',
-              fontSize: '12px',
-              background: 'transparent',
-              color: 'var(--text-muted)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-sm)',
-              cursor: 'pointer',
-            }}
-          >
-            Help
-          </button>
-          <Link
-            href="/dashboard"
-            className="btn-surface"
-            data-testid="header-dashboard"
-            style={{
-              padding: '0.2rem 0.5rem',
-              fontSize: '12px',
-              background: 'transparent',
-              color: 'var(--text-muted)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-sm)',
-              cursor: 'pointer',
-              textDecoration: 'none',
-            }}
-          >
-            Dashboard
-          </Link>
-          <a
-            href="/api/auth/logout"
-            className="btn-surface"
-            style={{
-              padding: '0.2rem 0.5rem',
-              fontSize: '12px',
-              background: 'transparent',
-              color: 'var(--text-muted)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-sm)',
-              cursor: 'pointer',
-              textDecoration: 'none',
-            }}
-          >
-            Logout
-          </a>
-          <button
-            type="button"
-            className="btn-surface"
-            onClick={() => setSettingsOpen(true)}
-            data-testid="header-settings"
-            style={{
-              padding: '0.2rem 0.5rem',
-              fontSize: '12px',
-              background: 'transparent',
-              color: 'var(--text-muted)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-sm)',
-              cursor: 'pointer',
-            }}
-          >
-            Settings
-          </button>
           <span style={{ width: '1px', height: '14px', background: 'var(--border)' }} aria-hidden />
           <span
             style={{
               width: '8px',
               height: '8px',
               borderRadius: '50%',
-              backgroundColor:
-                status === 'ok' ? '#22c55e' : status === 'error' ? '#ef4444' : '#eab308',
+              backgroundColor: status === 'ok' ? '#22c55e' : status === 'error' ? '#ef4444' : '#eab308',
             }}
             aria-hidden
           />
-          {status === 'ok' && (gatewayMode === 'edge' ? 'Edge' : gatewayMode === 'farm' ? 'Farm' : 'Gateway: local')}
+          {status === 'ok' && (
+            <>
+              {gatewayMode === 'edge' ? 'Edge' : gatewayMode === 'farm' ? (farmHealthy != null ? `Farm (${farmHealthy})` : 'Farm') : 'Gateway'}
+            </>
+          )}
           {status === 'error' && 'Disconnected'}
           {status === 'connecting' && 'Reconnecting…'}
           {status === 'idle' && 'Checking…'}
           {status !== 'ok' && (
             <button
               type="button"
-              onClick={() => {
-                setStatus('connecting');
-                void checkHealth().catch(() => {});
-              }}
-              style={{
-                marginLeft: '0.5rem',
-                padding: '0.2rem 0.5rem',
-                fontSize: '12px',
-                backgroundColor: 'transparent',
-                color: 'var(--text-muted)',
-                border: '1px solid var(--border)',
-                borderRadius: '4px',
-                cursor: 'pointer',
-              }}
+              onClick={() => { setStatus('connecting'); void checkHealth().catch(() => {}); }}
+              style={{ marginLeft: '0.5rem', ...headerBtn }}
             >
               Recheck
             </button>
@@ -1069,45 +902,68 @@ export function Chat() {
       >
         {messages.length === 0 && !streamingContent && !isLoading && (
           <>
-            <div style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>
-              <p style={{ color: 'var(--text)', fontSize: '15px', margin: '0 0 0.5rem', lineHeight: 1.5 }}>
-                JARVIS is your AI assistant. Ask anything, use skills, or try a suggestion below.
+            <div className="empty-state-welcome" style={{ marginTop: '2rem', marginBottom: '1.5rem', textAlign: 'center' }}>
+              <div
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: '50%',
+                  background: 'var(--accent)',
+                  color: 'var(--bg)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '28px',
+                  fontWeight: 700,
+                  marginBottom: '1rem',
+                }}
+                aria-hidden
+              >
+                J
+              </div>
+              <h2 style={{ margin: '0 0 0.35rem', fontSize: '1.25rem', fontWeight: 600, color: 'var(--text)' }}>
+                JARVIS
+              </h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0, lineHeight: 1.5 }}>
+                Your AI assistant. Ask anything, use skills, or pick a quick action below.
               </p>
-              <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0 }}>
-                {sessionId ? `Session: ${sessionId.slice(0, 14)}${sessionId.length > 14 ? '…' : ''}` : ''}
-              </p>
+              {sessionId && (
+                <p style={{ color: 'var(--text-muted)', fontSize: '12px', margin: '0.5rem 0 0' }}>
+                  Session: {sessionId.slice(0, 14)}{sessionId.length > 14 ? '…' : ''}
+                </p>
+              )}
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
               {[
-                'What can you do?',
-                'Give me a daily brief',
-                'Search the web for Next.js 15 release notes',
-                'Open Skills panel',
-              ].map((label) => (
+                { label: 'What can you do?', desc: 'See capabilities' },
+                { label: 'Give me a daily brief', desc: 'Quick summary' },
+                { label: 'Search the web for Next.js 15', desc: 'Web search' },
+                { label: 'Open Skills panel', desc: 'Tools & skills', action: () => setSkillsOpen(true) },
+              ].map(({ label, desc, action }) => (
                 <button
                   key={label}
                   type="button"
-                  className="btn-surface"
-                  onClick={() => {
-                    if (label === 'Open Skills panel') setSkillsOpen(true);
-                    else sendMessage(label);
-                  }}
+                  className="btn-surface empty-state-card"
+                  onClick={() => (action ? action() : sendMessage(label))}
                   style={{
-                    padding: '0.5rem 0.85rem',
+                    padding: '0.85rem 1rem',
                     fontSize: '13px',
                     background: 'var(--bg-elevated)',
-                    color: 'var(--accent)',
+                    color: 'var(--text)',
                     border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius-sm)',
+                    borderRadius: 'var(--radius-md)',
                     cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'border-color var(--transition-fast), box-shadow var(--transition-fast)',
                   }}
                 >
-                  {label}
+                  <span style={{ display: 'block', fontWeight: 600, color: 'var(--accent)', marginBottom: '0.2rem' }}>{label}</span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{desc}</span>
                 </button>
               ))}
             </div>
             <p style={{ color: 'var(--text-muted)', fontSize: '12px', margin: 0, lineHeight: 1.5 }}>
-              Tip: use <strong>/tools</strong> for skills, <strong>/clear</strong> to start fresh, <strong>Session</strong> to switch threads. Click <button type="button" onClick={() => setHelpOpen(true)} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: 0, fontSize: 'inherit', textDecoration: 'underline' }}>Help</button> for more.
+              Tip: <strong>/tools</strong> skills · <strong>/clear</strong> fresh start · <strong>Session</strong> in sidebar · <button type="button" onClick={() => setHelpOpen(true)} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: 0, fontSize: 'inherit', textDecoration: 'underline' }}>Help</button>
             </p>
             {status === 'error' && gatewayHint && (
               <div
@@ -1116,7 +972,7 @@ export function Chat() {
                   padding: '1rem',
                   background: 'var(--error-bg)',
                   border: '1px solid var(--error-text)',
-                  borderRadius: '8px',
+                  borderRadius: 'var(--radius-md)',
                   fontSize: '13px',
                   color: 'var(--error-text)',
                   lineHeight: 1.6,
@@ -1132,23 +988,22 @@ export function Chat() {
         {messages.map((m) => (
           <MessageComponent
             key={m.id}
+            messageId={m.id}
             role={m.role}
             content={m.content}
+            timestamp={m.createdAt}
             toolsUsed={m.meta?.tools_used}
             structuredResult={m.meta?.structured_result}
             backendUsed={m.meta?.backendUsed}
             onSpeak={m.role === 'assistant' ? speakReplyAndMaybeListen : undefined}
+            onRetry={m.role === 'user' ? handleRetry : undefined}
           />
         ))}
         {streamingContent && (
           <MessageComponent role="assistant" content={streamingContent} isStreaming />
         )}
         {isLoading && (
-          <MessageComponent
-            role="assistant"
-            content="Thinking…"
-            isStreaming
-          />
+          <MessageComponent role="assistant" content="" isStreaming isThinking />
         )}
       </div>
 
@@ -1193,6 +1048,7 @@ export function Chat() {
       />
       <SkillsPanel open={skillsOpen} onClose={() => setSkillsOpen(false)} />
       <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
+      </div>
     </div>
   );
 }

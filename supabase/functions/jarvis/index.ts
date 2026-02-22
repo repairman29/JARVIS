@@ -2,8 +2,8 @@
 // REST: POST / with body { "message": "...", "session_id?": "..." } → { "content": "..." }
 // MCP: POST / with body JSON-RPC 2.0 (initialize, tools/list, tools/call) → JSON-RPC response
 // Convenience: body.action "web_search" | "current_time" with query/timezone
-// Secrets: JARVIS_GATEWAY_URL, CLAWDBOT_GATEWAY_TOKEN; optional JARVIS_AUTH_TOKEN, NEURAL_FARM_BASE_URL
-// Memory: SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY → load/append session_messages (see JARVIS_MEMORY_WIRING.md)
+// Secrets: JARVIS_GATEWAY_URL (or NEURAL_FARM_BASE_URL set to same gateway/funnel URL), CLAWDBOT_GATEWAY_TOKEN; optional JARVIS_AUTH_TOKEN
+// Memory: SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY → load/append session_messages; optional JARVIS_EMBEDDING_URL for semantic recall (match_jarvis_memory_chunks)
 
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 
@@ -12,6 +12,50 @@ const LONG_CONTEXT_THRESHOLD = 20; // above this, use summary + recent N
 const RECENT_N = 15;
 const SUMMARY_UPDATE_INTERVAL = 10; // update session_summaries every K turns when over threshold
 const PREFS_SCOPE = "default";
+
+const MEMORY_CHUNKS_TOP_K = 5;
+const EMBEDDING_DIM = 768;
+
+/** Fetch embedding for text from optional JARVIS_EMBEDDING_URL (Ollama-style: POST { model, prompt } → { embedding }). */
+async function fetchEmbedding(text: string): Promise<number[] | null> {
+  const url = (Deno.env.get("JARVIS_EMBEDDING_URL") ?? "").trim();
+  if (!url || !text.trim()) return null;
+  const truncated = text.slice(0, 8000);
+  try {
+    const res = await fetch(url.replace(/\/$/, "") + "/api/embeddings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "nomic-embed-text", prompt: truncated }),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { embedding?: number[] };
+    const emb = data?.embedding;
+    if (!Array.isArray(emb) || emb.length !== EMBEDDING_DIM) return null;
+    return emb;
+  } catch {
+    return null;
+  }
+}
+
+/** Retrieve top relevant memory chunks for the user message and format for system prompt. */
+async function loadMemoryContext(
+  supabase: SupabaseClient,
+  userMessage: string,
+  sessionFilter: string | null
+): Promise<string> {
+  const embedding = await fetchEmbedding(userMessage);
+  if (!embedding) return "";
+  const { data: rows, error } = await supabase.rpc("match_jarvis_memory_chunks", {
+    query_embedding: embedding,
+    match_count: MEMORY_CHUNKS_TOP_K,
+    session_filter: sessionFilter,
+  });
+  if (error || !Array.isArray(rows) || rows.length === 0) return "";
+  const lines = (rows as { session_id?: string; source?: string; content?: string; similarity?: number }[])
+    .map((r) => `- [${r.session_id ?? ""}] ${(r.content ?? "").slice(0, 400)}`);
+  return `## Your Memory (use this to answer questions about past conversations):\n${lines.join("\n")}\n\nUse the above memory to inform your responses when relevant.`;
+}
 
 /** Load user preferences from jarvis_prefs for context injection. */
 async function loadPrefs(supabase: SupabaseClient, scope: string): Promise<string> {
@@ -249,7 +293,8 @@ async function callGateway(
   messages: { role: string; content: string | unknown[] }[],
   sessionId: string,
   stream: boolean,
-  imageDataUrl?: string
+  imageDataUrl?: string,
+  modelHint?: string
 ): Promise<{ content?: string; meta?: Record<string, unknown>; res?: Response; err?: string }> {
   const chatUrl = `${gatewayUrl.replace(/\/$/, "")}/v1/chat/completions`;
   const headers: Record<string, string> = {
@@ -265,6 +310,7 @@ async function callGateway(
     user: sessionId,
   };
   if (imageDataUrl && typeof imageDataUrl === "string") body.imageDataUrl = imageDataUrl;
+  if (modelHint && typeof modelHint === "string") body.model_hint = modelHint;
 
   const res = await fetch(chatUrl, {
     method: "POST",
@@ -301,36 +347,6 @@ async function callGateway(
   return { content: content || "No response from gateway.", meta: meta ?? undefined };
 }
 
-async function callFarm(
-  farmUrl: string,
-  messages: { role: string; content: string | unknown[] }[],
-  stream: boolean,
-): Promise<{ content?: string; meta?: Record<string, unknown>; res?: Response; err?: string }> {
-  const chatUrl = `${farmUrl.replace(/\/$/, "")}/v1/chat/completions`;
-  const body = {
-    model: "gemma-3-4b-it",
-    messages,
-    max_tokens: 1024,
-    stream,
-  };
-  const res = await fetch(chatUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(60000),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    return { err: text || res.statusText };
-  }
-  if (stream && res.body) return { res };
-  const text = await res.text();
-  let data: unknown;
-  try { data = text ? JSON.parse(text) : null; } catch { data = null; }
-  const content = extractContent(data);
-  return { content: content || "No response from farm." };
-}
-
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -364,9 +380,9 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  const gatewayUrl = Deno.env.get("JARVIS_GATEWAY_URL") || "http://127.0.0.1:18789";
+  // Single front door: gateway (funnel URL in prod). Gateway routes to farm or Groq internally.
+  const gatewayUrl = Deno.env.get("JARVIS_GATEWAY_URL") || Deno.env.get("NEURAL_FARM_BASE_URL") || "http://127.0.0.1:18789";
   const gatewayToken = Deno.env.get("CLAWDBOT_GATEWAY_TOKEN") || "";
-  const farmUrl = (Deno.env.get("NEURAL_FARM_BASE_URL") ?? "").trim();
   const wantStream = req.headers.get("x-stream") === "true";
 
   let body: Record<string, unknown>;
@@ -389,6 +405,92 @@ Deno.serve(async (req: Request) => {
     if (!supabase) return jsonResponse({ error: "Supabase not configured" }, 503);
     await appendSessionMessages(supabase, sessionId, rows);
     return jsonResponse({ ok: true });
+  }
+
+  // Enqueue session(s) for archivist: action=archive, optional session_id. If no session_id, enqueue all sessions that need archiving (>20 msgs or idle >30 min).
+  if (body && body.action === "archive") {
+    const supabase = getSupabase();
+    if (!supabase) return jsonResponse({ error: "Supabase not configured" }, 503);
+    const singleSessionId = typeof body.session_id === "string" ? body.session_id.trim() || null : null;
+    const minMessages = typeof body.min_messages === "number" ? body.min_messages : 20;
+    const idleMinutes = typeof body.idle_minutes === "number" ? body.idle_minutes : 30;
+
+    if (singleSessionId) {
+      const { error: insertErr } = await supabase.from("jarvis_archive_queue").insert({
+        session_id: singleSessionId,
+        requested_at: new Date().toISOString(),
+      });
+      if (insertErr) return jsonResponse({ error: insertErr.message }, 500);
+      return jsonResponse({ ok: true, queued: 1, session_id: singleSessionId });
+    }
+
+    const { data: toArchive, error: rpcErr } = await supabase.rpc("get_sessions_to_archive", {
+      min_messages: minMessages,
+      idle_minutes: idleMinutes,
+    });
+    if (rpcErr) return jsonResponse({ error: rpcErr.message }, 500);
+    const sessionIds = (toArchive ?? []) as { session_id: string }[];
+    const ids = sessionIds.map((r) => r.session_id).filter(Boolean);
+    if (ids.length === 0) return jsonResponse({ ok: true, queued: 0 });
+
+    const { data: existing } = await supabase
+      .from("jarvis_archive_queue")
+      .select("session_id")
+      .is("processed_at", null)
+      .in("session_id", ids);
+    const alreadyQueued = new Set(((existing ?? []) as { session_id: string }[]).map((r) => r.session_id));
+    const toInsert = ids.filter((id) => !alreadyQueued.has(id));
+    if (toInsert.length > 0) {
+      await supabase.from("jarvis_archive_queue").insert(
+        toInsert.map((session_id) => ({ session_id, requested_at: new Date().toISOString() }))
+      );
+    }
+    return jsonResponse({ ok: true, queued: toInsert.length, total_eligible: ids.length });
+  }
+
+  // Memory search: semantic search over jarvis_memory_chunks (for dashboard /api/memory). Requires JARVIS_EMBEDDING_URL.
+  if (body && body.action === "memory_search") {
+    const supabase = getSupabase();
+    if (!supabase) return jsonResponse({ error: "Supabase not configured" }, 503);
+    const query = typeof body.query === "string" ? body.query.trim() : "";
+    const limit = typeof body.limit === "number" ? Math.min(20, Math.max(1, body.limit)) : 10;
+    const sessionFilter = typeof body.session_id === "string" ? body.session_id.trim() || null : null;
+    if (!query) return jsonResponse({ error: "query required", results: [] }, 400);
+    const embedding = await fetchEmbedding(query);
+    if (!embedding) return jsonResponse({ results: [], message: "Embedding service not configured (JARVIS_EMBEDDING_URL)." });
+    const { data: rows, error } = await supabase.rpc("match_jarvis_memory_chunks", {
+      query_embedding: embedding,
+      match_count: limit,
+      session_filter: sessionFilter,
+    });
+    if (error) return jsonResponse({ error: error.message, results: [] }, 500);
+    const results = (rows ?? []) as { chunk_id?: string; session_id?: string; source?: string; content?: string; similarity?: number }[];
+    return jsonResponse({ results: results.map((r) => ({ session_id: r.session_id, source: r.source, content: (r.content ?? "").slice(0, 500), similarity: r.similarity })) });
+  }
+
+  // List recent sessions (for dashboard /api/sessions).
+  if (body && body.action === "list_sessions") {
+    const supabase = getSupabase();
+    if (!supabase) return jsonResponse({ error: "Supabase not configured" }, 503);
+    const limit = typeof body.limit === "number" ? Math.min(50, Math.max(1, body.limit)) : 20;
+    const { data: rows, error } = await supabase.rpc("get_recent_sessions", { limit_count: limit });
+    if (error) return jsonResponse({ error: error.message, sessions: [] }, 500);
+    const sessions = (rows ?? []) as { session_id?: string; message_count?: number; last_at?: string }[];
+    return jsonResponse({ sessions: sessions.map((s) => ({ session_id: s.session_id, message_count: s.message_count ?? 0, last_at: s.last_at })) });
+  }
+
+  // Recent agent loop / audit log entries (for dashboard /api/agent-log).
+  if (body && body.action === "get_agent_log") {
+    const supabase = getSupabase();
+    if (!supabase) return jsonResponse({ error: "Supabase not configured" }, 503);
+    const limit = typeof body.limit === "number" ? Math.min(100, Math.max(1, body.limit)) : 30;
+    const { data: rows, error } = await supabase
+      .from("jarvis_audit_log")
+      .select("id, created_at, action, details, channel, actor")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) return jsonResponse({ error: error.message, entries: [] }, 500);
+    return jsonResponse({ entries: rows ?? [] });
   }
 
   // MCP JSON-RPC
@@ -574,52 +676,22 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  // Prepend web-UI system prompt so JARVIS has identity and channel context (repo access via gateway workspace/index when configured). Inject prefs if available.
+  // Prepend web-UI system prompt so JARVIS has identity and channel context (repo access via gateway workspace/index when configured). Inject prefs and semantic memory if available.
   const hasSystem = messages.length > 0 && messages[0].role === "system";
   let systemContent = WEB_UI_SYSTEM_PROMPT;
   const supabaseForPrefs = getSupabase();
   if (supabaseForPrefs) {
     const prefs = await loadPrefs(supabaseForPrefs, sessionId);
     if (prefs) systemContent += "\n\n" + prefs;
-  }
-  const modelHint = body.model_hint as string | undefined;
-  const useFarm = farmUrl && (modelHint === "fast" || modelHint === "free");
-
-  if (useFarm) {
-    const farmSystemPrompt = "You are JARVIS, a helpful AI assistant. Be concise and friendly.";
-    const farmMessages = hasSystem
-      ? messages
-      : [{ role: "system" as const, content: farmSystemPrompt }, ...messages];
-    const result = await callFarm(farmUrl, farmMessages, wantStream);
-    if (result.err) {
-      // Farm failed — fall through to main gateway
-    } else {
-      const supabase = getSupabase();
-      if (supabase && userMessagesThisTurn.length > 0 && !wantStream && result.content) {
-        await appendSessionMessages(supabase, sessionId, [
-          ...userMessagesThisTurn,
-          { role: "assistant", content: result.content },
-        ]);
-      }
-      if (result.res && result.res.body) {
-        return new Response(result.res.body, {
-          status: 200,
-          headers: {
-            "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache",
-            Connection: "keep-alive",
-            ...corsHeaders,
-          },
-        });
-      }
-      const payload: { content: string; meta?: Record<string, unknown> } = {
-        content: result.content || "No response from farm.",
-      };
-      if (result.meta && Object.keys(result.meta).length > 0) payload.meta = result.meta;
-      return jsonResponse({ ...payload, tier: "free" });
+    // Semantic recall: inject top relevant memory chunks for the latest user message (optional; requires JARVIS_EMBEDDING_URL).
+    // Pass null for session filter to search ALL archived sessions, not just the current one.
+    const lastUserContent = userMessagesThisTurn.length > 0 ? userMessagesThisTurn[userMessagesThisTurn.length - 1].content : "";
+    if (lastUserContent) {
+      const memoryContext = await loadMemoryContext(supabaseForPrefs, lastUserContent, null);
+      if (memoryContext) systemContent += "\n\n" + memoryContext;
     }
   }
-
+  const modelHint = body.model_hint as string | undefined;
   if (modelHint === "fast") systemContent += "\n\nUser requested: use the fast/cheap model for this turn (quick answers).";
   if (modelHint === "best") systemContent += "\n\nUser requested: use the best/strong model for this turn (deep work, complex reasoning).";
   const messagesWithSystem = hasSystem
@@ -650,7 +722,8 @@ Deno.serve(async (req: Request) => {
     messagesToSend,
     sessionId,
     wantStream,
-    undefined
+    undefined,
+    modelHint
   );
 
   if (result.err) {

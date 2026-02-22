@@ -217,13 +217,41 @@ function StatusCard({
   );
 }
 
+interface SessionRow {
+  session_id: string;
+  message_count: number;
+  last_at: string;
+}
+
+interface AgentLogEntry {
+  id: string;
+  created_at: string;
+  action: string;
+  details?: Record<string, unknown> | null;
+  channel?: string | null;
+  actor?: string | null;
+}
+
+interface MemoryResult {
+  session_id?: string;
+  source?: string;
+  content?: string;
+  similarity?: number;
+}
+
 export default function DashboardPage() {
   const [data, setData] = useState<StatusData | null>(null);
   const [farmData, setFarmData] = useState<FarmData | null>(null);
+  const [sessions, setSessions] = useState<SessionRow[]>([]);
+  const [agentLog, setAgentLog] = useState<AgentLogEntry[]>([]);
+  const [memoryQuery, setMemoryQuery] = useState('');
+  const [memoryResults, setMemoryResults] = useState<MemoryResult[]>([]);
+  const [memoryLoading, setMemoryLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [farmLoading, setFarmLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [rechecking, setRechecking] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
 
   const fetchFarm = useCallback(async () => {
     try {
@@ -254,17 +282,62 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const fetchSessions = useCallback(async () => {
+    try {
+      const res = await fetch('/api/sessions?limit=15', { cache: 'no-store' });
+      const json = await res.json();
+      setSessions(Array.isArray(json.sessions) ? json.sessions : []);
+    } catch {
+      setSessions([]);
+    }
+  }, []);
+
+  const fetchAgentLog = useCallback(async () => {
+    try {
+      const res = await fetch('/api/agent-log?limit=20', { cache: 'no-store' });
+      const json = await res.json();
+      setAgentLog(Array.isArray(json.entries) ? json.entries : []);
+    } catch {
+      setAgentLog([]);
+    }
+  }, []);
+
+  const searchMemory = useCallback(async () => {
+    const q = memoryQuery.trim();
+    if (!q) return;
+    setMemoryLoading(true);
+    try {
+      const res = await fetch(`/api/memory?q=${encodeURIComponent(q)}&limit=8`, { cache: 'no-store' });
+      const json = await res.json();
+      setMemoryResults(Array.isArray(json.results) ? json.results : []);
+    } catch {
+      setMemoryResults([]);
+    } finally {
+      setMemoryLoading(false);
+    }
+  }, [memoryQuery]);
+
   useEffect(() => {
     void fetchStatus();
     void fetchFarm();
-    const t = setInterval(() => { void fetchStatus(); void fetchFarm(); }, 30000);
+    void fetchSessions();
+    void fetchAgentLog();
+    const t = setInterval(() => {
+      void fetchStatus();
+      void fetchFarm();
+      void fetchSessions();
+      void fetchAgentLog();
+    }, 30000);
     return () => clearInterval(t);
-  }, [fetchStatus, fetchFarm]);
+  }, [fetchStatus, fetchFarm, fetchSessions, fetchAgentLog]);
 
   const recheck = () => {
     setRechecking(true);
+    setLastRefreshed(new Date());
     void fetchStatus();
     void fetchFarm();
+    void fetchSessions();
+    void fetchAgentLog();
   };
 
   return (
@@ -285,13 +358,33 @@ export default function DashboardPage() {
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: '0.75rem',
-          marginBottom: '1.5rem',
+          marginBottom: '1rem',
           paddingBottom: '1rem',
           borderBottom: '1px solid var(--border)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>JARVIS Status</h1>
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              background: 'var(--accent)',
+              color: 'var(--bg)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1rem',
+              fontWeight: 700,
+            }}
+            aria-hidden
+          >
+            J
+          </div>
+          <div>
+            <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>JARVIS Status</h1>
+            <p style={{ margin: '0.15rem 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>Backend, farm, sessions &amp; memory</p>
+          </div>
           <Link
             href="/"
             className="btn-surface"
@@ -325,24 +418,31 @@ export default function DashboardPage() {
             Logout
           </a>
         </div>
-        <button
-          type="button"
-          className="btn-surface"
-          onClick={recheck}
-          disabled={rechecking || loading}
-          style={{
-            padding: '0.35rem 0.75rem',
-            fontSize: '13px',
-            background: 'var(--accent)',
-            color: 'var(--bg)',
-            border: 'none',
-            borderRadius: 'var(--radius-sm)',
-            cursor: rechecking || loading ? 'not-allowed' : 'pointer',
-            opacity: rechecking || loading ? 0.7 : 1,
-          }}
-        >
-          {rechecking ? 'Checking…' : 'Recheck'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {lastRefreshed && (
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+              Last refreshed {lastRefreshed.toLocaleTimeString()}
+            </span>
+          )}
+          <button
+            type="button"
+            className="btn-surface"
+            onClick={recheck}
+            disabled={rechecking || loading}
+            style={{
+              padding: '0.35rem 0.75rem',
+              fontSize: '13px',
+              background: 'var(--accent)',
+              color: 'var(--bg)',
+              border: 'none',
+              borderRadius: 'var(--radius-sm)',
+              cursor: rechecking || loading ? 'not-allowed' : 'pointer',
+              opacity: rechecking || loading ? 0.7 : 1,
+            }}
+          >
+            {rechecking ? 'Checking…' : 'Recheck'}
+          </button>
+        </div>
       </header>
 
       {loading && !data && (
@@ -413,8 +513,128 @@ export default function DashboardPage() {
             <FarmMonitor data={farmData} loading={farmLoading} />
           </div>
 
+          <section style={{ marginTop: '2rem' }} aria-labelledby="dashboard-sessions">
+            <h2 id="dashboard-sessions" style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.75rem' }}>Active sessions</h2>
+            <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+              {sessions.length === 0 ? (
+                <p style={{ padding: '1.25rem 1rem', margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>No active sessions. Start a conversation in Chat to see sessions here.</p>
+              ) : (
+                <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+                  {sessions.slice(0, 15).map((s) => (
+                    <li
+                      key={s.session_id}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        borderBottom: '1px solid var(--border)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        fontSize: '13px',
+                      }}
+                    >
+                      <span style={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>{s.session_id}</span>
+                      <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap', marginLeft: '0.5rem' }}>
+                        {s.message_count} msgs · {s.last_at ? new Date(s.last_at).toLocaleString() : '—'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </section>
+
+          <section style={{ marginTop: '2rem' }} aria-labelledby="dashboard-memory">
+            <h2 id="dashboard-memory" style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.75rem' }}>Memory</h2>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+              <input
+                type="text"
+                placeholder="Search past memories…"
+                value={memoryQuery}
+                onChange={(e) => setMemoryQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && searchMemory()}
+                style={{
+                  flex: 1,
+                  padding: '0.5rem 0.75rem',
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'var(--text)',
+                  fontSize: '13px',
+                }}
+              />
+              <button
+                type="button"
+                onClick={searchMemory}
+                disabled={memoryLoading || !memoryQuery.trim()}
+                className="btn-surface"
+                style={{ padding: '0.5rem 1rem', fontSize: '13px', whiteSpace: 'nowrap' }}
+              >
+                {memoryLoading ? 'Searching…' : 'Search'}
+              </button>
+            </div>
+            {memoryResults.length > 0 ? (
+              <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '0.75rem' }}>
+                {memoryResults.map((r, i) => (
+                  <div key={i} style={{ padding: '0.5rem 0', borderBottom: i < memoryResults.length - 1 ? '1px solid var(--border)' : 'none', fontSize: '12px' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>{r.session_id} · {r.source}</span>
+                    {r.similarity != null && <span style={{ marginLeft: '0.5rem', color: 'var(--text-muted)' }}>({(r.similarity * 100).toFixed(0)}%)</span>}
+                    <p style={{ margin: '0.25rem 0 0', color: 'var(--text)' }}>{(r.content || '').slice(0, 300)}{(r.content && r.content.length > 300 ? '…' : '')}</p>
+                  </div>
+                ))}
+              </div>
+            ) : memoryQuery.trim() ? (
+              <p style={{ padding: '1rem', margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>No matching memories. Try another query or chat more to build memory.</p>
+            ) : null}
+          </section>
+
+          <section style={{ marginTop: '2rem' }} aria-labelledby="dashboard-agent">
+            <h2 id="dashboard-agent" style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.75rem' }}>Agent activity</h2>
+            <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+              {agentLog.length === 0 ? (
+                <p style={{ padding: '1.25rem 1rem', margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>No agent log yet. The agent loop runs every 5 min and will appear here.</p>
+              ) : (
+                <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+                  {agentLog.slice(0, 20).map((e) => (
+                    <li
+                      key={e.id}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        borderBottom: '1px solid var(--border)',
+                        fontSize: '12px',
+                        color: 'var(--text)',
+                      }}
+                    >
+                      <span style={{ fontWeight: 600 }}>{e.action}</span>
+                      {e.channel && <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem' }}>{' · '}{e.channel}</span>}
+                      <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem' }}>{new Date(e.created_at).toLocaleString()}</span>
+                      {e.details && typeof e.details === 'object' && Object.keys(e.details).length > 0 && (
+                        <pre style={{ margin: '0.25rem 0 0', fontSize: '11px', overflow: 'auto', maxHeight: '4rem' }}>{JSON.stringify(e.details)}</pre>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </section>
+
+          <section style={{ marginTop: '2rem' }} aria-labelledby="dashboard-actions">
+            <h2 id="dashboard-actions" style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.75rem' }}>Quick actions</h2>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <Link
+                href="/"
+                className="btn-surface"
+                style={{ padding: '0.5rem 1rem', fontSize: '13px', textDecoration: 'none', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)' }}
+              >
+                Send test message (Chat)
+              </Link>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)', alignSelf: 'center' }}>
+                Restart farm / swap model: run <code style={{ background: 'var(--bg-elevated)', padding: '0.1rem 0.3rem', borderRadius: 'var(--radius-sm)' }}>start-pixel-farm-tunnel.sh</code> or gateway config.
+              </span>
+            </div>
+          </section>
+
           <p style={{ marginTop: '1.5rem', fontSize: '12px', color: 'var(--text-muted)' }}>
-            Status refreshes every 30s. Use Recheck to update now. Chat uses Farm (free) when model hint is &quot;fast&quot; or &quot;free&quot;; otherwise Edge/Railway.
+            Status refreshes every 30s. Use Recheck to update now. All chat goes through the gateway (farm or Groq).
           </p>
         </>
       )}

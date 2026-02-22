@@ -5,7 +5,9 @@
  *
  * Usage:
  *   node scripts/archive-jarvis-sessions.js [--dry-run] [--session-id ID] [--sessions-with-activity-in-days 7] [--max-sessions N] [--delay-ms N]
+ *   node scripts/archive-jarvis-sessions.js [--from-queue] [--dry-run] [--delay-ms N]
  *
+ * Auto-archive: use Edge Function POST action=archive (no body) to enqueue idle/long sessions; then run with --from-queue (e.g. from cron or launchd).
  * I/O limits: --max-sessions (default 50) caps how many sessions to process; --delay-ms (default 500) waits between sessions to avoid hammering Supabase/Ollama.
  *
  * Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY; OLLAMA_BASE_URL (default http://localhost:11434) for embeddings.
@@ -40,10 +42,11 @@ const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
 
 function parseArgs() {
-  const out = { dryRun: false, sessionId: null, sessionsWithActivityInDays: 7, maxSessions: 50, delayMs: 500 };
+  const out = { dryRun: false, sessionId: null, sessionsWithActivityInDays: 7, maxSessions: 50, delayMs: 500, fromQueue: false };
   for (let i = 2; i < process.argv.length; i++) {
     const arg = process.argv[i];
     if (arg === '--dry-run') out.dryRun = true;
+    else if (arg === '--from-queue') out.fromQueue = true;
     else if (arg === '--session-id' && process.argv[i + 1]) out.sessionId = process.argv[++i].trim();
     else if (arg === '--sessions-with-activity-in-days' && process.argv[i + 1]) {
       out.sessionsWithActivityInDays = Math.max(1, parseInt(process.argv[++i], 10) || 7);
@@ -94,10 +97,38 @@ function naiveTopics(summary) {
 }
 
 /**
- * Get session IDs to archive: either a single --session-id or sessions with messages in the last N days.
+ * Get session IDs from jarvis_archive_queue where processed_at is null (--from-queue).
+ */
+async function getSessionsFromQueue() {
+  const res = await sbFetch(
+    '/rest/v1/jarvis_archive_queue?processed_at=is.null&select=id,session_id&order=requested_at.asc'
+  );
+  if (!res.ok) throw new Error(`jarvis_archive_queue GET: ${res.status} ${await res.text()}`);
+  const rows = await res.json();
+  return rows || [];
+}
+
+/**
+ * Mark a queue row as processed (or failed).
+ */
+async function markQueueProcessed(queueId, error = null) {
+  const body = error ? { processed_at: new Date().toISOString(), error: String(error).slice(0, 500) } : { processed_at: new Date().toISOString() };
+  const res = await sbFetch(`/rest/v1/jarvis_archive_queue?id=eq.${queueId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error(`jarvis_archive_queue PATCH: ${res.status} ${await res.text()}`);
+}
+
+/**
+ * Get session IDs to archive: either from queue (--from-queue), a single --session-id, or sessions with messages in the last N days.
  */
 async function getSessionsToArchive(args) {
-  if (args.sessionId) return [args.sessionId];
+  if (args.fromQueue) {
+    const rows = await getSessionsFromQueue();
+    return rows.map((r) => ({ sessionId: r.session_id, queueId: r.id }));
+  }
+  if (args.sessionId) return [{ sessionId: args.sessionId, queueId: null }];
 
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - args.sessionsWithActivityInDays);
@@ -107,7 +138,7 @@ async function getSessionsToArchive(args) {
   if (!res.ok) throw new Error(`session_messages GET: ${res.status} ${await res.text()}`);
   const rows = await res.json();
   const ids = [...new Set((rows || []).map((r) => r.session_id).filter(Boolean))];
-  return ids;
+  return ids.map((sessionId) => ({ sessionId, queueId: null }));
 }
 
 /** Load summary for a session if any. */
@@ -128,7 +159,7 @@ async function getSessionMessages(sessionId, limit = 50) {
   return rows || [];
 }
 
-async function archiveOneSession(sessionId, args) {
+async function archiveOneSession(sessionId, args, queueId = null) {
   const summary = await getSessionSummary(sessionId);
   const messages = await getSessionMessages(sessionId);
 
@@ -185,6 +216,7 @@ async function archiveOneSession(sessionId, args) {
   });
   if (!chunkRes.ok) throw new Error(`jarvis_memory_chunks POST: ${chunkRes.status} ${await chunkRes.text()}`);
 
+  if (queueId) await markQueueProcessed(queueId, null);
   return { session_id: sessionId, archive_id: archiveId, chunks: 1 };
 }
 
@@ -197,26 +229,30 @@ async function main() {
 
   console.log('JARVIS Archivist');
   console.log('  --dry-run:', args.dryRun);
+  console.log('  --from-queue:', args.fromQueue);
   console.log('  --session-id:', args.sessionId || '(all with activity)');
   console.log('  --sessions-with-activity-in-days:', args.sessionsWithActivityInDays);
   if (args.dryRun) console.log('  (dry run: no writes)\n');
 
-  let sessionIds = await getSessionsToArchive(args);
-  sessionIds = sessionIds.slice(0, args.maxSessions);
-  console.log('Sessions to process:', sessionIds.length, args.maxSessions < 1e6 ? `(capped at ${args.maxSessions})` : '');
+  let items = await getSessionsToArchive(args);
+  items = items.slice(0, args.maxSessions);
+  console.log('Sessions to process:', items.length, args.maxSessions < 1e6 ? `(capped at ${args.maxSessions})` : '');
   console.log('  I/O: delay between sessions', args.delayMs, 'ms');
 
   const results = [];
-  for (let i = 0; i < sessionIds.length; i++) {
-    const sessionId = sessionIds[i];
+  for (let i = 0; i < items.length; i++) {
+    const { sessionId, queueId } = items[i];
     if (i > 0 && !args.dryRun && args.delayMs > 0) await sleep(args.delayMs);
     try {
-      const r = await archiveOneSession(sessionId, args);
+      const r = await archiveOneSession(sessionId, args, queueId);
       results.push(r);
       if (r.skipped) console.log('  Skip', sessionId, r.reason);
       else if (r.dry_run) console.log('  Would archive', sessionId);
       else console.log('  Archived', sessionId, '→', r.archive_id);
     } catch (err) {
+      if (queueId && !args.dryRun) {
+        try { await markQueueProcessed(queueId, err.message); } catch (e) { /* ignore */ }
+      }
       console.error('  Error', sessionId, err.message);
       results.push({ session_id: sessionId, error: err.message });
     }

@@ -198,6 +198,37 @@ html, body {
   51%, 100% { opacity: 0; }
 }
 
+@keyframes thinking-dot {
+  0%, 100% { opacity: 0.3; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+.message-fade-in {
+  animation: messageFadeIn 0.2s var(--ease, ease) forwards;
+}
+@keyframes messageFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.composer-send:not(:disabled):hover {
+  background: var(--accent-hover) !important;
+  color: var(--bg) !important;
+}
+
+@keyframes composer-mic-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--accent-glow); }
+  50% { opacity: 0.9; box-shadow: 0 0 0 8px transparent; }
+}
+.composer-mic-listening {
+  animation: composer-mic-pulse 1.5s ease-in-out infinite;
+}
+
+.empty-state-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
 @keyframes modal-in {
   from {
     opacity: 0;
@@ -222,7 +253,32 @@ html, body {
 
 @media (prefers-reduced-motion: reduce) {
   .modal-content-in,
-  .panel-in {
+  .panel-in,
+  .message-fade-in,
+  .message-thinking-dots span,
+  .composer-mic-listening {
     animation: none;
   }
+}
+
+/* Session sidebar layout */
+.chat-with-sidebar {
+  display: flex;
+  height: 100%;
+  position: relative;
+}
+.chat-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  margin-left: 0;
+}
+@media (min-width: 768px) {
+  .chat-main.with-sidebar {
+    margin-left: 260px;
+  }
+}
+.session-sidebar.mobile-hidden {
+  transform: translateX(-100%);
 }

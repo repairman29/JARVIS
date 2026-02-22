@@ -56,10 +56,22 @@ launchctl list | grep clawdbot
 - **Log an audit event from scripts:** `node scripts/audit-log.js <event_action> [details] [--channel CH] [--actor WHO]`. Requires `JARVIS_EDGE_URL` and optional `JARVIS_AUTH_TOKEN` in `~/.clawdbot/.env`. Example: `node scripts/audit-log.js exec "npm run build" --channel cron --actor deploy`.
 - **Prune JARVIS memory (session_messages + session_summaries):** `node scripts/prune-jarvis-memory.js [--dry-run] [--max-messages-per-session 100] [--session-max-age-days 30]`. Needs `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in `~/.clawdbot/.env`. Run `--dry-run` first. Schedule weekly if desired (e.g. cron `0 2 * * 0` = Sun 2 AM). See [docs/JARVIS_MEMORY_CONSOLIDATION.md](docs/JARVIS_MEMORY_CONSOLIDATION.md).
 - **Edge secrets:** Set `JARVIS_GATEWAY_URL`, `CLAWDBOT_GATEWAY_TOKEN`, optional `JARVIS_AUTH_TOKEN` in Dashboard → Edge Functions → jarvis → Secrets (or `supabase secrets set`). When the gateway (e.g. farm or relay) requires auth, set **`CLAWDBOT_GATEWAY_TOKEN`** in Edge secrets to the same value the gateway expects. **Edge vs Pixel farm:** See [docs/JARVIS_EDGE_AND_PIXEL_FARM.md](docs/JARVIS_EDGE_AND_PIXEL_FARM.md) and [docs/notes/edge-farm-hybrid-mac.md](docs/notes/edge-farm-hybrid-mac.md) — deployed site uses farm only when Edge can reach the gateway (e.g. relay or Tailscale Funnel).
+- **Brain migrations (archive queue, recent sessions):** After `supabase db push`, you get `jarvis_archive_queue`, `get_sessions_to_archive()`, and `get_recent_sessions()`. Used by dashboard and auto-archive.
+
+## JARVIS Brain (gateway, memory, agent loop, dashboard)
+
+- **Single front door:** All chat goes through the gateway (e.g. Tailscale Funnel → gateway :18789). Farm balancer stays on :8899 and is used only by the gateway. Config: `~/.clawdbot/clawdbot.json` (farm `baseUrl` → 8899, primary model `farm/auto`).
+- **Funnel → gateway:** `start-pixel-farm-tunnel.sh` (and `JARVIS/infra/neural-farm/start-pixel-farm-tunnel.sh`) point Tailscale serve/funnel at **gateway port 18789**, not the farm. Restart funnel after change: re-run the script or `tailscale funnel --bg --https=443 http://localhost:18789`.
+- **Memory (semantic recall):** Edge injects top memory chunks into the system prompt when `JARVIS_EMBEDDING_URL` is set (Ollama-style `/api/embeddings`). Populate memory by running the archivist (see below). Dashboard **Memory** search uses `/api/memory?q=...`.
+- **Auto-archive:** POST to Edge with `action: "archive"` (optional `session_id`) to enqueue sessions for archiving. Process queue: `node scripts/archive-jarvis-sessions.js --from-queue` (e.g. from cron or launchd). Manual one session: `node scripts/archive-jarvis-sessions.js --session-id <id>`. Env: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OLLAMA_BASE_URL` (for embeddings).
+- **Proactive agent loop:** `node ~/jarvis-agent-loop.js` runs every 5 min (farm/gateway/GitHub/Vercel checks) and logs alerts to `jarvis_audit_log`. One-shot: `node ~/jarvis-agent-loop.js --once`. Auto-start on login: `launchctl load ~/Library/LaunchAgents/com.jarvis.agent-loop.plist` (logs: `~/tmp/jarvis-agent-loop.log`). Unload: `launchctl unload ~/Library/LaunchAgents/com.jarvis.agent-loop.plist`.
+- **Dashboard:** `/dashboard` — system health, farm nodes, active sessions, memory search, agent activity, quick actions. APIs: `/api/sessions`, `/api/memory`, `/api/agent-log`.
 
 ## JARVIS UI
 
-- **App:** `apps/jarvis-ui/` — Next.js chat UI; `npm run dev` → http://localhost:3001 (talks to gateway or Edge).
+- **App:** `apps/jarvis-ui/` — Next.js chat UI. Dev: `npm run dev` (from `apps/jarvis-ui`) → http://localhost:3001; build: `npm run build`. The app talks to the gateway or Supabase Edge (depending on env).
+- **Where it runs:** Local: http://localhost:3001. Production: Vercel project **jarvis-ui** (see "Log / dashboard links" for Vercel URL). Deploy: `vercel --prod` from `apps/jarvis-ui`.
+- **Chat UX:** Chat uses a fixed session sidebar (desktop) with session list, "+ New chat", and optional first-message previews; overlay + hamburger on mobile. Header: Dashboard, Settings, More (Copy thread, Save transcript, Run and copy, Skills, Theme, Voice, Help, Logout). Messages show relative time, avatars, hover actions (Copy, Speak, Retry), and thinking state. Composer: send button, character count when long, slash-command suggestions, mic pulse when listening.
 - **Gateway contract:** [docs/JARVIS_UI_GATEWAY_CONTRACT.md](docs/JARVIS_UI_GATEWAY_CONTRACT.md) — response shapes for tool visibility (2.6), structured output (2.7), run-and-copy (4.8). When gateway/Edge send `meta.tools_used` or support run_once, the UI shows chips or "Run and copy result."
 - **Gateway implementers:** See [docs/GATEWAY_IMPLEMENTER.md](docs/GATEWAY_IMPLEMENTER.md) (one-page entry point). To show **"Used: X"** chips and **structured blocks** in the UI, the gateway must send `meta` (tools_used, structured_result) in every response where tools were used; full checklist and shapes in [docs/JARVIS_GATEWAY_META.md](docs/JARVIS_GATEWAY_META.md). Edge already passes through meta and maps `tool_calls` → tools_used when present.
 
@@ -194,6 +206,27 @@ clawdbot status | grep -A10 Sessions
 
 **Pipeline:** `node scripts/run-team-pipeline.js` — safety net → BEAST MODE quality → Code Roach health → Echeo. Use `--quality-only` or `--no-safety-net`; `--webhook` posts summary to Discord. **Quality only:** `node scripts/run-team-quality.js` [repo]. **Index:** **docs/ORCHESTRATION_SCRIPTS.md** — pipeline scripts, scheduled agents (watchdog, heartbeat, autonomous build, repo index), and scheduling.
 
+### Cron Jobs (Mac)
+
+View current cron: `crontab -l`
+
+| Schedule | Job | Log |
+|----------|-----|-----|
+| Every 6h | `jarvis-autonomous-heartbeat.js` | — |
+| Every 5m | `watchdog-jarvis-local.js` | `~/.jarvis/logs/watchdog.log` |
+| 8 AM, 2 PM, 8 PM | `jarvis-autonomous-plan-execute.js` | — |
+| Hourly | `dev_farm.sh --bg` (start farm if down) | `~/.jarvis/logs/farm-keeper.log` |
+| 2 AM | `jarvis-autonomous-plan-execute.js` | `~/.jarvis/plan-execute.log` |
+| Every 5m | `pixel-health-check-and-restart.sh` | `/tmp/pixel-health.log` |
+| **Every 2h** | `archive-jarvis-sessions.js --from-queue` | `~/.jarvis/logs/archivist.log` |
+
+To edit cron: `crontab -e`
+
+Example entry:
+```
+0 */2 * * * HOME=/Users/jeffadkins /opt/homebrew/bin/node /Users/jeffadkins/JARVIS/scripts/archive-jarvis-sessions.js --from-queue >> ~/.jarvis/logs/archivist.log 2>&1
+```
+
 ## Product Owner Mode
 
 Clawdbot is set up as a product owner and development partner.
@@ -313,6 +346,145 @@ JARVIS and the gateway have "spicy" access (filesystem, terminal, exec, workflow
 
 ---
 
+## Neural Farm (distributed LLM cluster)
+
+The Neural Farm is a local LLM cluster using phones and the Mac as inference nodes. The farm balancer (`~/farm-balancer.js`) load-balances across nodes and provides failover.
+
+### Architecture
+
+```
+Tailscale Funnel (https://jeffs-macbook-air.tail047a68.ts.net)
+    │
+    ├── / → Gateway (:18789)
+    │       └── farm/auto → Farm Balancer (:8899)
+    │
+    └── /api/embeddings → Farm Balancer (:8899) → Ollama (:11434)
+
+Farm Balancer (:8899)
+    ├── mac (localhost:11434) — Ollama: phi3:mini, qwen2.5-coder, llama3.1
+    ├── pixel (100.75.3.115:8889) — ChatterUI/InferrLM: Qwen2.5-3B-Instruct
+    ├── iphone15 (100.91.240.55:8889) — PocketPal: Llama-3.2-3B-Instruct
+    └── iphone16 (100.102.220.122:8889) — PocketPal: Qwen3-4B, Llama-3.2-1B
+```
+
+### Quick Commands
+
+```bash
+# Check farm status
+curl -s http://localhost:8899/health | python3 -m json.tool
+
+# One-liner status
+curl -s http://localhost:8899/health | python3 -c "import sys,json; d=json.load(sys.stdin); print(f\"Farm: {d['healthy']}/{d['total']} healthy\"); [print(f\"  {n['name']}: {'UP' if n['healthy'] else 'DOWN'} - {n['models'][:2]}\") for n in d['nodes']]"
+
+# Test chat through farm
+curl -s http://localhost:8899/v1/chat/completions -H "Content-Type: application/json" \
+  -d '{"model":"auto","messages":[{"role":"user","content":"Hi"}],"max_tokens":20}'
+
+# Restart farm balancer (resets error counters)
+pkill -f "farm-balancer.js"; sleep 1; nohup node ~/farm-balancer.js > ~/farm-balancer.log 2>&1 &
+
+# View farm balancer log
+tail -f ~/farm-balancer.log
+```
+
+### Troubleshooting Nodes
+
+**Node shows DOWN:**
+
+1. **Check connectivity** (replace IP/port with node's):
+   ```bash
+   curl -s --max-time 5 http://100.75.3.115:8889/v1/models
+   ```
+
+2. **For Pixel** — Uses Tailscale IP `100.75.3.115:8889`. If down:
+   ```bash
+   # SSH and check processes
+   ssh pixel@192.168.86.209 'ps aux | grep -E "node|python" | grep -v grep'
+   
+   # Check what's listening
+   ssh pixel@192.168.86.209 'netstat -tlnp 2>/dev/null | head -10'
+   ```
+   The relay (ChatterUI/InferrLM) must be running on the phone. Open the app and start the server.
+
+3. **For iPhones** — Uses PocketPal app. Open the app and ensure the server is running.
+
+4. **For Mac (Ollama)** — Health check uses `/` endpoint (returns "Ollama is running"):
+   ```bash
+   # Check Ollama is running
+   curl -s http://localhost:11434/
+   
+   # List models
+   curl -s http://localhost:11434/v1/models
+   
+   # Start Ollama if needed
+   ollama serve
+   ```
+
+**Node shows UP but 100% errors:**
+
+The health check passes but chat requests fail. Common causes:
+- Model not loaded / wrong model name
+- Context window exceeded
+- Network intermittent
+
+Fix: Restart the farm balancer to reset error counters, then test a chat request directly to the node.
+
+### Farm Balancer Configuration
+
+Config is in `~/farm-balancer.js` under `NODES`:
+
+```javascript
+const NODES = [
+  { name: 'mac', host: '127.0.0.1', port: 11434, api: 'openai', tier: 'smart', parallel: 2 },
+  { name: 'pixel', host: '100.75.3.115', port: 8889, api: 'openai', tier: 'primary', parallel: 2 },
+  { name: 'iphone15', host: '100.91.240.55', port: 8889, api: 'openai', tier: 'primary', parallel: 1 },
+  { name: 'iphone16', host: '100.102.220.122', port: 8889, api: 'openai', tier: 'primary', parallel: 1 },
+];
+```
+
+- **host**: Tailscale IP (100.x.x.x) for phones; `127.0.0.1` for local
+- **port**: 8889 for phones (InferrLM/PocketPal), 11434 for Ollama
+- **tier**: `primary` (fast, small models), `smart` (slower, larger models for complex tasks)
+- **parallel**: Max concurrent requests per node
+
+After editing, restart the balancer.
+
+### Tailscale Funnel Setup
+
+The funnel exposes the gateway publicly so Supabase Edge can reach it:
+
+```bash
+# Current setup
+tailscale serve status
+
+# Reset and configure
+tailscale serve reset
+tailscale serve --bg http://localhost:18789                    # / → gateway
+tailscale serve --bg --set-path=/api/embeddings http://localhost:8899  # embeddings → farm
+tailscale funnel --bg --https=443 http://localhost:18789       # enable public access
+
+# Test funnel
+curl -s https://jeffs-macbook-air.tail047a68.ts.net/v1/models
+```
+
+### Embeddings for Memory
+
+The farm balancer proxies `/api/embeddings` (and `/` POST for Tailscale path stripping) to Ollama for semantic search:
+
+```bash
+# Test embeddings directly
+curl -s http://localhost:8899/api/embeddings -H "Content-Type: application/json" \
+  -d '{"model":"nomic-embed-text","prompt":"test"}'
+
+# Through funnel
+curl -s -X POST https://jeffs-macbook-air.tail047a68.ts.net/api/embeddings \
+  -H "Content-Type: application/json" -d '{"model":"nomic-embed-text","prompt":"test"}'
+```
+
+Edge secret `JARVIS_EMBEDDING_URL` should point to the funnel URL (`https://jeffs-macbook-air.tail047a68.ts.net`).
+
+---
+
 ## Key Paths
 
 | What | Path |
@@ -323,4 +495,46 @@ JARVIS and the gateway have "spicy" access (filesystem, terminal, exec, workflow
 | Sessions | `~/.clawdbot/agents/main/sessions/` |
 | Memory DB | `~/.clawdbot/memory/main.sqlite` |
 | Workspace | `~/jarvis/` |
-| LaunchAgent | `~/Library/LaunchAgents/com.clawdbot.gateway.plist` |
+| LaunchAgent (gateway) | `~/Library/LaunchAgents/com.clawdbot.gateway.plist` |
+| LaunchAgent (agent loop) | `~/Library/LaunchAgents/com.jarvis.agent-loop.plist` |
+| Farm balancer | `~/farm-balancer.js` |
+| Farm balancer log | `~/farm-balancer.log` |
+| Agent loop log | `~/tmp/jarvis-agent-loop.log` |
+| Archivist log | `~/.jarvis/logs/archivist.log` |
+| Load test script | `~/JARVIS/scripts/load-test-farm.js` |
+
+---
+
+## Discord Alerts
+
+The agent loop can send Discord alerts when critical issues (farm or gateway down) are detected.
+
+**Setup:**
+
+1. Create a Discord webhook in your server (Server Settings → Integrations → Webhooks)
+2. Add to `~/.clawdbot/.env`:
+   ```
+   JARVIS_DISCORD_WEBHOOK=https://discord.com/api/webhooks/YOUR_WEBHOOK_URL
+   ```
+3. Restart the agent loop:
+   ```bash
+   launchctl kickstart -k gui/$(id -u)/com.jarvis.agent-loop
+   ```
+
+Alerts are sent only for critical issues (farm or gateway down), not for informational items like GitHub notifications.
+
+---
+
+## Load Testing
+
+Test farm concurrency with the load test script:
+
+```bash
+# Default: 10 requests, 4 concurrent
+node ~/JARVIS/scripts/load-test-farm.js
+
+# Custom
+node ~/JARVIS/scripts/load-test-farm.js --requests=20 --concurrency=6
+```
+
+The farm should handle parallel requests across all nodes. Check `~/farm-balancer.log` for routing decisions.

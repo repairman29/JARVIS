@@ -93,6 +93,11 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
   const [interimTranscript, setInterimTranscript] = useState('');
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [attachedImageDataUrl, setAttachedImageDataUrl] = useState<string | null>(null);
+  const [composerValue, setComposerValue] = useState('');
+  const [showSlashSuggestions, setShowSlashSuggestions] = useState(false);
+
+  const CHAR_LIMIT_HINT = 8000;
+  const SLASH_COMMANDS = ['/clear', '/tools', '/session ', '/fast', '/best', '/model'];
 
   useEffect(() => {
     onSubmitRef.current = onSubmit;
@@ -284,6 +289,14 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
     return () => document.removeEventListener('keydown', onKeyDown);
   }, []);
 
+  const onComposerInput = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    const v = el.value;
+    setComposerValue(v);
+    setShowSlashSuggestions(v.startsWith('/'));
+  }, []);
+
   const submit = useCallback(() => {
     const el = textareaRef.current;
     if (!el || disabled) return;
@@ -296,12 +309,16 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
       el.value = '';
       el.style.height = 'auto';
       setAttachedImageDataUrl(null);
+      setComposerValue('');
+      setShowSlashSuggestions(false);
       return;
     }
     if (text === '/tools') {
       onSlashTools?.();
       el.value = '';
       el.style.height = 'auto';
+      setComposerValue('');
+      setShowSlashSuggestions(false);
       return;
     }
     if (text.startsWith('/session ')) {
@@ -309,30 +326,40 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
       onSlashSession?.(name);
       el.value = '';
       el.style.height = 'auto';
+      setComposerValue('');
+      setShowSlashSuggestions(false);
       return;
     }
     if (text === '/fast') {
       onSlashFast?.();
       el.value = '';
       el.style.height = 'auto';
+      setComposerValue('');
+      setShowSlashSuggestions(false);
       return;
     }
     if (text === '/best') {
       onSlashBest?.();
       el.value = '';
       el.style.height = 'auto';
+      setComposerValue('');
+      setShowSlashSuggestions(false);
       return;
     }
     if (text === '/model') {
       onSlashModelClear?.();
       el.value = '';
       el.style.height = 'auto';
+      setComposerValue('');
+      setShowSlashSuggestions(false);
       return;
     }
     onSubmit(text || (hasImage ? 'What’s in this image?' : ''), hasImage ? { imageDataUrl: attachedImageDataUrl ?? undefined } : undefined);
     el.value = '';
     el.style.height = 'auto';
     setAttachedImageDataUrl(null);
+    setComposerValue('');
+    setShowSlashSuggestions(false);
   }, [onSubmit, disabled, attachedImageDataUrl, onSlashClear, onSlashTools, onSlashSession]);
 
   // Focus composer on load so developer can type immediately (Phase 1.1)
@@ -370,9 +397,14 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
           setAttachedImageDataUrl(null);
           return;
         }
-        el.value = '';
-        el.style.height = 'auto';
-        el.blur();
+        setShowSlashSuggestions(false);
+        if (el.value) {
+          el.value = '';
+          el.style.height = 'auto';
+          setComposerValue('');
+        } else {
+          el.blur();
+        }
         return;
       }
       if (e.key === 'Enter' && !e.shiftKey) {
@@ -425,6 +457,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
           placeholder={isListening ? 'Listening…' : placeholder}
           rows={1}
           aria-label="Message JARVIS"
+          onInput={onComposerInput}
           onPaste={onPaste}
           className="composer-input"
           style={{
@@ -443,6 +476,30 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
             outline: 'none',
           }}
         />
+        <button
+          type="button"
+          onClick={() => submit()}
+          disabled={disabled || (!composerValue.trim() && !attachedImageDataUrl)}
+          aria-label="Send"
+          title="Send message"
+          className="btn-surface composer-send"
+          style={{
+            flexShrink: 0,
+            width: 44,
+            height: 44,
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border)',
+            background: composerValue.trim() || attachedImageDataUrl ? 'var(--accent)' : 'var(--bg)',
+            color: composerValue.trim() || attachedImageDataUrl ? 'var(--bg)' : 'var(--text-muted)',
+            cursor: disabled || (!composerValue.trim() && !attachedImageDataUrl) ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '18px',
+          }}
+        >
+          <span aria-hidden>↑</span>
+        </button>
         {speechSupported && (
           <button
             type="button"
@@ -455,10 +512,11 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
             disabled={disabled}
             aria-label={isListening ? 'Stop voice input (or release to send)' : 'Voice input (hold to talk, release to send)'}
             title={isListening ? 'Stop listening or release to send' : 'Voice input — click to toggle, or hold and release to send'}
+            className={isListening ? 'btn-surface composer-mic-listening' : 'btn-surface'}
             style={{
               flexShrink: 0,
-              width: '44px',
-              height: '44px',
+              width: 44,
+              height: 44,
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border)',
               background: isListening ? 'var(--accent)' : 'var(--bg)',
@@ -478,6 +536,28 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
           </button>
         )}
       </div>
+      {showSlashSuggestions && composerValue.startsWith('/') && (
+        <div style={{ marginTop: '0.35rem', padding: '0.25rem 0', display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+          {SLASH_COMMANDS.filter((c) => c.startsWith(composerValue) || c.startsWith(composerValue.trim()) || composerValue.trim() === '/').slice(0, 6).map((cmd) => (
+            <button
+              key={cmd}
+              type="button"
+              className="btn-surface"
+              onClick={() => {
+                const el = textareaRef.current;
+                if (el) {
+                  el.value = cmd;
+                  setComposerValue(cmd);
+                  el.focus();
+                }
+              }}
+              style={{ padding: '0.2rem 0.5rem', fontSize: '12px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', color: 'var(--accent)', cursor: 'pointer' }}
+            >
+              {cmd}
+            </button>
+          ))}
+        </div>
+      )}
       {(isListening || interimTranscript) && (
         <p style={{ margin: '0.35rem 0 0', fontSize: '12px', color: 'var(--accent)' }}>
           {isListening ? 'Listening…' : ''}
@@ -515,13 +595,20 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
           🎤 {voiceError}
         </p>
       )}
-      <p style={{ margin: '0.5rem 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
-        Enter to send · Shift+Enter new line · Esc clear · Cmd+J focus
-        {speechSupported && ' · 🎤 Voice'}
-        {!speechSupported && (
-          <span title="Speech Recognition API"> · Voice input not supported in this browser (try Chrome or Edge)</span>
+      <p style={{ margin: '0.5rem 0 0', fontSize: '12px', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <span>
+          Enter to send · Shift+Enter new line · Esc clear · Cmd+J focus
+          {speechSupported && ' · 🎤 Voice'}
+          {!speechSupported && (
+            <span title="Speech Recognition API"> · Voice not supported (try Chrome or Edge)</span>
+          )}
+          {' · Paste image · /clear, /tools, /fast, /best, /model'}
+        </span>
+        {composerValue.length >= 2000 && (
+          <span style={{ color: composerValue.length > CHAR_LIMIT_HINT ? 'var(--error-text)' : 'var(--text-muted)' }}>
+            {composerValue.length.toLocaleString()} chars
+          </span>
         )}
-        {' · Paste image to attach · /clear, /session, /tools, /fast, /best, /model'}
       </p>
     </div>
   );
