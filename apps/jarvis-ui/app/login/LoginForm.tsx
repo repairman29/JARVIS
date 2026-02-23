@@ -35,8 +35,13 @@ export function LoginForm({ sessionExpired = false }: { sessionExpired?: boolean
 
         const data = await res.json().catch(() => null);
         if (res.ok) {
-          if (typeof data?.token === 'string') setSessionToken(data.token);
-          await new Promise((r) => setTimeout(r, 200));
+          if (typeof data?.token === 'string') {
+            setSessionToken(data.token);
+            // Give sessionStorage time to persist before full-page redirect (helps on Vercel)
+            await new Promise((r) => setTimeout(r, 400));
+          } else {
+            await new Promise((r) => setTimeout(r, 200));
+          }
           window.location.href = '/';
           return;
         }

@@ -63,19 +63,13 @@ export function requireSession(req: NextRequest): NextResponse | null {
 
   const cookie = req.cookies.get(COOKIE_NAME)?.value;
   const bearer = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '').trim();
-  const token = cookie || bearer || '';
+  // Accept cookie OR Bearer; try both so a valid token works even if cookie is wrong (e.g. Vercel env mismatch)
+  if (cookie && verifySession(cookie, secret)) return null;
+  if (bearer && verifySession(bearer, secret)) return null;
 
-  if (!token) {
-    return NextResponse.json(
-      { error: 'Unauthorized', reason: 'no_cookie' },
-      { status: 401 }
-    );
-  }
-  if (!verifySession(token, secret)) {
-    return NextResponse.json(
-      { error: 'Unauthorized', reason: 'invalid_cookie' },
-      { status: 401 }
-    );
-  }
-  return null;
+  const hasEither = Boolean(cookie || bearer);
+  return NextResponse.json(
+    { error: 'Unauthorized', reason: hasEither ? 'invalid_cookie' : 'no_cookie' },
+    { status: 401 }
+  );
 }
