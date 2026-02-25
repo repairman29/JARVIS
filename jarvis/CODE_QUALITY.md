@@ -12,6 +12,8 @@ How JARVIS, BEAST MODE, and the rest of the operations team **write and ship bet
 
 So: **lint/build/test → BEAST MODE quality → deploy**. No shortcuts.
 
+**Single quality gate outcome:** Before deploy, the **BEAST MODE quality gate must pass** (e.g. `beast-mode quality score` result acceptable per repo/BEAST-MODE config, or the BEAST-MODE quality workflow run succeeds). Do not deploy if the gate fails or was skipped.
+
 ---
 
 ## 2. When implementing (JARVIS and subagents)
@@ -43,6 +45,8 @@ So: **lint/build/test → BEAST MODE quality → deploy**. No shortcuts.
 
 JARVIS is the **conductor**: he runs these gates and does not skip them when shipping. See **jarvis/AGENTS.md** and **docs/JARVIS_OWNS_SHIPPING.md**.
 
+**CI vs BEAST MODE:** CI (lint/build/knip/CodeQL) runs on push/PR; JARVIS still runs build_server_pipeline and BEAST MODE before deploy so the pre-ship gate is the same for human and agent changes. See **docs/DEV_DELIVERY_TOOLS.md**.
+
 ---
 
 ## 5. Cursor / human edits
@@ -66,7 +70,7 @@ Use this when **you are writing or shipping code** (as JARVIS, BEAST MODE, or a 
 
 **Before deploy (ship):**
 - [ ] Lint and test are green (run again if unsure).
-- [ ] Run BEAST MODE quality (e.g. `beast-mode quality score` or workflow_dispatch for BEAST-MODE repo); fix issues or get user confirmation.
+- [ ] **BEAST MODE:** Run the **canonical** quality step (TOOLS.md: prefer workflow_dispatch on BEAST-MODE repo for quality when available, else `beast-mode quality score`). **Do not deploy if this step fails or is skipped** — fix issues or get explicit user confirmation before proceeding.
 - [ ] Deploy (workflow_dispatch or platform CLI); do not skip the quality step.
 
 **Style:** Clear names, small functions, comment *why* when non-obvious, types for new code (no `any` unless necessary).

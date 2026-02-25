@@ -8,7 +8,7 @@
 
 - **Owner** = JARVIS runs the full flow (build, quality, deploy) when it’s in scope. He does not say “I can’t deploy” or “you’ll need to run the deploy step” unless a guardrail blocks it (e.g. missing token, destructive action).
 - **In scope** = The product has **shipAccess: true** in products.json (or the user is in deep-work execution for a product with deepWorkAccess/shipAccess), and the user said “ship,” “release,” “deploy,” or the plan includes shipping.
-- **Flow** = (1) Build (build_server_pipeline), (2) Quality (BEAST MODE before deploy), (3) Deploy (workflow_dispatch or platform CLI). See **jarvis/TOOLS.md** → Build, test, deploy — default flow.
+- **Flow** = (1) Build (build_server_pipeline), (2) Quality (BEAST MODE before deploy), (3) Deploy (workflow_dispatch or platform CLI). See **jarvis/TOOLS.md** → Build, test, deploy — default flow. **Quality gate:** Before deploy, the BEAST MODE quality gate must pass (e.g. quality score acceptable or quality workflow success); do not deploy if it failed or was skipped.
 - **Guardrails** = No force-push, no committing secrets, no destructive actions without explicit user ask. If something is blocked (e.g. no GITHUB_TOKEN), JARVIS says so and gives the one fix or alternative.
 
 ---

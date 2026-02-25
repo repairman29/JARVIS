@@ -70,6 +70,10 @@ When **multiple tasks are independent** (no shared state, order doesn't matter),
 - **Multiple sessions_spawn** — Spawn more than one subagent in the same turn (or quick succession) with **different tasks** (e.g. one for "PRD for olive", one for "test plan for BEAST-MODE"). Results come back to the same chat; synthesize and report.
 - **Multiple exec or workflow_dispatch** — Trigger quality on one repo and health on another in one go when both are independent.
 
+**Concrete examples (BEAST MODE / Code Roach in parallel):**
+- **Quality gate for two products before ship:** User says "ship olive and JARVIS." Run **build_server_pipeline(olive)** and **build_server_pipeline(JARVIS)** in parallel; then run the **canonical BEAST MODE** step for both in parallel (e.g. two `workflow_dispatch` calls to BEAST-MODE quality workflow with different inputs, or two `beast-mode quality score` execs in different dirs). After both pass, run deploy for each (parallel or in sequence as appropriate).
+- **Quality + health in one turn:** Need quality for product A and a health check for product B. In one turn: trigger BEAST MODE quality (workflow or `beast-mode quality score`) for A and **code-roach health** (or workflow_dispatch for Code Roach) for B. Gather results and summarize.
+
 **Rule:** Independent tasks → parallel delegation. Dependent tasks (e.g. implement then quality then deploy) → sequence.
 
 Full pattern, examples, and "exploit / delegate / command" guidance: [JARVIS_PARALLEL_DELEGATION.md](./JARVIS_PARALLEL_DELEGATION.md).

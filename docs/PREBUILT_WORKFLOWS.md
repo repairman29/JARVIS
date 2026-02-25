@@ -128,6 +128,8 @@ Or explicitly:
 
 One-phrase triggers so JARVIS runs the **right agent sequence** without you specifying each step. You guide intent; JARVIS orchestrates BEAST MODE, Code Roach, Echeo, and workflow_dispatch.
 
+**BEAST MODE — agent-facing quality gate:** JARVIS calls BEAST MODE via **one** workflow or CLI: **github_workflow_dispatch** on the BEAST-MODE repo’s quality workflow when it exists, otherwise **exec:** `beast-mode quality score`. That single hook runs the full quality gate. See **jarvis/TOOLS.md** (BEAST MODE row + "BEAST MODE — agent-facing quality gate") and **jarvis/BEAST_MODE_PM.md** (AI agents — APIs and workflows).
+
 | Trigger | What JARVIS does |
 |---------|-------------------|
 | **"Run a triad on [product]"** / **"Swarm on [product]"** | Product-owner pass: define PRD (or outline), create ~3 issues, propose 2-milestone roadmap. Uses **repo_summary(product.repo)** for context; does not invent domains. See **jarvis/PO_SWARMS.md**. |

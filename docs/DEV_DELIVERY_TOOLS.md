@@ -26,6 +26,8 @@
 | **CodeQL** | `.github/workflows/codeql.yml` | Security/code scanning on push/PR + weekly; results in Security tab. |
 | **E2E on preview** | `.github/workflows/jarvis-ui-e2e-preview.yml` | On jarvis-ui PRs: build → Vercel preview deploy → Playwright. Needs VERCEL_TOKEN. |
 
+**CI vs pre-ship gate:** CI (lint, build, Knip, CodeQL) runs on push/PR. JARVIS still runs **build_server_pipeline** and **BEAST MODE** before deploy so the pre-ship quality gate is consistent whether changes come from a human or from JARVIS.
+
 ---
 
 ## 3. Tool landscape (investigated)

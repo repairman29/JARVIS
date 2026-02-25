@@ -423,7 +423,7 @@ When building out products (deep work, full product cycle), JARVIS should **orch
 | System | How JARVIS invokes it | When |
 |--------|------------------------|------|
 | **Build server** | **build_server_pipeline(repo)**, **build_server_build(repo, command)**. Default for build/test. | Build, test, "ship" (build+test before deploy). |
-| **BEAST MODE** | Exec: `beast-mode quality score`, `beast-mode janitor enable`, `beast-mode vibe restore`, `beast-mode architecture check`. Or `github_workflow_dispatch` on BEAST-MODE repo. | Quality after implement, before ship. |
+| **BEAST MODE** | **Canonical (before ship):** Prefer **github_workflow_dispatch** on BEAST-MODE repo for a quality workflow (e.g. `quality.yml`) when that workflow exists; otherwise **exec:** `beast-mode quality score` (and optionally `beast-mode janitor enable`, `beast-mode vibe restore`, `beast-mode architecture check`). Use one path consistently so the quality gate is the same every time. | Quality after implement, before ship. |
 | **BEAST MODE pipeline status** | Exec: `node scripts/run-beast-mode-status.js` (from JARVIS repo). Prints queue (TODO/in progress/done) and active milestone %. | "How's BEAST MODE?", "BEAST MODE status", "pipeline status", "assembly line status". |
 | **BEAST MODE run one tick** | Exec: `node scripts/run-beast-mode-tick.js` (from JARVIS repo). Runs one heartbeat tick (task gen, reset stale, QA/Integration/etc). | "Run a BEAST MODE tick", "trigger beast mode", "run beast mode heartbeat now". |
 | **Set focus repo (next to work on)** | Exec: `node scripts/set-focus-repo.js` (show current) or `node scripts/set-focus-repo.js <repo>` (e.g. olive, JARVIS). Moves that repo to top of products.json so plan-execute, heartbeat, and "work top down" use it. | "We're done with BEAST MODE", "switch to next repo", "set focus to olive", "what's the next repo?". |
@@ -436,6 +436,8 @@ When building out products (deep work, full product cycle), JARVIS should **orch
 | **sessions_spawn** | Spawn subagent with task + deliverables + ETA. | Long implementation runs. |
 | **JARVIS autonomous build** | `node scripts/jarvis-autonomous-build.js`. | After push to JARVIS repo; or scheduled. |
 | **Team status** | **get_team_status** (team-status skill). Reads `~/.jarvis/team-status.json` (refresh with `node scripts/team-status.js`). | "Who's on the team?", "Is BEAST MODE available?", "team status". |
+
+**BEAST MODE — agent-facing quality gate:** One entry point runs the full quality gate: when the BEAST-MODE repo has a quality workflow (e.g. `quality.yml`), use **github_workflow_dispatch** on that workflow; otherwise use **exec:** `beast-mode quality score`. JARVIS uses this for "quality gate before ship," before deploy, and for intent triggers in **docs/PREBUILT_WORKFLOWS.md** (§ Intent-engineering flows). See **jarvis/BEAST_MODE_PM.md** (AI agents — APIs and workflows).
 
 Full build flow and table: **docs/JARVIS_AGENT_ORCHESTRATION.md**. AGENTS.md → "Agent orchestration" instructs JARVIS to use these when doing deep work or building out a product.
 
