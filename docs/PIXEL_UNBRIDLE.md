@@ -2,6 +2,8 @@
 
 **Unbridle** = remove Android’s limits so the Pixel can run JARVIS 24/7 as the brain without the system killing Termux or the stack. One-time setup from your Mac (ADB).
 
+**Tested on:** Android 16 (Pixel). Wireless debugging uses the same pair-then-connect flow as Android 11+; use the latest [SDK Platform-Tools](https://developer.android.com/tools/releases/platform-tools) (e.g. `adb version` 35+). On Mac: `brew upgrade android-platform-tools` if needed.
+
 ---
 
 ## What it does
@@ -17,11 +19,18 @@
 
 - **USB:** Plug the Pixel in and enable **USB debugging** (Settings → Developer options). When “Allow USB debugging?” appears, tap **Allow** (and optionally “Always allow from this computer”).
 - **Wireless (legacy):** After one USB connection, run `adb tcpip 5555` then `adb connect <pixel-ip>:5555`. Use the same Wi‑Fi as the Mac.
-- **Wireless debugging (Android 11+):** On the Pixel: **Settings → Developer options → Wireless debugging** → turn **On**, then tap **Wireless debugging**. The screen shows **IP address & port** (e.g. `192.168.86.209:40113` or, on Tailscale, `100.75.3.115:37603`). From the Mac:
+- **Wireless debugging (Android 11+):** There are **two different ports** — use the right one for each step:
+  | Step | Where on Pixel | Use for |
+  |------|----------------|---------|
+  | **Pair port** | Tap **“Pair device with pairing code”** → dialog shows IP:port + 6-digit code | `adb pair <ip>:<pair-port> <code>` (one-time) |
+  | **Connect port** | Main **Wireless debugging** screen → “IP address & port” | `adb connect <ip>:<connect-port>` (every time; port changes after reboot) |
+  The pair port and connect port are **not** the same. Using the connect port in `adb pair` causes “protocol fault”.
+  **Or** use the script (it will prompt for pair port, code, connect port):
   ```bash
-  adb connect <pixel-ip>:<port>
+  cd ~/JARVIS && bash scripts/pixel-adb-pair-and-connect.sh 100.75.3.115 <pair_port> <code> <connect_port>
   ```
-  **The port changes after every reboot.** If you reboot the Pixel, open Wireless debugging again, note the new port, and run `adb connect <pixel-ip>:<new-port>`.
+  (Replace with your IP; get pair_port/code from the pairing dialog, connect_port from the main screen. Tailscale example: `... 36775 446966 39457`.)
+  **The port(s) change after every reboot.** After reboot, run `adb connect <ip>:<new-connect-port>` (no need to pair again unless you revoked authorizations).
 
   **Multiple devices or one target:** Use the serial so ADB targets the Pixel:
   ```bash
@@ -72,6 +81,19 @@ adb shell dumpsys deviceidle whitelist +com.termux
 
 You can also use **Wake lock** in Termux settings (see **PIXEL_AS_BRAIN.md**).
 
+### 5. Battery: Unrestricted for Termux (stops Android from killing it)
+
+Even with PPK bypass, Android can still kill Termux if the app is “optimized” for battery. On the **Pixel**:
+
+1. **Settings → Apps → Termux** (or **See all apps** → Termux).
+2. **Battery** → set to **Unrestricted** (or **Don’t optimize** / **Not optimized** depending on Android version).
+
+If Termux is set to **Optimized** or **Restricted**, the system may kill it in the background. Unrestricted keeps it running so the gateway and cron stay up.
+
+### 6. Wake lock (in Termux)
+
+In **Termux** → **Settings** (or long-press terminal) → enable **Wake lock**. So the device doesn’t deep-sleep Termux when the screen is off.
+
 ---
 
 ## Verify
@@ -97,8 +119,50 @@ You should see **PASS** for `max_phantom_processes` and **PASS** for `monitor_ph
 | 2 | `bash scripts/adb-pixel-ppk-bypass.sh` (or `ADB_SERIAL=<ip>:<port> bash scripts/adb-pixel-ppk-bypass.sh`) |
 | 3 | **Reboot the Pixel** |
 | 4 | (Optional) `adb shell dumpsys deviceidle whitelist +com.termux` (or with `-s <ip>:<port>`) |
-| 5 | **After reboot:** Wireless debugging port changes — get new IP:port from phone, run `adb connect <ip>:<new-port>`. If monitor re-enabled, run `adb -s <ip>:<port> shell settings put global settings_enable_monitor_phantom_procs false`. |
+| 5 | **Battery:** On the Pixel, **Settings → Apps → Termux → Battery → Unrestricted** (so Android doesn’t kill Termux for battery). |
+| 6 | **Wake lock:** In Termux, **Settings → Wake lock** ON. |
+| 7 | **After reboot:** Wireless debugging port changes — get new IP:port from phone, run `adb connect <ip>:<new-port>`. If monitor re-enabled, run `adb -s <ip>:<port> shell settings put global settings_enable_monitor_phantom_procs false`. |
 
-After this, the Pixel is unbridled: PPK won’t kill the JARVIS stack. Keep **Wake lock** ON in Termux and use **PIXEL_AS_BRAIN.md** so it stays the brain 24/7.
+**Verify:** From the Mac run `bash scripts/verify-pixel-unbridle.sh` to confirm PPK and whitelist. Then double-check Battery = Unrestricted and Wake lock ON on the device.
+
+After this, the Pixel is unbridled: PPK won’t kill the JARVIS stack, and Battery Unrestricted + Wake lock keep it running. Use **PIXEL_AS_BRAIN.md** so it stays the brain 24/7. If the gateway still dies, the **watchdog** (cron every 5 min) will restart the stack; see **PIXEL_SERVICES_RUNBOOK.md**.
 
 **References:** [PIXEL_VOICE_RUNBOOK.md §1](./PIXEL_VOICE_RUNBOOK.md#1-adb-phantom-process-limit), [SOVEREIGN_MOBILE_NEXUS.md §2.2](./SOVEREIGN_MOBILE_NEXUS.md#22-phantom-process-killer-ppk--full-bypass).
+
+---
+
+## Troubleshooting ADB connection
+
+### “protocol fault” on `adb pair`
+
+Android uses **two different ports**:
+
+- **Pairing port** — Shown only when you tap **“Pair device with pairing code”** (a different dialog). Use this port for `adb pair <ip>:<pair-port> <code>`.
+- **Connect port** — Shown on the main **Wireless debugging** screen (e.g. `100.75.3.115:39457`). Use this for `adb connect <ip>:<connect-port>` after pairing.
+
+If you use the connect port in `adb pair`, you can get `protocol fault (couldn't read status message)`. On the Pixel: open **Wireless debugging** → tap **“Pair device with pairing code”** → use the **IP:port** from that dialog in `adb pair`, and the **port** from the main screen in `adb connect`.
+
+**If you still get “protocol fault” with the correct pair port and code:**
+
+1. **Pixel:** Enable **both** **USB debugging** and **Wireless debugging** (pairing can fail if only one is on).
+2. **Pixel:** **Wi‑Fi → tap your network → Privacy** (or similar) and **disable “Random MAC address”** (or “Private Wi‑Fi address”); then reconnect to Wi‑Fi.
+3. **Mac:** Restart ADB: `adb kill-server && adb start-server`, then run `adb pair <ip>:<pair_port> <code>` again.
+4. **Tailscale:** If you're pairing over Tailscale (e.g. 100.75.x.x), try the same steps on **local Wi‑Fi** first (Mac and Pixel on same LAN, use the phone’s 192.168.x.x address). If pairing works on LAN but not over Tailscale, use the **USB workaround** below for remote access.
+
+### “Operation not permitted” on `adb connect`
+
+Often **macOS Firewall** blocking outbound ADB. Try:
+
+- **System Settings → Network → Firewall** (or **Security & Privacy → Firewall**): allow **adb** or **Android Debug Bridge**, or allow **Terminal**. Or temporarily turn the firewall off to confirm.
+- If you use a VPN or Tailscale, try with the Mac and Pixel on the same Wi‑Fi (no VPN) to rule out routing issues.
+
+### Reliable workaround: USB once, then wireless
+
+You can avoid pairing entirely:
+
+1. Connect the Pixel to the Mac with a **USB cable**. Enable **USB debugging** and tap **Allow** on the phone.
+2. In Terminal: `adb tcpip 5555` then unplug the cable.
+3. On the Pixel, note its **Tailscale IP** (e.g. **100.75.3.115**). Then on the Mac: `adb connect 100.75.3.115:5555`.
+4. Run unbridle: `cd ~/JARVIS && ADB_SERIAL=100.75.3.115:5555 bash scripts/adb-pixel-ppk-bypass.sh` then **reboot** the Pixel.
+
+After reboot, the phone will listen on 5555 again (until the next reboot). Reconnect with `adb connect 100.75.3.115:5555` and run `ADB_SERIAL=100.75.3.115:5555 bash scripts/verify-pixel-unbridle.sh`.
