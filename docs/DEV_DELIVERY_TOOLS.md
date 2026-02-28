@@ -60,7 +60,7 @@
 
 ### 3.5 CI/CD and previews (faster, reliable delivery)
 
-- **GitHub Actions** – We already use it (deploy-site, test-skills, upshift-app-scan). Add jobs for jarvis-ui lint/build and optional E2E.
+- **GitHub Actions** – We already use it (test-skills, upshift-app-scan, jarvis-ui E2E, etc.). Site/docs deploy is via Vercel; no GitHub Pages. Add jobs for jarvis-ui lint/build and optional E2E as needed.
 - **Vercel for GitHub** – Auto preview per PR; no extra workflow needed for jarvis-ui if repo is connected.
 - **Vercel + Actions (advanced)** – Use `vercel build` + `vercel deploy --prebuilt` when we need custom steps before deploy; use a **preview URL poller** so E2E runs only when the preview is ready (avoids flaky “deploy not ready” failures).
 - **Railway** – Preview deploys via GitHub integration or actions like `railway-preview-deploy` for PRs.

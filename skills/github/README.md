@@ -37,7 +37,7 @@ Connect JARVIS to your GitHub account using a Personal Access Token (PAT). Use i
 - **PRs**: Create or list PRs with `github_pulls`.
 - **Workers (GitHub Actions)**: Use `github_workflow_dispatch` to run a workflow. The workflow must have `workflow_dispatch` in its YAML. Use `github_workflows` to see available workflow IDs (e.g. `deploy.yml`).
 
-Example: *"Trigger the deploy workflow on JARVIS repo"* → `github_workflow_dispatch({ owner: "repairman29", repo: "JARVIS", workflow_id: "deploy-site.yml", ref: "main" })`.
+Example: *"Trigger a workflow on JARVIS repo"* → `github_workflow_dispatch({ owner: "repairman29", repo: "JARVIS", workflow_id: "test-skills.yml", ref: "main" })`. (Site deploy is via Vercel; use workflow_dispatch for test-skills or other Actions.)
 
 ## Env
 

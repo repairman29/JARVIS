@@ -35,8 +35,8 @@ Use this skill for **GitHub**: list repos, manage **issues** and **PRs**, and **
 - **"Create an issue in repairman29/JARVIS: Add dark mode"**  
   `github_issues({ action: "create", owner: "repairman29", repo: "JARVIS", title: "Add dark mode" })`
 
-- **"Trigger deploy workflow on JARVIS"**  
-  `github_workflow_dispatch({ owner: "repairman29", repo: "JARVIS", workflow_id: "deploy-site.yml", ref: "main" })`
+- **"Trigger a workflow on JARVIS"** (e.g. test-skills or a repo’s deploy workflow)  
+  `github_workflow_dispatch({ owner: "repairman29", repo: "JARVIS", workflow_id: "test-skills.yml", ref: "main" })`
 
 - **"List open PRs in repairman29/JARVIS"**  
   `github_pulls({ action: "list", owner: "repairman29", repo: "JARVIS", state: "open" })`
