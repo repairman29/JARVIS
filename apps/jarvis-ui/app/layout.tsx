@@ -13,6 +13,12 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: 'JARVIS',
   description: 'Developer-grade chat UI for JARVIS — Clawdbot gateway',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'JARVIS',
+  },
 };
 
 export const viewport: Viewport = {
