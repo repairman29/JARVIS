@@ -8,16 +8,16 @@
 
 | Node | What it is | Where it lives |
 |------|------------|----------------|
-| **JARVIS (this repo)** | Gateway + UI + skills + scripts. The “brain” that runs on your Mac (or Railway). | This repo: `scripts/`, `apps/`, `skills/`, `jarvis/`, `supabase/` |
+| **JARVIS (this repo)** | Gateway + UI + skills + scripts. **Primary server: Pixel.** Mac (or Railway) can run it too; Pixel-first is the "little JARVIS server" setup. | This repo: `scripts/`, `apps/`, `skills/`, `jarvis/`, `supabase/` |
 | **Neural Farm** | Local LLM cluster (Pixel + optional iPhone) behind one API. Cursor/JARVIS talk to it. | **Sibling repo:** `neural-farm/` (e.g. `~/neural-farm`). Not inside JARVIS. |
-| **Pixel** | Optional edge node: JARVIS/voice/chat on Android. Scripts and skills in this repo; device is separate. | This repo: `scripts/ssh-pixel*.sh`, `scripts/pixel-*.sh`, `skills/pixel-*` |
+| **Pixel** | **JARVIS server** (recommended): gateway, chat, Discord, skills, cron. Runs in Termux+Proot; self-starts at boot, watchdog restarts if down. Mac uses it as a client. | This repo: `scripts/pixel-*.sh`, `scripts/termux-boot-*`, `skills/pixel-*` |
 | **Olive** | Product (shopolive.xyz). Separate repo; JARVIS has docs and Kroger skill here. | **Separate repo:** olive. This repo: `docs/OLIVE_*.md`, `skills/kroger/` |
 | **Build server** | Runs builds/tests for repos. JARVIS and cron trigger it. | This repo: `scripts/build-server.js`, `scripts/install-build-server-launchagent.js` |
 | **Webhook trigger** | Listens for GitHub (or manual) and runs plan-execute. | This repo: `scripts/webhook-trigger-server.js`, port 18791 |
 
-**Flow (simple):**  
-Neural Farm (optional) → **JARVIS gateway** (Mac) ← Cursor / jarvis-ui / Pixel / Discord.  
-Build server and webhook are helpers that the gateway or cron use.
+**Flow (Pixel as server):**  
+**JARVIS gateway** (Pixel) ← Cursor / jarvis-ui / Mac / Discord. Neural Farm (on Pixel or sibling) → gateway.  
+Mac is **not** responsible for JARVIS; it connects to the Pixel. See **PIXEL_AS_JARVIS_SERVER.md**.
 
 ---
 
@@ -44,7 +44,8 @@ You can ignore at first: `clawd/`, `olive-e2e/`, `private_strategy/`, `assets/`,
 | I want to… | Where to go |
 |------------|-------------|
 | **Run the Neural Farm** | Sibling repo: `neural-farm/` → `./dev_farm.sh` or `./farm status`. See neural-farm/README.md. |
-| **Run JARVIS (gateway + optional build server)** | `node scripts/start-jarvis-services.js` or LaunchAgent. Docs: JARVIS_AUTO_START_AND_WATCHDOG.md. |
+| **Run JARVIS on the Pixel (server)** | Pixel runs JARVIS (Termux:Boot + watchdog). **PIXEL_AS_JARVIS_SERVER.md** — Pixel = server, Mac = client. Stable setup: PIXEL_STABLE_ENVIRONMENT.md. |
+| **Run JARVIS on the Mac (optional)** | `node scripts/start-jarvis-services.js` or LaunchAgent. Docs: JARVIS_AUTO_START_AND_WATCHDOG.md. |
 | **Open the chat UI** | `cd apps/jarvis-ui && npm run dev` → http://localhost:3001. |
 | **Use Cursor with the farm** | neural-farm: Base URL `http://localhost:4000/v1`, key `sk-local-farm`, model e.g. gpt-4o-mini. JARVIS_NEURAL_FARM_CURSOR_CHOICES.md. |
 | **Run autonomous plan-execute (daily)** | Cron: `node scripts/add-plan-execute-cron.js` for line, `--add` to append. Script: `jarvis-autonomous-plan-execute.js`. |
@@ -52,7 +53,10 @@ You can ignore at first: `clawd/`, `olive-e2e/`, `private_strategy/`, `assets/`,
 | **See who’s on the team (BEAST MODE, etc.)** | `node scripts/team-status.js` → ~/.jarvis/team-status.json. Skill: `get_team_status` (team-status). |
 | **Run a full release (build → quality → deploy)** | `node scripts/run-autonomous-release.js` (optional `--product`, `--tag`). AUTONOMOUS_RELEASES.md. |
 | **Trigger plan-execute from GitHub push** | Webhook server: `scripts/webhook-trigger-server.js` (port 18791). GITHUB_WEBHOOK_SETUP.md. |
-| **Work on JARVIS on Pixel** | Docs: PIXEL_MAKE_IT_WORK.md, PIXEL_TEST_AND_RUN_OPTIMAL.md. Scripts: `scripts/pixel-*.sh`, `scripts/ssh-pixel*.sh`. |
+| **Work on JARVIS on Pixel** | **Recommended:** From Mac `./scripts/pixel-sync-and-start-proot.sh`; on device `bash ~/JARVIS/scripts/run-jarvis-in-proot.sh`. Docs: PIXEL_PROOT_DISTRO.md, PIXEL_MAKE_IT_WORK.md. |
+| **JARVIS always on Pixel + chat anywhere via Discord** | [PIXEL_ALWAYS_ON_DISCORD.md](./PIXEL_ALWAYS_ON_DISCORD.md): token on Pixel, pairing, Wake lock, Termux:Boot. |
+| **Stable Pixel environment (JARVIS run all the time)** | [PIXEL_STABLE_ENVIRONMENT.md](./PIXEL_STABLE_ENVIRONMENT.md): Termux:Boot, Wake lock, battery Unrestricted, watchdog; [JARVIS_MOBILE_COMPUTE_NODE.md](./JARVIS_MOBILE_COMPUTE_NODE.md) for architecture. |
+| **Pixel = JARVIS server, Mac = client only** | [PIXEL_AS_JARVIS_SERVER.md](./PIXEL_AS_JARVIS_SERVER.md): no Mac gateway; point chat/UI/Cursor at Pixel (Tailscale or Wi‑Fi IP). |
 | **Add or change a skill** | `skills/<name>/` with `index.js` + `skill.json`. See skills/clock or skills/team-status as examples. |
 | **Understand how docs are organized** | **DOCUMENTATION_MAP.md** — start here + by topic (Edge, Olive, Pixel, Vault, UI, …). |
 | **Find any doc by topic** | **REPO_INDEX.md** — key docs table. **DOCUMENTATION_MAP.md** — by topic (Edge, Pixel, JARVIS product, …). |
@@ -63,7 +67,7 @@ You can ignore at first: `clawd/`, `olive-e2e/`, `private_strategy/`, `assets/`,
 ## 4. Docs by theme (no moving files)
 
 - **Start / map:** DOCUMENTATION_MAP.md, REPO_INDEX.md, HANDOFF.md, CURSOR_SESSION_ONBOARDING.md  
-- **Autonomous:** JARVIS_AUTONOMOUS_AGENT.md, JARVIS_AUTONOMOUS_NEXT.md, AUTONOMOUS_RELEASES.md, ORCHESTRATION_SCRIPTS.md  
+- **Autonomous:** JARVIS_FULL_AUTONOMY.md (heartbeat + tasks + creative), JARVIS_AUTONOMOUS_AGENT.md, JARVIS_AUTONOMOUS_NEXT.md, AUTONOMOUS_RELEASES.md, ORCHESTRATION_SCRIPTS.md  
 - **Neural Farm (sibling):** JARVIS_NEURAL_FARM.md, JARVIS_NEURAL_FARM_CURSOR_CHOICES.md  
 - **Pixel / Android:** DOCUMENTATION_MAP.md § “Pixel / Android” (long list); PIXEL_MAKE_IT_WORK.md first.  
 - **Shipping / team:** JARVIS_OWNS_SHIPPING.md, JARVIS_OPTIMAL_TEAM_SETUP.md, JARVIS_AGENT_ORCHESTRATION.md  
@@ -82,7 +86,7 @@ Full topic index: **docs/DOCUMENTATION_MAP.md**.
 | **Autonomous** | jarvis-autonomous-plan-execute.js, jarvis-autonomous-heartbeat.js, run-autonomous-release.js | Same doc |
 | **Team / pipeline** | team-status.js, ensure-team-ready.js, run-team-pipeline.js, run-team-quality.js | Same doc |
 | **Goal / cron** | set-autonomous-goal.js, add-plan-execute-cron.js | Same doc |
-| **Pixel** | ssh-pixel*.sh, pixel-*.sh, start-jarvis-pixel.sh | PIXEL_MAKE_IT_WORK.md, PIXEL_* docs |
+| **Pixel** | pixel-sync-and-start-proot.sh (from Mac), run-jarvis-in-proot.sh (on device); fallback: start-jarvis-pixel.sh | PIXEL_PROOT_DISTRO.md, PIXEL_MAKE_IT_WORK.md |
 | **Webhook / GitHub** | webhook-trigger-server.js, install-webhook-trigger-launchagent.js | GITHUB_WEBHOOK_SETUP.md |
 | **Build** | build-server.js, install-build-server-launchagent.js | JARVIS_BUILD_SERVER.md |
 

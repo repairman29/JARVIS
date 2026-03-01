@@ -97,16 +97,23 @@ function main() {
     } catch (_) {}
   }
 
+  // Proot/Android: ensure gateway child gets os.networkInterfaces patch so it doesn't crash (Discord can then start)
+  const patchPath = path.join(repoRoot, 'scripts', 'patch-proot-network.js');
+  if (fs.existsSync(patchPath)) {
+    const req = `--require ${patchPath}`;
+    env.NODE_OPTIONS = env.NODE_OPTIONS ? `${env.NODE_OPTIONS} ${req}` : req;
+  }
+
   const args = ['clawdbot', 'gateway', 'run', '--allow-unconfigured'];
   if (env.PORT) args.push('--port', env.PORT);
   if (env.PORT && env.BIND_LAN) args.push('--bind', 'lan');
-  const child = spawn('npx', args, {
-    cwd: repoRoot,
-    detached: true,
-    stdio: 'ignore',
-    shell: true,
-    env
-  });
+  // On Proot/Android, ensure NODE_OPTIONS reaches the npx->node child (patch for os.networkInterfaces)
+  const cmd = env.NODE_OPTIONS
+    ? `export NODE_OPTIONS="${String(env.NODE_OPTIONS).replace(/"/g, '\\"')}"; exec npx ${args.map((a) => (a.includes(' ') ? `"${a}"` : a)).join(' ')}`
+    : null;
+  const child = cmd
+    ? spawn('sh', ['-c', cmd], { cwd: repoRoot, detached: true, stdio: 'ignore', env })
+    : spawn('npx', args, { cwd: repoRoot, detached: true, stdio: 'ignore', env });
   child.unref();
   process.exit(0);
 }

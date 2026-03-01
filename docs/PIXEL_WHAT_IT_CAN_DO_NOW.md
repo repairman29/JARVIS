@@ -43,7 +43,7 @@ After unbridling, dual-LLM (Pixel + iPhone), and “Pixel as brain” setup, her
 
 - **True wake word (“Hey JARVIS”) on-device** — Try Termux `pkg install python-onnxruntime`; if it works, voice node uses OpenWakeWord. Else use browser “Listen for Hey JARVIS” at `/voice`, or (optional) Porcupine. See [PIXEL_WAKE_WORD_OPTIONS.md](./PIXEL_WAKE_WORD_OPTIONS.md) and `scripts/pixel-wake-word-setup.sh`.
 - **Gemini Nano** on Tensor G3 — Expose as OpenAI-compatible endpoint via an Android app (HTTP server on localhost → AICore). See [PIXEL_GEMINI_NANO_BRIDGE.md](./PIXEL_GEMINI_NANO_BRIDGE.md).
-- **Proot-Distro** — Full Ubuntu (or other distro) in Termux for glibc parity. See [PIXEL_PROOT_DISTRO.md](./PIXEL_PROOT_DISTRO.md) and `scripts/pixel-proot-setup.sh`.
+- **Proot-Distro** — **Recommended:** JARVIS runs in Proot/Ubuntu by default (boot + one-command start). See [PIXEL_PROOT_DISTRO.md](./PIXEL_PROOT_DISTRO.md) and `scripts/pixel-proot-setup.sh`.
 
 ---
 

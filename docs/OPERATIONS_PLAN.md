@@ -32,6 +32,7 @@ Goal is stored in `~/.jarvis/autonomous-goal.txt` and injected into every plan-e
 - "Ship Olive v2 by Friday"
 - "Close or assign all open JARVIS issues; run BEAST-MODE on focus repo once per run"
 - "Keep focus-repo build green; comment on any PR older than 3 days"
+- "Work focus repo top-down; when slack, do one item from jarvis/CREATIVE_PROJECTS.md (bash, new tool, runbook, or QoL automation)."
 
 ---
 
@@ -57,8 +58,8 @@ If the last report says "No response from Clawdbot", the run failed (gateway or 
 
 So "No response from Clawdbot" doesn’t happen:
 
-1. **Before you leave / after reboot:** Run `node scripts/start-all.js` from JARVIS (starts farm + gateway + build server + webhook if down).
-2. **Farm keeper** (hourly) and **watchdog** (every 5 min) already try to bring farm and gateway back. If you use sleep/hibernate, run `start-all.js` after wake or rely on the next cron.
+1. **Before you leave / after reboot:** If JARVIS runs on the **Mac**, run `node scripts/start-all.js` (starts farm + gateway + build server + webhook if down). If your **JARVIS server is the Pixel**, you don't start the gateway on the Mac; ensure the Pixel is up (Termux:Boot + watchdog). See **PIXEL_AS_JARVIS_SERVER.md**, **PIXEL_STABLE_ENVIRONMENT.md**.
+2. **Farm keeper** (hourly) and **watchdog** (every 5 min) already try to bring farm and gateway back. On the Pixel, the watchdog restarts the Proot stack if the gateway is down. If you use sleep/hibernate on the Mac, run `start-all.js` after wake or rely on the next cron.
 
 ---
 
@@ -81,4 +82,4 @@ So "No response from Clawdbot" doesn’t happen:
 - **Visibility:** Webhook (Discord) + local reports (+ optional ntfy / macOS notify) so you see when JARVIS ran and what it did.
 - **Reliability:** `start-all.js` before you need it; watchdog and farm keeper reduce silent failures.
 
-See **OPERATION_NEXT.md** for reliability and webhook setup; **jarvis/HEARTBEAT.md** for heartbeat rules.
+See **OPERATION_NEXT.md** for reliability and webhook setup; **jarvis/HEARTBEAT.md** for heartbeat rules; **jarvis/TASKS.md** for task buckets and guardrails; **jarvis/CREATIVE_PROJECTS.md** for learning, bash/foundational, and quality-of-life tasks when there's slack. On the **Pixel**, JARVIS starts in Proot by default (termux-boot runs `pixel-proot-bootstrap-and-start.sh`; fallback: `start-jarvis-pixel.sh`). Ensure gateway chat is enabled so heartbeat and plan-execute work; see **JARVIS_AUTONOMOUS_ON_PIXEL.md**.

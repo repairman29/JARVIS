@@ -120,8 +120,9 @@ if [ -d "$JARVIS_DIR/scripts/pixel-stubs" ]; then
   done
 fi
 
-# 9. Start gateway and webhook
-log "Starting gateway (18789, bind lan for browser on device) and webhook (18791)..."
+# 9. Enable gateway chat completions (heartbeat, plan-execute, UI) then start gateway and webhook
+log "Enabling gateway chat completions and starting gateway (18789)..."
+node "$JARVIS_DIR/scripts/enable-gateway-chat-completions.js" 2>/dev/null || true
 cd "$JARVIS_DIR"
 export PORT=18789
 mkdir -p "$PREFIX/tmp" && export TMPDIR="$PREFIX/tmp"
@@ -145,8 +146,9 @@ echo "0 8 * * * HOME=$HOME cd $JARVIS_DIR && node scripts/jarvis-autonomous-plan
 echo "0 14 * * * HOME=$HOME cd $JARVIS_DIR && node scripts/jarvis-autonomous-plan-execute.js >> $PREFIX/plan-execute.log 2>&1" >> "$CRON"
 echo "0 20 * * * HOME=$HOME cd $JARVIS_DIR && node scripts/jarvis-autonomous-plan-execute.js >> $PREFIX/plan-execute.log 2>&1" >> "$CRON"
 echo "0 */6 * * * HOME=$HOME cd $JARVIS_DIR && node scripts/jarvis-autonomous-heartbeat.js >> $PREFIX/heartbeat.log 2>&1" >> "$CRON"
+echo "*/5 * * * * HOME=$HOME bash $JARVIS_DIR/scripts/pixel-watchdog.sh >> $PREFIX/watchdog.log 2>&1" >> "$CRON"
 crontab "$CRON"
-crond -b 2>/dev/null || true
+(nohup crond -n >> "$PREFIX/crond.log" 2>&1 &) 2>/dev/null || true
 
 # Launchers in home so you can run "bash ~/start-jarvis.sh" from anywhere
 echo "cd \"$JARVIS_DIR\" && bash scripts/start-jarvis-pixel.sh" > "$PREFIX/start-jarvis.sh"

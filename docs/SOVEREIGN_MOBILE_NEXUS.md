@@ -22,18 +22,16 @@
 
 ### 2.1 Termux vs Proot-Distro
 
-- **Termux (current JARVIS path):** Native Android env, Bionic libc, `pkg` packages. Works with Node, Python, PulseAudio, Whisper.cpp, termux-api. Some native modules need stubs (e.g. clipboard).
-- **Proot-Distro (optional “sovereign” path):** Full Ubuntu (or other distro) inside Termux via `proot-distro`. Glibc, Debian repos, binary compatibility with desktop Linux. Use when you need exact parity with VPS tutorials or when native Node modules fail in plain Termux.
+- **Proot-Distro (recommended JARVIS path):** Full Ubuntu inside Termux via `proot-distro`. Glibc, Debian repos, binary compatibility with desktop Linux. Boot and one-command start use Proot; no clipboard stubs, real `/tmp`, stable pip/litellm.
+- **Termux (fallback):** Native Android env, Bionic libc, `pkg` packages. Use when Proot isn’t installed, or for voice node (PulseAudio, Whisper.cpp, termux-api). Some native modules need stubs (e.g. clipboard).
 
 ```bash
-# Proot-Distro setup (optional)
-pkg install proot-distro
-proot-distro install ubuntu
-proot-distro login ubuntu
-# Then: apt update, install Node 22, openclaw, etc.
+# Proot-Distro (recommended) — from Mac or after first-time setup on device
+cd ~/JARVIS && ./scripts/pixel-sync-and-start-proot.sh [pixel-ip]
+# On device: bash ~/JARVIS/scripts/run-jarvis-in-proot.sh
 ```
 
-JARVIS today targets **Termux-first**; Proot is documented as an alternative for maximum compatibility.
+JARVIS is **Proot-first** on the Pixel; Termux is fallback and for voice/hybrid.
 
 ### 2.2 Phantom Process Killer (PPK) — full bypass
 

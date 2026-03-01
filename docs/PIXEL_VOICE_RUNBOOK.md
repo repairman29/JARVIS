@@ -318,7 +318,7 @@ proot-distro login ubuntu
 # Then: apt update, install Node, openclaw, etc.
 ```
 
-JARVIS is **Termux-first**; Proot is optional. See [SOVEREIGN_MOBILE_NEXUS.md §2.1](./SOVEREIGN_MOBILE_NEXUS.md#21-termux-vs-proot-distro).
+JARVIS on the Pixel is **Proot-first** (recommended); Termux is fallback and for voice. See [SOVEREIGN_MOBILE_NEXUS.md §2.1](./SOVEREIGN_MOBILE_NEXUS.md#21-termux-vs-proot-distro).
 
 ### Latency (snappier voice)
 

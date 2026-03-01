@@ -4,9 +4,15 @@
 
 ---
 
+## Merge note (multi-agent)
+
+When another agent is running: read this file + `git status`. This session edited: `scripts/start-jarvis-pixel-proot.sh`, `run-jarvis-in-proot.sh`, `pixel-proot-bootstrap-and-start.sh`, `pixel-proot-run.sh`, `pixel-sync-and-start-proot.sh`, `docs/PIXEL_TROUBLESHOOTING.md`. Reconcile any overlapping edits before commit.
+
+---
+
 ## Current state (as of handoff)
 
-- **JARVIS UI** (`apps/jarvis-ui`): Next.js chat UI; runs on port 3001 (`npm run dev`). Uses **Edge** when `NEXT_PUBLIC_JARVIS_EDGE_URL` is set in `.env.local`; otherwise uses local gateway.
+- **JARVIS UI** (`apps/jarvis-ui`): Next.js chat UI; runs on port 3001 (`npm run dev`). Uses **Edge** when `NEXT_PUBLIC_JARVIS_EDGE_URL` is set in `.env.local`; otherwise uses local gateway. **Pixel can be the primary JARVIS server** (Mac = client); see **docs/PIXEL_AS_JARVIS_SERVER.md**, **docs/PIXEL_STABLE_ENVIRONMENT.md**.
 - **Edge Function** (`supabase/functions/jarvis`): Deployed on Supabase. Proxies chat to gateway (Railway or local). **Auth: required in cloud** when `JARVIS_AUTH_TOKEN` is set; **no auth when run locally** (`supabase functions serve`). See **docs/JARVIS_EDGE_AUTH.md**.
 - **Token sync:** UI and Edge must use the same `JARVIS_AUTH_TOKEN` when calling cloud Edge. Run `node scripts/sync-edge-auth-token.js` from repo root, then `supabase functions deploy jarvis` if you change the token in `apps/jarvis-ui/.env.local`.
 - **Message flow / crashes:** API route only forwards as stream when backend returns `text/event-stream`; otherwise returns JSON so the UI can show the reply. Message/chat components guard against non-string content to avoid crashes.
@@ -35,7 +41,7 @@ Paste or adapt:
 
 ## Likely next work (from product plan / roadmap)
 
-- **Done recently:** … **Latest:** jarvis-ui proxy, lint, CI (lint + build + Knip), Knip bot, CodeQL, E2E-on-preview (VERCEL_TOKEN set). **Code quality:** **jarvis/CODE_QUALITY.md** §6 Writing and shipping checklist; **.cursor/rules/code-quality.mdc** (always-on); AGENTS/DEEP_WORK_PRODUCT point to checklist. Validation: jarvis-ui lint ✅, build ✅, knip ✅ (script fixed to use npx).
+- **Done recently:** jarvis-ui proxy, lint, CI (lint + build + Knip), Knip bot, CodeQL, E2E-on-preview (VERCEL_TOKEN set). **Pixel/Proot (this session):** Fixed Proot stack — `lscpu`/scols error (PATH), gateway 000 (HOME=$TERMUX_HOME), gateway logging; added ADB input fallback when RunCommand fails (`pixel-sync-and-start-proot.sh`); §1d in PIXEL_TROUBLESHOOTING. **Code quality:** **jarvis/CODE_QUALITY.md** §6; **.cursor/rules/code-quality.mdc** (always-on).
 - **JARVIS_UI_ROADMAP.md** — Phased UI roadmap; **JARVIS_UI_AUDIT.md** for what’s built. Phase 2–4 items are done; UI ready for `meta.tools_used` when gateway sends it.
 - **Gateway meta** — Gateway can send `meta.tools_used` and `meta.structured_result` for UI 2.6/2.7; see **docs/JARVIS_GATEWAY_META.md** (implementation checklist §6). UI and Edge are ready.
 - **Next:** Vision: Edge merges pasted image into last user message (multimodal); use a vision-capable model in the gateway. Notion MCP alignment when ready. Voice polish if usage justifies (JARVIS_VOICE). Autonomous: add plan-execute to cron (`node scripts/add-plan-execute-cron.js --add`); optional multi-day goal via `node scripts/set-autonomous-goal.js`.

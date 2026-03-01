@@ -31,10 +31,11 @@ const http = require('http');
 
 const { loadEnvFile } = require('./vault.js');
 
-const HEARTBEAT_SYSTEM = `You are JARVIS running an autonomous heartbeat. Follow jarvis/HEARTBEAT.md.
+const HEARTBEAT_SYSTEM = `You are JARVIS running an autonomous heartbeat. Follow jarvis/HEARTBEAT.md and jarvis/TASKS.md. When there's slack, you may do one item from jarvis/CREATIVE_PROJECTS.md (bash/scripting, try one tool, runbook improvement, or quality-of-life automation) and report it.
 
 Rules:
 - Check if there are actionable items (focus repo, open PRs/issues, recent failures, user follow-ups). Use tools as needed: github_status, exec for gh pr list / gh issue list, etc.
+- To read files, use the exec tool with cat (e.g. exec cat jarvis/HEARTBEAT.md). Do NOT call a "read" tool — it does not exist. Only use tools listed in the tool set provided to you.
 - If no actionable items: reply with exactly HEARTBEAT_OK and optionally one short line (e.g. "All clear.").
 - If there are actionable items: reply with HEARTBEAT_REPORT, then 3–5 bullets and a clear next action. Be concise.
 - Keep the reply short (a few lines). No preamble.`;
@@ -313,3 +314,33 @@ main().catch((e) => {
   console.error('jarvis-autonomous-heartbeat failed:', e.message);
   process.exit(1);
 });
+
+/* -----------------------------------------------------------------------------
+ * Helper: ntfy push on HEARTBEAT_REPORT
+ *
+ * When the content contains HEARTBEAT_REPORT (actionable items), send a
+ * higher-priority push via notify-iphone.js so the user gets alerted on iPhone.
+ *
+ * Integration (add after parsing content, before writing reports):
+ *
+ *   const isReport = /HEARTBEAT_REPORT/i.test(content);
+ *   if (isReport && ntfyTopic) {
+ *     try {
+ *       const { notify } = require('./notify-iphone.js');
+ *       const clickUrl = process.env.JARVIS_CLICK_URL || gatewayUrl;
+ *       await notify('JARVIS Report', content.trim(), {
+ *         priority: 'high',
+ *         tags: 'robot,clipboard',
+ *         click: clickUrl,
+ *       });
+ *       console.log('Report pushed to ntfy (HEARTBEAT_REPORT).');
+ *     } catch (e) {
+ *       console.error('ntfy push failed:', e.message);
+ *     }
+ *   }
+ *
+ * The existing postNtfy() above already sends every heartbeat to ntfy when
+ * ntfyTopic is set. This helper shows how to add a *second* notification
+ * with higher priority specifically for HEARTBEAT_REPORT, so actionable
+ * items stand out on the lock screen.
+ * ----------------------------------------------------------------------------- */

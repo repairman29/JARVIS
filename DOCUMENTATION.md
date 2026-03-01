@@ -44,7 +44,8 @@ This document is the **single index** for all project documentation. Use it to f
 | `scripts/start-jarvis-ally.bat` | Start gateway (interactive; double‑click or run from repo). |
 | `scripts/start-jarvis-ally-background.bat` | Start gateway without pause (for Task Scheduler). |
 | `scripts/add-jarvis-to-startup.ps1` | Add “JARVIS ROG Ed” scheduled task at logon. |
-| `scripts/add-discord-alias.js` | Add Discord user ID as session alias so DMs work. |
+| `scripts/add-discord-alias.js` | Add Discord user ID as session alias so DMs work (run after enable-discord-dm-scope + one DM). |
+| `scripts/enable-discord-dm-scope.js` | Set session.dmScope to per-channel-peer so Discord DM replies are delivered; see DISCORD_SETUP.md. |
 | `scripts/create-jarvis-shortcut.ps1` | Create Desktop shortcut to web dashboard. |
 
 ---

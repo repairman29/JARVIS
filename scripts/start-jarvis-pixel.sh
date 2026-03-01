@@ -32,11 +32,20 @@ if [ -f "$CLAWDBOT_ENV" ]; then
   done < "$CLAWDBOT_ENV"
 fi
 
-# Primary adapter (8888): use JARVIS_PIXEL_LLM_URL if set (e.g. InferrLM on another host), else localhost
+# Primary adapter (8888): proxy to InferrLM (8889). Default: Node pass-through proxy so completion content is returned.
+# Set PIXEL_USE_INFERRLM_PROXY=0 to use the Python inferrlm_adapter instead.
 PIXEL_LLM_URL="${JARVIS_PIXEL_LLM_URL:-http://127.0.0.1:8889}"
-echo "Starting adapter (Pixel 8888) → $PIXEL_LLM_URL"
-pkill -f inferrlm_adapter 2>/dev/null || true
-cd "$FARM_DIR" && PIXEL_URL="$PIXEL_LLM_URL" ADAPTER_PORT=8888 FARM_DEV=1 nohup python3 -u inferrlm_adapter.py >> "$PREFIX/adapter.log" 2>&1 &
+if [ "${PIXEL_USE_INFERRLM_PROXY:-1}" = "1" ]; then
+  echo "Starting InferrLM proxy (8888) → $PIXEL_LLM_URL"
+  pkill -f "pixel-inferrlm-proxy" 2>/dev/null || true
+  pkill -f inferrlm_adapter 2>/dev/null || true
+  sleep 1
+  cd "$JARVIS_DIR" && PIXEL_LLM_URL="$PIXEL_LLM_URL" ADAPTER_PORT=8888 nohup node scripts/pixel-inferrlm-proxy.js >> "$PREFIX/inferrlm-proxy.log" 2>&1 &
+else
+  echo "Starting adapter (Pixel 8888) → $PIXEL_LLM_URL"
+  pkill -f inferrlm_adapter 2>/dev/null || true
+  cd "$FARM_DIR" && PIXEL_URL="$PIXEL_LLM_URL" ADAPTER_PORT=8888 FARM_DEV=1 nohup python3 -u inferrlm_adapter.py >> "$PREFIX/adapter.log" 2>&1 &
+fi
 sleep 2
 
 # Optional second adapter when iPhone InferrLM URL is set (Option B: dual backend)
@@ -115,6 +124,8 @@ if [ -d "$STUBS_DIR" ]; then
     fi
   done
 fi
+# Ensure gateway accepts chat completions (heartbeat, plan-execute, UI)
+node "$JARVIS_DIR/scripts/enable-gateway-chat-completions.js" 2>/dev/null || true
 echo "Starting gateway (18789, bind lan so browser and Mac can reach it)..."
 pkill -f "clawdbot gateway" 2>/dev/null || true
 pkill -f "gateway run" 2>/dev/null || true
@@ -125,11 +136,20 @@ export BIND_LAN=1
 # Termux can't write /tmp; use home so clawdbot can mkdir for logs
 mkdir -p "$PREFIX/tmp"
 export TMPDIR="$PREFIX/tmp"
-node scripts/start-gateway-background.js 2>/dev/null || (TMPDIR="$PREFIX/tmp" BIND_LAN=1 nohup npx clawdbot gateway run --allow-unconfigured --port 18789 --bind lan >> "$PREFIX/gateway.log" 2>&1 &)
+CLAWDBOT_BIN=""
+command -v clawdbot >/dev/null 2>&1 && CLAWDBOT_BIN="$(command -v clawdbot)"
+[ -z "$CLAWDBOT_BIN" ] && [ -x "$JARVIS_DIR/node_modules/.bin/clawdbot" ] && CLAWDBOT_BIN="$JARVIS_DIR/node_modules/.bin/clawdbot"
+[ -z "$CLAWDBOT_BIN" ] && CLAWDBOT_BIN="npx clawdbot"
+node scripts/start-gateway-background.js 2>/dev/null || (TMPDIR="$PREFIX/tmp" BIND_LAN=1 nohup $CLAWDBOT_BIN gateway run --allow-unconfigured --port 18789 --bind lan >> "$PREFIX/gateway.log" 2>&1 &)
 sleep 3
 
 echo "Starting webhook (18791)..."
 nohup node scripts/webhook-trigger-server.js >> "$PREFIX/webhook.log" 2>&1 &
+sleep 1
+
+echo "Starting iPhone vision bridge (18792)..."
+pkill -f iphone-vision-bridge 2>/dev/null || true
+nohup node scripts/iphone-vision-bridge.js >> "$PREFIX/vision-bridge.log" 2>&1 &
 sleep 1
 
 echo "Starting chat server (18888) for browser on device..."
@@ -166,6 +186,7 @@ echo ""
 echo ""
 echo "JARVIS is live."
 echo "  Chat:  http://127.0.0.1:18888   Voice: http://127.0.0.1:18888/voice"
+echo "  Vision: http://<this-ip>:18792/vision  (desk iPhone camera node)"
 echo "  Terminal voice: bash ~/JARVIS/scripts/start-voice-node-pixel.sh  (then press Enter to speak)"
 if [ "$1" = "--voice" ]; then
   echo "Starting voice node in background..."

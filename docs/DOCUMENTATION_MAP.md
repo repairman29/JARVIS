@@ -91,6 +91,8 @@ Code: **supabase/functions/jarvis/** (Edge Function), **apps/jarvis-ui/** (UI; `
 | Doc | Use |
 |-----|-----|
 | [PIXEL_MAKE_IT_WORK.md](./PIXEL_MAKE_IT_WORK.md) | **One path to working JARVIS on Pixel:** Termux+Termux:API (F-Droid), sshd, one Mac command (pixel-sync-and-start.sh). Start here. |
+| [PIXEL_SSH_NEXT_STEPS.md](./PIXEL_SSH_NEXT_STEPS.md) | **Novice: after `sshd` in Termux** — get Pixel IP, run setup-ssh-keys-to-pixel.sh, then pixel-do-it-all.sh. Copy-paste steps. |
+| [PIXEL_SERVICES_RUNBOOK.md](./PIXEL_SERVICES_RUNBOOK.md) | **Get Pixel services running:** one-command start, verify gateway/chat, fix Discord no-reply (sessions_send workaround or Mac gateway), always-on. |
 | [PIXEL_TEST_AND_RUN_OPTIMAL.md](./PIXEL_TEST_AND_RUN_OPTIMAL.md) | **Test and run optimally:** get running → test checklist → hardening, swap, voice config, SOUL; quick reference table. |
 | [PIXEL_ONE_PLAN_BADASS_GOD_MODE.md](./PIXEL_ONE_PLAN_BADASS_GOD_MODE.md) | **One plan:** JARVIS on Pixel → Badass → God Mode. Single ordered path; copy-paste steps; use after a clean start or reinstall. |
 | [PIXEL_TROUBLESHOOTING.md](./PIXEL_TROUBLESHOOTING.md) | SSH unreachable, WiFi/location fail, gateway /tmp, permission denied, "no such file" — fixes and inline diagnostics. |
@@ -102,6 +104,8 @@ Code: **supabase/functions/jarvis/** (Edge Function), **apps/jarvis-ui/** (UI; `
 | [PIXEL_PHASES_ONE_BY_ONE.md](./PIXEL_PHASES_ONE_BY_ONE.md) | **Phases 0–9 one by one:** copy-paste checklist per phase (do this → test → next). Use when walking the roadmap stepwise. |
 | [PIXEL_PHASES_MAX_SPEED.md](./PIXEL_PHASES_MAX_SPEED.md) | **Max speed:** minimal steps 1–9 + one-shot SSH script for swap/FIFO/SOUL/cron. |
 | [PIXEL_OPTIONAL_STEPS.md](./PIXEL_OPTIONAL_STEPS.md) | **Optional:** Wakelock (ADB), Tailscale (remote access), SOUL (edit personality). |
+| [PIXEL_TAILSCALE_RUNBOOK.md](./PIXEL_TAILSCALE_RUNBOOK.md) | **JARVIS on Pixel via Tailscale:** one path — install Tailscale, set .pixel-ip to Tailscale IP, use SSH/sync/chat from Mac. |
+| [PIXEL_ALWAYS_ON_DISCORD.md](./PIXEL_ALWAYS_ON_DISCORD.md) | **JARVIS always on Pixel + chat anywhere via Discord:** token on Pixel, pairing, Wake lock, Termux:Boot. |
 | [PIXEL_8_PRO_BADASS.md](./PIXEL_8_PRO_BADASS.md) | One-page max JARVIS on Pixel 8 Pro: one-time hardening, daily startup, voice, optional tweaks. |
 | [PIXEL_GOD_MODE.md](./PIXEL_GOD_MODE.md) | **GOD MODE checklist:** persistent server (ADB, swap, fake standby), RPC/Vulkan, voice DevOps, Cursor/BEAST/Echeo integration. |
 | [PIXEL_VOICE_RUNBOOK.md](./PIXEL_VOICE_RUNBOOK.md) | Exact commands: ADB, PulseAudio, FIFO TTS, Whisper install, voice node, Termux:API/F-Droid, Tailscale/Proot/latency. |
@@ -111,6 +115,7 @@ Code: **supabase/functions/jarvis/** (Edge Function), **apps/jarvis-ui/** (UI; `
 | [JARVIS_ON_ANDROID_COMMUNICATE.md](./JARVIS_ON_ANDROID_COMMUNICATE.md) | Chat and voice from the Pixel (18888, /voice, shortcuts). |
 | [JARVIS_CHAT_FROM_MAC.md](./JARVIS_CHAT_FROM_MAC.md) | **Chat with JARVIS on the Pixel from your Mac:** GUI (jarvis-chat-gui) and CLI (jarvis-chat); how to start, Pixel IP, troubleshooting. |
 | [PIXEL_WIFI_AUTOMATION.md](./PIXEL_WIFI_AUTOMATION.md) | **WiFi automation:** sync/start (pixel-auto-sync-and-start), SSH scripts, logs, diagnose, set env; one-time SSH keys. |
+| [JARVIS_FULL_AUTONOMY.md](./JARVIS_FULL_AUTONOMY.md) | **Full autonomy:** Heartbeat + work without intervention; gateway chat, TASKS.md, CREATIVE_PROJECTS.md, Pixel. |
 | [JARVIS_AUTONOMOUS_ON_PIXEL.md](./JARVIS_AUTONOMOUS_ON_PIXEL.md) | Wake lock, Termux:Boot, cron (plan-execute, heartbeat). |
 | [PIXEL_UNBRIDLE.md](./PIXEL_UNBRIDLE.md) | **Unbridle the Pixel:** One-time ADB PPK bypass (adb-pixel-ppk-bypass.sh), reboot, optional deviceidle whitelist; so Android doesn’t kill the stack. |
 | [PIXEL_AS_BRAIN.md](./PIXEL_AS_BRAIN.md) | **Pixel as the brain:** Keep Wake lock ON, Stay awake when charging (optional), no wakelock release; stack + cron always on. |
@@ -120,7 +125,13 @@ Code: **supabase/functions/jarvis/** (Edge Function), **apps/jarvis-ui/** (UI; `
 | [PIXEL_GEMINI_NANO_BRIDGE.md](./PIXEL_GEMINI_NANO_BRIDGE.md) | **Gemini Nano as LLM endpoint:** Android app exposing OpenAI-compatible /v1/chat/completions on localhost for gateway/router. |
 | [PIXEL_LLM_SPEED_AND_PRIORITY.md](./PIXEL_LLM_SPEED_AND_PRIORITY.md) | **Speed test and chat vs. task priority:** Run pixel-llm-speed-test.js; use PIXEL_LLM_ROUTE=chat-task so chat → Nano, tasks → InferrLM. |
 | [PIXEL_LLM_MODEL_GUIDE.md](./PIXEL_LLM_MODEL_GUIDE.md) | **What each Pixel/InferrLM model is best for:** Gemma 4B for tasks, 1B/Granite for fast chat, VibeThinker for math/code; recommended JARVIS env mapping. |
-| [PIXEL_PROOT_DISTRO.md](./PIXEL_PROOT_DISTRO.md) | **Proot-Distro:** Full Ubuntu (or other distro) in Termux for glibc parity; when to use; run JARVIS inside Proot. |
+| [PIXEL_INFERRLM_MODEL_INSTALL.md](./PIXEL_INFERRLM_MODEL_INSTALL.md) | **Put a model on the Pixel and test:** In-app download or use `pixel-push-inferrlm-model.sh` to download + push Gemma 1B/4B GGUF, then load in InferrLM and run speed test. |
+| [PIXEL_LITELLM_VS_INFERRLM.md](./PIXEL_LITELLM_VS_INFERRLM.md) | **LiteLLM vs InferrLM:** InferrLM runs the models (8889); adapter (8888) wraps it; LiteLLM (4000) is an optional proxy that forwards to 8888. When to use which. |
+| [PIXEL_PROOT_DISTRO.md](./PIXEL_PROOT_DISTRO.md) | **Proot-Distro (recommended):** JARVIS on Pixel runs in Proot/Ubuntu by default; one-command start; **from Mac:** `pixel-sync-and-start-proot.sh` (SSH or ADB). Termux is fallback. |
+| [PIXEL_AS_JARVIS_SERVER.md](./PIXEL_AS_JARVIS_SERVER.md) | **Pixel = JARVIS server, Mac = client:** No gateway on Mac; point chat/UI/Cursor at Pixel (Tailscale or Wi‑Fi). Discord and skills run on the Pixel. |
+| [PIXEL_STABLE_ENVIRONMENT.md](./PIXEL_STABLE_ENVIRONMENT.md) | **Stable / always-on:** Termux:Boot, Wake lock, battery Unrestricted, watchdog every 5 min; verification and ONE FIX. Use so JARVIS runs all the time. |
+| [JARVIS_MOBILE_COMPUTE_NODE.md](./JARVIS_MOBILE_COMPUTE_NODE.md) | **Mobile compute node architecture:** Five-layer stack (Hardware → Termux+Proot → AI → Dev → Tailscale); deployment phases; Pixel as server; links to stable-environment runbook. |
+| [PIXEL_LINUX_DUAL_BOOT_INVESTIGATION.md](./PIXEL_LINUX_DUAL_BOOT_INVESTIGATION.md) | **Linux on Pixel 8 Pro:** Investigation (Feb 2026) — native/dual-boot status (postmarketOS husky/shiba, Ubuntu Touch, MultiROM), Tensor G3 limits; practical options (Termux+proot, Google Terminal). |
 | [SOUL_AND_PERSONA.md](./SOUL_AND_PERSONA.md) | Where SOUL/persona lives (workspace, ~/.jarvis/SOUL.md), voice system_prompt_file. |
 | [SOUL_TEMPLATE.md](./SOUL_TEMPLATE.md) | Copy to ~/.jarvis/SOUL.md for JARVIS identity and constraints. |
 

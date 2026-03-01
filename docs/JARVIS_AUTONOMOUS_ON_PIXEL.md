@@ -2,6 +2,8 @@
 
 JARVIS is "running" when the stack is up (adapter, proxy, gateway, webhook). It's **autonomous** when plan-execute and heartbeat run on a schedule without you opening Termux, and (optionally) you get notifications and the stack survives reboots.
 
+**Full heartbeat and work without intervention:** The gateway must accept `POST /v1/chat/completions` so the autonomous scripts can call the agent. **start-jarvis-pixel.sh** (and setup-jarvis-termux.sh) now run **`node scripts/enable-gateway-chat-completions.js`** before starting the gateway, so chat is enabled automatically. After that, cron runs plan-execute (8:00, 14:00, 20:00) and heartbeat (every 6h); JARVIS follows **jarvis/HEARTBEAT.md**, **jarvis/TASKS.md**, and when there's slack **jarvis/CREATIVE_PROJECTS.md** (learning, bash, quality of life, stay modern).
+
 ---
 
 ## Already in place (from setup)
@@ -69,6 +71,10 @@ node scripts/set-autonomous-goal.js "Your one-line goal, e.g. Ship Olive v2 by F
 ```
 
 Goal is stored in `~/.jarvis/autonomous-goal.txt` and injected into every plan-execute. Change or clear it anytime with the same script (`--clear` to remove).
+
+**Example goals that include creative/learning work:**
+- "Work focus repo top-down; when slack, do one item from CREATIVE_PROJECTS (bash, one new tool, or one runbook improvement)."
+- "Ship and triage; spend one run per day on a foundational or quality-of-life task (see jarvis/CREATIVE_PROJECTS.md)."
 
 ---
 

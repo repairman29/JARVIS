@@ -80,6 +80,20 @@ See [jarvis-gemini-nano-bridge/README.md](../jarvis-gemini-nano-bridge/README.md
 
 ---
 
+## How to run Nano (quick steps)
+
+1. **Build and install the bridge** (from Mac):  
+   `cd ~/JARVIS && bash jarvis-gemini-nano-bridge/setup-android-build.sh` then  
+   `adb install -r jarvis-gemini-nano-bridge/app/build/outputs/apk/debug/app-debug.apk`
+2. **On the Pixel:** Open the **JARVIS Gemini Bridge** app and tap **Start bridge**. Leave it in the foreground or minimized; it will show “Listening” and bind `127.0.0.1:8890`.
+3. **Start the JARVIS stack with the router** so the gateway uses Nano for chat. On the Pixel (Termux):  
+   `export JARVIS_GEMINI_NANO_BRIDGE=1 && bash ~/JARVIS/scripts/start-jarvis-pixel.sh`  
+   Or add to `~/.clawdbot/.env`: `JARVIS_GEMINI_NANO_BRIDGE=1` then run `start-jarvis-pixel.sh` as usual.
+4. The **router (18890)** will send chat to Nano (8890) and tasks to InferrLM (8888). Confirm with:  
+   `curl -s http://127.0.0.1:8890/v1/models` (from Pixel) or run `node scripts/pixel-llm-speed-test.js`.
+
+---
+
 ## Integrating with JARVIS on the Pixel
 
 1. **Build and install** the bridge app on the Pixel; start the app (or its foreground service) so it listens on `127.0.0.1:8890`.

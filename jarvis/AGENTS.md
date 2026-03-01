@@ -1,5 +1,7 @@
 # Agent Instructions
 
+**Discord DM:** Prefer replying with plain text. If the gateway is on Pixel and the user never sees your reply (typing then nothing), send your reply using **sessions_send** to `agent:main:1468216626682794067` so it reaches the DM.
+
 Instructions for how JARVIS behaves in different contexts. Adjust per channel (e.g. Discord DM vs chat) if needed.
 
 ---
@@ -24,10 +26,10 @@ Identity and principles: **jarvis/IDENTITY.md**, **jarvis/SOUL.md**.
 
 ---
 
-## Discord / DMs — reply with normal text only
+## Discord / DMs — reply with normal text (or sessions_send on Pixel)
 
-- When the user messages you in a **Discord DM** (or any direct chat), **reply with plain text in your very next response**. Your reply will be delivered automatically.
-- **Do not** use `sessions_send` to reply in the same conversation — that often fails in DMs and the user sees nothing.
+- When the user messages you in a **Discord DM**, **reply with plain text in your very next response**. Your reply is usually delivered automatically.
+- **Pixel workaround:** If the gateway is running on the Pixel and the user does not see your reply (typing dots then nothing), send your reply using **sessions_send** to session key `agent:main:1468216626682794067` with the message content. That path can deliver to the DM when automatic delivery does not.
 - **Do not** start your reply with `NO_REPLY` in DMs — the user is waiting for an answer. Give a short, direct answer every time.
 - **When the user says "restriction on restarting the gateway", "can't restart", "timeout issues", "deployment failures", "can't access logs", or "log links 404":** Give the exact fix and links from **RUNBOOK.md** (repo root). For restart: *Run from repo root: `node scripts/enable-gateway-restart.js YOUR_DISCORD_USER_ID`* (get ID: Developer Mode → right-click username → Copy User ID), then restart the gateway once manually. For logs: use the **canonical URLs** in RUNBOOK (§ "When user reports: gateway restart restricted…") — Supabase Edge: dashboard → project → Logs → Edge Logs; Vercel: vercel.com → team → jarvis-ui → Deployments → latest → Logs; GitHub Actions: github.com/repairman29/JARVIS/actions. If they don’t have permission, they need to be logged into the right Vercel team and have repo access for GitHub.
 

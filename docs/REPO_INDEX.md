@@ -31,6 +31,8 @@ Quick reference for where things live and what to use.
 | Doc | Use |
 |-----|-----|
 | **docs/ONE_PAGE_MAP.md** | **Project got big?** One page: nodes (Neural Farm, JARVIS, Pixel, Olive), folder cheat sheet, "I want to…" table, docs/scripts by theme. Start here if lost. |
+| **docs/PIXEL_AS_JARVIS_SERVER.md** | **Pixel = JARVIS server, Mac = client:** No gateway on Mac; point chat/UI/Cursor at Pixel (Tailscale or Wi‑Fi). Use when JARVIS runs on the Pixel. |
+| **docs/PIXEL_STABLE_ENVIRONMENT.md** | **Stable Pixel (always-on):** Termux:Boot, Wake lock, battery Unrestricted, watchdog; verify cron; when stack is down (on-device first). |
 | **docs/JARVIS_PRODUCT_PLAN.md** | **JARVIS in one place:** vision, tracks (Windows/ROG, UI, modes, Edge/MCP, showcase), current state, next 6–12 months, references. Start here for “what’s the plan?” |
 | **docs/PREMIUM_CLARITY.md** | **Modes, premium skills, Yellow/Hot Rod:** Blue vs Yellow vs Hot Rod; how to get Yellow or Hot Rod; where premium skills live (showcase). |
 | **docs/JARVIS_GATEWAY_META.md** | **Gateway: how to send meta** — tools_used, structured_result (non-stream and streaming) for UI 2.6/2.7. |

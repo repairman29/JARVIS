@@ -12,8 +12,12 @@ termux-wake-lock
 # Give system a moment to be ready
 sleep 5
 
-# Start cron (plan-execute + heartbeat schedule)
-crond -b 2>/dev/null || true
+# Start cron (plan-execute + heartbeat schedule). cronie uses -n for foreground; run in background.
+(nohup crond -n >> "$HOME/crond.log" 2>&1 &) 2>/dev/null || true
 
-# Start adapter, proxy, gateway, webhook
-bash "$HOME/JARVIS/scripts/start-jarvis-pixel.sh" >> "$HOME/jarvis-boot.log" 2>&1
+# Start JARVIS in Proot (Ubuntu). Fallback: start-jarvis-pixel.sh if Proot not available.
+if [ -f "$HOME/JARVIS/scripts/pixel-proot-bootstrap-and-start.sh" ]; then
+  bash "$HOME/JARVIS/scripts/pixel-proot-bootstrap-and-start.sh" >> "$HOME/jarvis-boot.log" 2>&1
+else
+  bash "$HOME/JARVIS/scripts/start-jarvis-pixel.sh" >> "$HOME/jarvis-boot.log" 2>&1
+fi

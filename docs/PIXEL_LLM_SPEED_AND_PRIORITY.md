@@ -99,23 +99,20 @@ The chat server and gateway usually send `openclaw:main`, so this is only useful
 
 ---
 
-## InferrLM: multiple models, one default
+## InferrLM: which model runs
 
-InferrLM can load several models, but the **app only has one "default" model** at a time. You can still get different behavior for chat vs. tasks:
+InferrLM can have one or more models available; which one is used may be set in the **app** (Load model → pick GGUF → set as default) or, in builds that support it, via **API** (e.g. `POST /models/load` or the `model` field in chat requests).
 
 1. **Use chat–task routing (recommended)**  
    Set `PIXEL_LLM_ROUTE=chat-task` and `PIXEL_LLM_TERTIARY=http://127.0.0.1:8890`.  
-   - **Chat** → Gemini Nano (8890), so InferrLM's default doesn't matter for quick replies.  
-   - **Tasks** → primary (8888) = InferrLM. Set the **default model in the InferrLM app** to the model you want for tasks (e.g. the larger or more capable one).
+   - **Chat** → Gemini Nano (8890).  
+   - **Tasks** → primary (8888) = InferrLM. Set the **model in the InferrLM app** (or via API if available) to the one you want for tasks (e.g. 4B).
 
-2. **Try per-request model (if InferrLM supports it)**  
-   Some OpenAI-style APIs accept a `model` field in the request body. If InferrLM's server does that, set:
-   - `PIXEL_LLM_PRIMARY_CHAT_MODEL` — model name for chat when sent to primary (e.g. fallback when Nano is down).
-   - `PIXEL_LLM_PRIMARY_TASK_MODEL` — model name for task requests to InferrLM.  
-   The router overwrites the request body `model` when forwarding to primary (8888). Use the exact model IDs InferrLM exposes. If InferrLM ignores the field, only the app default applies.
+2. **Per-request model (if supported)**  
+   If your InferrLM version honors the `model` field in the request body, set `PIXEL_LLM_PRIMARY_CHAT_MODEL` and `PIXEL_LLM_PRIMARY_TASK_MODEL` so the router sends the right model for chat vs tasks. On one device we tested, the server used only the currently loaded model regardless of the request `model` field; your build may differ.
 
 3. **Single backend**  
-   If you don't use Nano, set InferrLM's default in the app to the model you want JARVIS to use for everything.
+   If you don't use Nano, set InferrLM's active model in the app (or via API) to the one you want JARVIS to use for everything.
 
 ---
 
@@ -127,6 +124,6 @@ InferrLM can load several models, but the **app only has one "default" model** a
 | **Chat = fast, tasks = capable** | `PIXEL_LLM_ROUTE=chat-task` and `PIXEL_LLM_TERTIARY=http://127.0.0.1:8890`; bridge app running. |
 | **Everything on one backend** | `PIXEL_LLM_ROUTE=primary` and `PIXEL_LLM_PRIMARY` to the desired URL. |
 | **Spread load** | `PIXEL_LLM_ROUTE=round-robin` (default). |
-| **InferrLM: different model for tasks** | Set default in InferrLM app to your task model; use chat-task so chat → Nano. Optionally set `PIXEL_LLM_PRIMARY_TASK_MODEL` (and `PIXEL_LLM_PRIMARY_CHAT_MODEL`) if InferrLM’s API honors the `model` field. |
+| **InferrLM: different model for tasks** | Set the active model in InferrLM app (or via API if your build supports it); use chat-task so chat → Nano. Optionally set `PIXEL_LLM_PRIMARY_TASK_MODEL` if the server honors the request `model` field. |
 
 See [PIXEL_LLM_MODEL_GUIDE.md](./PIXEL_LLM_MODEL_GUIDE.md) for what each model is best for and recommended JARVIS mapping, [PIXEL_DUAL_LLM_BACKEND.md](./PIXEL_DUAL_LLM_BACKEND.md) for router env vars, and [PIXEL_GEMINI_NANO_BRIDGE.md](./PIXEL_GEMINI_NANO_BRIDGE.md) for the Nano bridge.

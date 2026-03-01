@@ -6,8 +6,11 @@ Short guide to the models you have on the Pixel (InferrLM + Gemini Nano) and how
 
 ## Model summaries (Pixel InferrLM)
 
-| Model ID | Best for | Notes |
-|----------|----------|--------|
+The **actual loaded model** is whatever you selected in InferrLM (Chat → Load model). The adapter reports it at `GET http://127.0.0.1:8888/v1/models` and in each completion’s `model` field (often the GGUF filename). The app may show a shorter display name (e.g. “Qwen 2.5 3B”) than the filename.
+
+| Model ID (API / filename) | Best for | Notes |
+|---------------------------|----------|--------|
+| **Qwen2.5-3B-Instruct-Q4_K_M.gguf** | **Chat, tasks, Q&A** | 3B params, 4-bit (Q4_K_M). Good balance of speed and capability. May appear in the app as “Qwen 2.5 3B” or similar. |
 | **gemma-3-4b-it-Q4_K_M.gguf** | **Tasks, reasoning, Q&A, summarization** | 4B params, 128K context; strong instruction-following and function calling. Best balance of capability vs. size on device. Use for plan-execute, skills, tool use. |
 | **Gemma 3 Instruct - 1B** | **Fast chat, simple Q&A** | Small, fast (~2.8s in tests). Good for quick replies, smart-reply style, simple document Q&A. Use when Nano is down or for low-latency InferrLM fallback. |
 | **Granite 4.0 Helper 1B** | **Fast chat, tool-calling, edge** | IBM 1.5B; built for edge/low-latency and agentic workflows (tool use). Fast inference. Good for quick tool decisions or fast chat. |

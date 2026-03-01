@@ -61,7 +61,43 @@ If you get "Permission denied" or "No such file" on that path, grant the permiss
 - Ensure the Pixel and your Mac are on the **same Wi‑Fi**.
 - If the Pixel’s IP changed, run the script with the IP:  
   `bash scripts/ssh-pixel-run-all.sh 192.168.86.XXX`  
-  (Find IP on Pixel: Settings → Network → Wi‑Fi → your network, or in Termux: `ip addr show wlan0`.)
+  (Find IP on Pixel: Settings → Wi‑Fi → your network, or in Termux: `ifconfig wlan0 | grep inet` — if you see "cannot bind netlink socket", use Settings or `ifconfig`.)
+
+---
+
+## 1b. "Cannot bind netlink socket" in Termux
+
+**Cause:** On Android 13+, the `ip` command (iproute2) can’t open a netlink socket — it’s a sandbox restriction, not a bug in your setup.
+
+**What to do:** Ignore the message for SSH. It doesn’t stop sshd or SSH from working.
+
+- **To get your Pixel IP:** Use **Settings → Network & internet → Wi‑Fi → tap your network** and read the IP, or in Termux run `ifconfig wlan0 | grep inet` instead of `ip addr show wlan0`.
+- **If something else fails:** The netlink error is usually only from `ip`. Use `ifconfig` for interface info, or get the IP from phone settings.
+
+---
+
+## 1c. Gateway (18789) shows 000 or LiteLLM "No module named litellm"
+
+**Cause:** In Termux, the gateway may bind only to localhost or exit (SIGTERM); and `python3 -m litellm` often fails (no module or "package cannot be directly executed"). That’s why we prefer Proot.
+
+**Fix:** Run the stack in **Proot** instead of Termux (Proot has working pip/litellm and a real `/tmp`). From the Mac:
+```bash
+cd ~/JARVIS && bash scripts/pixel-sync-and-start-proot.sh 192.168.86.209 --restart
+```
+That stops the Termux stack and starts it in Proot (Ubuntu). On the Pixel, Chrome → http://127.0.0.1:18888. If Proot isn’t installed yet, the first run installs it; then re-run the command above.
+
+---
+
+## 1d. Proot: "CANNOT LINK EXECUTABLE lscpu" / "scols_line_vprintf" or Gateway/Proxy 000
+
+**Cause:** (1) Proot inherits Termux PATH, so `lscpu` finds Termux's binary (built for different libc) and fails. (2) Proot default `HOME=/root` — gateway looks for `~/.clawdbot` in `/root` but config lives in Termux home.
+
+**Fix:** Scripts now set `PATH=/usr/local/bin:/usr/bin:/bin:$PATH` and `HOME=$TERMUX_HOME` when entering Proot. If you still see Gateway (18789): 000 or Proxy (4000): 000:
+
+1. **InferrLM app:** Ensure it's **ON** (port 8889). The adapter needs it.
+2. **Gateway logs:** On the Pixel in Termux: `tail -50 ~/gateway.log` (or `/root/gateway.log` if HOME wasn't fixed). Look for `Error`, `EADDRINUSE`, or `networkInterfaces`.
+3. **Proxy (LiteLLM):** `tail -50 ~/litellm.log`. If litellm isn't installed, the gateway falls back to adapter at 8888 — chat can still work.
+4. **Re-push and restart:** `cd ~/JARVIS && bash scripts/pixel-push-env-to-pixel.sh --restart` from Mac.
 
 ---
 
@@ -150,6 +186,14 @@ If you still see "not installed", the start script will try a one-time `python3 
    ```
    Look for `Error:`, `Cannot find module`, or `EADDRINUSE`. If the file is missing or empty, the process may have exited immediately.
 
+---
+
+## 4c. Chat returns empty / no text from model (completion content blank)
+
+**Cause:** The Python InferrLM adapter (8888) sometimes returns HTTP 200 but with empty `choices[0].message.content`.
+
+**Fix:** The start script now defaults to a **Node pass-through proxy** (8888 → 8889) so the response body from InferrLM is forwarded unchanged. Restart the stack: `bash ~/JARVIS/scripts/start-jarvis-pixel.sh`. If you had set `PIXEL_USE_INFERRLM_PROXY=0`, remove it or set `PIXEL_USE_INFERRLM_PROXY=1` in `~/.clawdbot/.env`. To confirm: from the Pixel, `curl -s -X POST http://127.0.0.1:8888/v1/chat/completions -H "Content-Type: application/json" -d '{"messages":[{"role":"user","content":"Say hi"}],"stream":false}'` should include non-empty `"content"` in the JSON.
+
 3. **Is the script on the device?**
    ```bash
    ls -la ~/JARVIS/scripts/pixel-chat-server.js
@@ -203,4 +247,17 @@ Then start the stack on the Pixel: `bash ~/JARVIS/scripts/start-jarvis-pixel.sh`
 
 ---
 
-**See also:** [PIXEL_VOICE_RUNBOOK.md](./PIXEL_VOICE_RUNBOOK.md), [PIXEL_TEST_CHECKLIST.md](./PIXEL_TEST_CHECKLIST.md), [TERMUX_INSTALL_OFFICIAL.md](./TERMUX_INSTALL_OFFICIAL.md).
+## 7. Termux keeps failing (gateway /tmp, pip, native modules)
+
+**Option:** Run the stack inside **Proot** (Ubuntu in Termux) for standard glibc, writable `/tmp`, and one Python/pip. See [PIXEL_PROOT_DISTRO.md](./PIXEL_PROOT_DISTRO.md).
+
+**From the Mac (automated, SSH or ADB):**  
+`cd ~/JARVIS && ./scripts/pixel-sync-and-start-proot.sh`  
+This pushes JARVIS, installs Proot+Ubuntu and deps if needed, and starts the stack. Use `--restart` to force restart if already up.
+
+**On the Pixel (Termux):**  
+`bash ~/JARVIS/scripts/pixel-proot-bootstrap-and-start.sh` (or `run-jarvis-in-proot.sh` if already set up). Voice node: run `start-voice-node-pixel.sh` in a separate Termux session.
+
+---
+
+**See also:** [PIXEL_VOICE_RUNBOOK.md](./PIXEL_VOICE_RUNBOOK.md), [PIXEL_TEST_CHECKLIST.md](./PIXEL_TEST_CHECKLIST.md), [TERMUX_INSTALL_OFFICIAL.md](./TERMUX_INSTALL_OFFICIAL.md), [PIXEL_PROOT_DISTRO.md](./PIXEL_PROOT_DISTRO.md).

@@ -13,7 +13,7 @@
 | **Edge** | `NEXT_PUBLIC_JARVIS_EDGE_URL` is set (e.g. deployed app) | Browser → **Supabase Edge** → Edge calls **one gateway** (URL from Edge secret `JARVIS_GATEWAY_URL`) |
 | **Direct gateway** | `NEXT_PUBLIC_JARVIS_EDGE_URL` is not set (e.g. local dev) | Browser → **gateway** at `NEXT_PUBLIC_GATEWAY_URL` (default `http://127.0.0.1:18789`) |
 
-So when you use the **deployed web app**, chat goes: **Web UI → Edge → whatever gateway is in `JARVIS_GATEWAY_URL`**. That gateway is usually **Railway** or **your Mac** (a gateway you run), not the Pixel, unless you explicitly set it to a URL that reaches the Pixel.
+So when you use the **deployed web app**, chat goes: **Web UI → Edge → whatever gateway is in `JARVIS_GATEWAY_URL`**. That gateway is usually **Railway** or **your Mac** (a gateway you run). If **the Pixel is your JARVIS server**, set `JARVIS_GATEWAY_URL` (or local UI's gateway URL) to a URL that reaches the Pixel (e.g. Tailscale IP); see **PIXEL_AS_JARVIS_SERVER.md**.
 
 ### 2. Pixel/iPhone farm (the “farm”)
 

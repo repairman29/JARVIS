@@ -102,11 +102,41 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (req.method === 'POST' && req.url && req.url.startsWith('/webhook/location')) {
+    const chunks = [];
+    req.on('data', (chunk) => chunks.push(chunk));
+    req.on('end', () => {
+      let payload = {};
+      try { payload = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch (_) {}
+      const urlPath = req.url.split('?')[0];
+      const event = urlPath.endsWith('/arrive') ? 'arrive' : urlPath.endsWith('/leave') ? 'leave' : 'unknown';
+      const location = payload.location || 'unknown';
+      const ts = new Date().toISOString();
+      console.error(`[location] ${ts} event=${event} location=${location}`);
+
+      try {
+        const { notify } = require('./notify-iphone.js');
+        const icon = event === 'arrive' ? 'house' : 'walking';
+        const title = event === 'arrive' ? `Arrived: ${location}` : `Left: ${location}`;
+        notify(title, `JARVIS noted at ${new Date().toLocaleTimeString()}`, { tags: icon, priority: 'low' }).catch(() => {});
+      } catch (_) {}
+
+      if (event === 'arrive' && (location.toLowerCase().includes('office') || location.toLowerCase().includes('home'))) {
+        triggerPlanExecute();
+      }
+
+      respond(res, 200, { ok: true, event, location, ts });
+    });
+    return;
+  }
+
   respond(res, 404, { error: 'Not found' });
 });
 
-server.listen(PORT, '127.0.0.1', () => {
-  console.error('Webhook trigger server on http://127.0.0.1:' + PORT);
-  console.error('  POST /trigger-plan  — trigger plan-execute');
-  console.error('  POST /webhook/github — GitHub webhook (set GITHUB_WEBHOOK_SECRET to verify)');
+server.listen(PORT, '0.0.0.0', () => {
+  console.error('Webhook trigger server on http://0.0.0.0:' + PORT);
+  console.error('  POST /trigger-plan       — trigger plan-execute');
+  console.error('  POST /webhook/github     — GitHub webhook');
+  console.error('  POST /webhook/location/arrive — location arrive event');
+  console.error('  POST /webhook/location/leave  — location leave event');
 });

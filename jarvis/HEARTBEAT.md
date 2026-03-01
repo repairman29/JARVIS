@@ -3,6 +3,8 @@
 Short checklist for periodic heartbeat runs. Keep this file tiny to avoid token burn.
 Heartbeat should **drive production**: check queues, launch subagents, and advance shipping.
 
+**Task sets:** See **TASKS.md** (production buckets, guardrails, response rules). **CREATIVE_PROJECTS.md** (learning, bash/foundational, quality of life, stay modern) — when there’s slack, pick one item and report it.
+
 **Automated brief:** Run `node scripts/heartbeat-brief.js` (or schedule via cron). Runs safety net, builds a short brief, and posts to `JARVIS_ALERT_WEBHOOK_URL` or `DISCORD_WEBHOOK_URL`. Use `--no-webhook` to run checks only; `--json` for JSON output.
 
 **Autonomous agent heartbeat:** Run `node scripts/jarvis-autonomous-heartbeat.js` (or schedule via cron). Calls the gateway so JARVIS (farm + tools) runs this checklist and replies with HEARTBEAT_OK or HEARTBEAT_REPORT. See **docs/JARVIS_AUTONOMOUS_AGENT.md**.
@@ -21,6 +23,7 @@ Heartbeat should **drive production**: check queues, launch subagents, and advan
 ## Optional
 - [ ] Summarize system health if performance-monitor is enabled
 - [ ] Suggest one quick win (e.g. "Run CLI test", "Trigger workflow", "Draft PRD")
+- [ ] **When slack:** One item from CREATIVE_PROJECTS.md (bash/scripting, try one new tool, one runbook improvement, or one quality-of-life automation). Report in HEARTBEAT_REPORT.
 
 ## Response rule
 - If **no actionable items**: reply **HEARTBEAT_OK**

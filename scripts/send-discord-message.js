@@ -7,6 +7,7 @@
  * Usage:
  *   node scripts/send-discord-message.js <channel_id> <message>
  *   node scripts/send-discord-message.js --list-channels   # list channels in first guild
+ *   node scripts/send-discord-message.js --dm <user_id> <message>   # DM a user (creates DM channel)
  *   CHANNEL_ID=123 node scripts/send-discord-message.js "Hello from script"
  */
 
@@ -58,6 +59,22 @@ async function main() {
   }
 
   const args = process.argv.slice(2);
+  if (args[0] === '--dm') {
+    const userId = args[1];
+    const content = args.slice(2).join(' ');
+    if (!userId || !content) {
+      console.error('Usage: node scripts/send-discord-message.js --dm <user_id> <message>');
+      process.exit(1);
+    }
+    const dmChannel = await request('POST', 'https://discord.com/api/v10/users/@me/channels', token, {
+      recipient_id: userId,
+    });
+    await request('POST', `https://discord.com/api/v10/channels/${dmChannel.id}/messages`, token, {
+      content: String(content),
+    });
+    console.log('JARVIS: DM sent to user', userId);
+    return;
+  }
   if (args[0] === '--list-channels') {
     const guilds = await request('GET', 'https://discord.com/api/v10/users/@me/guilds', token);
     if (!guilds.length) {

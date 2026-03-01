@@ -105,6 +105,12 @@ The bot token is valid (REST API works) but the **Gateway WebSocket** to Discord
 
 ---
 
+## Interactions Endpoint URL (leave blank)
+
+In **Bot** you may see **Interactions Endpoint URL** (e.g. `whatever.local/api/interactions`). **Leave it blank.** JARVIS/Clawdbot connects to Discord via the **Gateway** (WebSocket) to receive messages and reply. The interactions endpoint is for receiving HTTP POSTs (e.g. slash commands) at your own URL and is not used.
+
+---
+
 ## 2. Enable intents
 
 In **Bot** → **Privileged Gateway Intents**, turn on:
@@ -208,15 +214,28 @@ After adding the alias, send another DM; the bot should be able to reply. If you
 
 ---
 
-## If the bot never replies in DMs
+## If the bot never replies in DMs (typing dots, then nothing)
 
-If the bot receives your message but you never get a reply, the agent may be using **sessions_send** to reply to the same conversation. That path uses an "announce" step that can fail or be skipped, so nothing gets sent.
+Two causes and fixes:
 
-**Fix:** In your **workspace** (e.g. `~/jarvis`), add to `AGENTS.md` under a section like "Replying in the current conversation":
+**1. Session key / delivery context (most likely)**  
+With the default `session.dmScope: "main"`, all DMs use the session key `agent:main:main`. The gateway may not associate the completed run with the Discord channel (e.g. logs show `sessionKey=unknown`), so the reply is never sent.
+
+**Fix:** Use **per-channel-peer** so each Discord DM gets its own session key (`agent:main:YOUR_DISCORD_USER_ID`) with Discord delivery context. Then link that key to the main session so you keep one conversation.
+
+1. Run: **`node scripts/enable-discord-dm-scope.js`** (sets `session.dmScope: "per-channel-peer"` in `~/.clawdbot/clawdbot.json`).
+2. Restart the gateway.
+3. Send **one DM** to the bot so the gateway creates the key with Discord delivery context.
+4. Run: **`node scripts/add-discord-alias.js YOUR_DISCORD_USER_ID`** so that key shares the main session (same thread). Restart the gateway again.
+
+**2. Agent using sessions_send**  
+If the agent uses **sessions_send** to reply in the same conversation, that path can fail and nothing is sent.
+
+**Fix:** In your **workspace** (e.g. `jarvis/`), ensure `AGENTS.md` says to reply with normal text, not `sessions_send`, in the current conversation. Example:
 
 - When replying in a **direct message** or the conversation you are in, **reply with normal text** in your message. Do **not** use the `sessions_send` tool for the same conversation—that is for other sessions only. Your normal text reply will be delivered automatically.
 
-After saving `AGENTS.md`, restart the gateway (`clawdbot gateway restart`) and try again.
+After saving `AGENTS.md`, restart the gateway and try again.
 
 ---
 

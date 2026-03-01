@@ -2,6 +2,8 @@
 
 One place for: Neural Farm + JARVIS (gateway, build server, webhook).
 
+**If your JARVIS server is the Pixel** (see **docs/PIXEL_AS_JARVIS_SERVER.md**), you don't need to start the gateway on the Mac. Ensure the Pixel is up (Termux:Boot + watchdog); use the Mac as a client pointing at the Pixel's IP. The commands below are for when you run JARVIS on the Mac (or in addition to the Pixel).
+
 ---
 
 ## One command (recommended)

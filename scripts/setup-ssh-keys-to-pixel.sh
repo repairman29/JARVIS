@@ -11,9 +11,14 @@ CACHE_FILE="$SCRIPT_DIR/../.pixel-ip"
 PORT="8022"
 USER="${TERMUX_USER:-u0_a310}"
 
-# Pixel IP
+# Pixel IP (pass as first arg, or we use .pixel-ip, or default)
 PIXEL_IP="${1:-$(cat "$CACHE_FILE" 2>/dev/null | tr -d '\r\n \t')}"
-[ -z "$PIXEL_IP" ] && PIXEL_IP="192.168.86.209"
+if [ -z "$PIXEL_IP" ]; then
+  PIXEL_IP="192.168.86.209"
+  echo "Using default Pixel IP: $PIXEL_IP (pass your IP as first arg if different)"
+  echo "  To find Pixel IP: check phone Settings → Wi-Fi → your network, or in Termux run  ifconfig wlan0 | grep 'inet '"
+  echo ""
+fi
 
 # Ensure we have a key on the Mac
 KEY=""
@@ -31,8 +36,10 @@ echo "Copying to $USER@$PIXEL_IP port $PORT (enter your Termux password when pro
 echo "If it fails, on the Pixel run once:  mkdir -p ~/.ssh && chmod 700 ~/.ssh"
 ssh-copy-id -i "$KEY" -p "$PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$USER@$PIXEL_IP"
 
+echo "$PIXEL_IP" > "$CACHE_FILE" 2>/dev/null || true
+
 echo ""
-echo "Done. From now on these will work without a password:"
+echo "Done. From now on these will work without a password (IP saved to .pixel-ip):"
 echo "  ./scripts/ssh-pixel-logs-full.sh"
 echo "  ./scripts/ssh-pixel-start-jarvis.sh"
 echo "  ./scripts/ssh-pixel-diagnose.sh"

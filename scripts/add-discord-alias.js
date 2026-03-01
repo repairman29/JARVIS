@@ -37,8 +37,23 @@ if (!data[keyMain]) {
   process.exit(1);
 }
 
+// If alias already exists (e.g. gateway created it when user DMed with dmScope per-channel-peer),
+// merge: use main's session so they share the same thread, keep alias's delivery context (Discord).
 if (data[keyAlias]) {
-  console.log('Alias already exists for Discord ID', discordId);
+  const existing = data[keyAlias];
+  data[keyAlias] = {
+    ...existing,
+    sessionId: data[keyMain].sessionId,
+    sessionFile: data[keyMain].sessionFile,
+  };
+  try {
+    fs.writeFileSync(sessionsPath, JSON.stringify(data, null, 2), 'utf8');
+  } catch (e) {
+    console.error('Failed to write sessions.json:', e.message);
+    process.exit(1);
+  }
+  console.log('Updated alias agent:main:' + discordId + ' to use main session (same thread); kept Discord delivery context.');
+  console.log('Restart the gateway and send another DM to the bot.');
   process.exit(0);
 }
 

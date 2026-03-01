@@ -27,9 +27,11 @@
   The pair port and connect port are **not** the same. Using the connect port in `adb pair` causes “protocol fault”.
   **Or** use the script (it will prompt for pair port, code, connect port):
   ```bash
-  cd ~/JARVIS && bash scripts/pixel-adb-pair-and-connect.sh 100.75.3.115 <pair_port> <code> <connect_port>
+  cd ~/JARVIS && bash scripts/pixel-adb-wireless-unbridle.sh 192.168.86.209 <pair_port> <code> <connect_port>
   ```
-  (Replace with your IP; get pair_port/code from the pairing dialog, connect_port from the main screen. Tailscale example: `... 36775 446966 39457`.)
+  (Use your **Wi‑Fi IP** (e.g. 192.168.86.209); get pair_port/code from the pairing dialog, connect_port from the main screen.)
+  **ADB over Tailscale (100.x.x.x)** often fails with "protocol fault" or "Operation not permitted". Use the same Wi‑Fi (192.168.x.x) for pairing and PPK bypass.
+  **If `adb connect` fails** after pairing, run `adb devices` — the Pixel may still appear as `adb-XXXX._adb-tls-connect._tcp`. Use that serial: `ADB_SERIAL=adb-XXXX._adb-tls-connect._tcp bash scripts/adb-pixel-ppk-bypass.sh`.
   **The port(s) change after every reboot.** After reboot, run `adb connect <ip>:<new-connect-port>` (no need to pair again unless you revoked authorizations).
 
   **Multiple devices or one target:** Use the serial so ADB targets the Pixel:
